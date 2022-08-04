@@ -152,6 +152,8 @@ class Compound {
     async getFallbackPrice(market) {
         const oracleAddress = await this.comptroller.methods.oracle().call()
         const oracleContract = new this.web3.eth.Contract(Addresses.compoundOracleAbi, oracleAddress)
+
+        this.oracleContract = oracleContract
     
         console.log("getFallbackPrice", oracleAddress, market)
         return await oracleContract.methods.getUnderlyingPrice(market).call()
@@ -239,6 +241,33 @@ class Compound {
 
         console.log("init prices: tvl ", fromWei(tvl.toString()), " total borrows ", fromWei(this.totalBorrows.toString()),
                 "cf ", JSON.stringify(this.collateralFactors), "liquidation incentive ", this.liquidationIncentive)
+    }
+
+    async initPricesQuickly() {
+        console.log("get markets")
+        const markets = this.markets
+        
+        console.log("get oracle")
+        const oracleAddress = this.oracleContract.options.address
+        const oracleContract = this.oracleContract
+
+        const calls = []
+        for(const market of markets) {
+            const call = {}
+            call["target"] = oracleAddress
+            call["callData"] = oracleContract.methods.getUnderlyingPrice(market).encodeABI()
+
+            calls.push(call)
+        }
+
+        const priceResults = await this.multicall.methods.tryAggregate(true, calls).call()  
+        console.log({priceResults})      
+        for(let i = 0 ; i < priceResults.length ; i++) {
+            console.log("decoding")
+            const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)            
+
+            this.prices[markets[i]] = toBN(price)
+        }
     }
 
 
