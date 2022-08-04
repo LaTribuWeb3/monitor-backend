@@ -30,7 +30,7 @@ async function retry(fn, params, retries = 0) {
 }
 
 class Compound {
-    constructor(compoundInfo, network, web3, heavyUpdateInterval = 24) {
+    constructor(compoundInfo, network, web3, dumpFileName, heavyUpdateInterval = 24) {
       this.web3 = web3
       this.network = network
       this.comptroller = new web3.eth.Contract(Addresses.comptrollerAbi, compoundInfo[network].comptroller)
@@ -70,7 +70,9 @@ class Compound {
       this.closeFactor = 0.0
 
       this.totalAssetBorrow = {}
-      this.totalAssetCollateral = {}      
+      this.totalAssetCollateral = {}
+      
+      this.dumpFileName = dumpFileName
     }
 
     getData() {
@@ -92,7 +94,7 @@ class Compound {
             "users" : JSON.stringify(this.users)
         }   
         try {
-            fs.writeFileSync("data.json", JSON.stringify(result));
+            fs.writeFileSync(this.dumpFileName, JSON.stringify(result));
         } catch (err) {
             console.error(err);
         } 
@@ -263,11 +265,12 @@ class Compound {
         const priceResults = await this.multicall.methods.tryAggregate(true, calls).call()  
         console.log({priceResults})      
         for(let i = 0 ; i < priceResults.length ; i++) {
-            console.log("decoding")
             const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)            
 
             this.prices[markets[i]] = toBN(price)
         }
+
+        this.lastUpdateTime = Math.floor(+new Date() / 1000)
     }
 
 
@@ -442,13 +445,4 @@ class Compound {
   }
 
 module.exports = Compound
-
-
-async function test() {
-    const web3 = new Web3("https://mainnet.aurora.dev")
-    const comp = new Compound(Addresses.aurigamiAddress, "NEAR", web3)
-    await comp.main(true)
- }
-
- test()
 
