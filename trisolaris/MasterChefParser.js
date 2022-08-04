@@ -298,7 +298,7 @@ async function test() {
                                       pair.version === 1 ? Addresses.triMasterChefV1Info : Addresses.triMasterChefV2Info,
                                       "NEAR",
                                       web3)
-        master.main(false)    
+        master.main(true)    
     }
  }
 
