@@ -203,6 +203,31 @@ class Vesta {
         console.log("init prices: cf ", JSON.stringify(this.collateralFactors), "liquidation incentive ", this.liquidationIncentive)
     }
 
+    async initPricesQuickly() {
+        console.log("get markets")
+        const markets = this.assets
+        
+        console.log("get oracle")
+        const oracleAddress = this.priceFeed.options.address
+        const oracleContract = this.priceFeed
+
+        const calls = []
+        for(const market of markets) {
+            const call = {}
+            call["target"] = oracleAddress
+            call["callData"] = oracleContract.methods.fetchPrice(market).encodeABI()
+
+            calls.push(call)
+        }
+
+        const priceResults = await this.multicall.methods.tryAggregate(true, calls).call()  
+        for(let i = 0 ; i < priceResults.length ; i++) {
+            const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)            
+
+            this.prices[markets[i]] = toBN(price)
+        }        
+    }
+
     async initBProtocol() {
         for(let i = 0 ; i < this.assets.length ; i++) {
             const bammAddress = await this.gelatoKeeper.methods.bamms(i).call()
