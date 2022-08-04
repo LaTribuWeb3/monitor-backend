@@ -68,6 +68,9 @@ class Compound {
       this.decimals = {}
       this.underlying = {}
       this.closeFactor = 0.0
+
+      this.totalAssetBorrow = {}
+      this.totalAssetCollateral = {}      
     }
 
     getData() {
@@ -83,7 +86,9 @@ class Compound {
             "collateralCaps" : JSON.stringify(this.collateralCaps),
             "decimals" : JSON.stringify(this.decimals),
             "underlying" : JSON.stringify(this.underlying),
-            "closeFactor" : JSON.stringify(this.closeFactor),            
+            "closeFactor" : JSON.stringify(this.closeFactor),
+            "totalBorrows" : JSON.stringify(this.totalAssetBorrow),
+            "totalCollateral" : JSON.stringify(this.totalAssetCollateral),                        
             "users" : JSON.stringify(this.users)
         }   
         try {
@@ -220,6 +225,9 @@ class Compound {
 
             console.log("getting market borrows")            
             borrows = await ctoken.methods.totalBorrows().call()
+
+            this.totalAssetBorrow[market] = toBN(borrows)
+            this.totalAssetCollateral[market] = toBN(borrows).add(toBN(balance))
 
             const _1e18 = toBN(toWei("1"))
             tvl = tvl.add(  (toBN(balance)).mul(toBN(price)).div(_1e18)  )
