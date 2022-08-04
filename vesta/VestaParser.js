@@ -38,6 +38,8 @@ class Vesta {
       this.vestaParameters = new web3.eth.Contract(Addresses.vestaParametersAbi, Addresses.vestaParametersAddress)
       this.multiTroveGetter = new web3.eth.Contract(Addresses.multiTroveGetterAbi, Addresses.multiTroveGetterAddress)
       this.troveManager = new web3.eth.Contract(Addresses.troveManagerAbi, Addresses.vestaTroveManagerAddress)
+      this.vst = new web3.eth.Contract(Addresses.erc20Abi, Addresses.vstAddress)
+      this.gelatoKeeper = new web3.eth.Contract(Addresses.gelatoKeeperAbi, Addresses.gelatoKeeperAddress)
 
       this.blockStepInInit = 3000
       this.multicallSize = 200
@@ -63,17 +65,10 @@ class Vesta {
       this.decimals = {}
       this.underlying = {}
       this.closeFactor = 0.0
-    }
-
-    async initPrices() {
-        console.log("get price feed address")
-        const priceFeedAddress = await this.vestaParameters.methods.priceFeed().call()
-        this.priceFeed = new this.web3.eth.Contract(Addresses.priceFeedAbi, priceFeedAddress)
-
-        for(const asset of this.assets) {
-            const price = await this.priceFeed.methods.fetchPrice(asset).call()
-            this.prices[asset] = toBN(price)
-        }
+      this.stabilityPoolVstBalance = {}
+      this.stabilityPoolGemBalance = {}
+      this.bprotocolVstBalance = {}      
+      this.bprotocolGemBalance = {}
     }
 
     getData() {
@@ -89,7 +84,11 @@ class Vesta {
             "collateralCaps" : JSON.stringify(this.collateralCaps),
             "decimals" : JSON.stringify(this.decimals),
             "underlying" : JSON.stringify(this.underlying),
-            "closeFactor" : JSON.stringify(this.closeFactor),            
+            "closeFactor" : JSON.stringify(this.closeFactor),
+            "stabilityPoolVstBalance" : JSON.stringify(this.stabilityPoolVstBalance),
+            "stabilityPoolGemBalance" : JSON.stringify(this.stabilityPoolGemBalance),
+            "bprotocolVstBalance" : JSON.stringify(this.bprotocolVstBalance),
+            "bprotocolGemBalance" : JSON.stringify(this.bprotocolGemBalance),                        
             "users" : JSON.stringify(this.users)
         }   
         try {
@@ -120,6 +119,7 @@ class Vesta {
     async main(onlyOnce = false) {
         try {
             await this.initPrices()
+            await this.initBProtocol()
                         
             const currBlock = await this.web3.eth.getBlockNumber() - 10
             const currTime = (await this.web3.eth.getBlock(currBlock)).timestamp
@@ -147,6 +147,10 @@ class Vesta {
         const priceFeedAddress = await this.vestaParameters.methods.priceFeed().call()
         this.priceFeed = new this.web3.eth.Contract(Addresses.priceFeedAbi, priceFeedAddress)
 
+        console.log("get stability pool manager address")
+        const stabilityPoolManagerAddress = await this.troveManager.methods.stabilityPoolManager().call()
+        this.stabilityPoolManager = new this.web3.eth.Contract(Addresses.stabilityPoolManagerAbi, stabilityPoolManagerAddress)
+
         for(const market of this.assets) {
             console.log({market})
 
@@ -165,12 +169,18 @@ class Vesta {
             this.borrowCaps[market] = await this.vestaParameters.methods.vstMintCap(market).call()
             this.collateralCaps[market] = "0"
 
+            const stabilitypoolAddress = await this.stabilityPoolManager.methods.getAssetStabilityPool(market).call()
+            console.log("getting vst balance of stability pool")
+            this.stabilityPoolVstBalance[market] = toBN(await this.vst.methods.balanceOf(stabilitypoolAddress).call())
             console.log("getting market balance")
+            
 
             if(market === "0x0000000000000000000000000000000000000000") {
                 this.decimals[market] = 18
                 this.underlying[market] = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
                 this.names[market] = "ETH"
+
+                this.stabilityPoolGemBalance[market] = toBN(await this.web3.eth.getBalance(stabilitypoolAddress))
             }
             else {
                 console.log("getting underlying")
@@ -179,7 +189,9 @@ class Vesta {
                 this.decimals[market] = Number(await token.methods.decimals().call())
                 this.underlying[market] = underlying
                 console.log("getting market name start")
-                this.names[market] = await token.methods.symbol().call()    
+                this.names[market] = await token.methods.symbol().call()
+
+                this.stabilityPoolGemBalance[market] = toBN(await token.methods.balanceOf(stabilitypoolAddress).call())                
             }
 
             const price = await this.priceFeed.methods.fetchPrice(market).call()
@@ -189,6 +201,24 @@ class Vesta {
         }
 
         console.log("init prices: cf ", JSON.stringify(this.collateralFactors), "liquidation incentive ", this.liquidationIncentive)
+    }
+
+    async initBProtocol() {
+        for(let i = 0 ; i < this.assets.length ; i++) {
+            const bammAddress = await this.gelatoKeeper.methods.bamms(i).call()
+            console.log({bammAddress})
+            const bammContract = new this.web3.eth.Contract(Addresses.bammAbi, bammAddress)
+            
+            const market = await bammContract.methods.collateral().call()
+            const gemBalance = await bammContract.methods.getCollateralBalance().call()
+            const spAddress = await bammContract.methods.SP().call()
+            const sp = new this.web3.eth.Contract(Addresses.stabilityPoolAbi, spAddress)
+            const vstBalance = await sp.methods.getCompoundedVSTDeposit(bammAddress).call()
+
+            this.bprotocolGemBalance[market] = toBN(gemBalance)
+            this.bprotocolVstBalance[market] = toBN(vstBalance)
+            console.log("bprotocol", i, market, "collateral (wei)", gemBalance.toString(10), "vst ($)", fromWei(vstBalance.toString(10)))
+        }
     }
 
     async collectAllUsers() {
