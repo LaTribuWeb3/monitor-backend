@@ -113,13 +113,14 @@ class MasterChef {
 
             // don't  increase cntr, this way if heavy update is needed, it will be done again next time
             console.log("sleeping", this.mainCntr++)
+            
+            console.log("============================")
+            console.log(this.getData())
+            
         }
         catch(err) {
             console.log("main failed", {err})
         }
-
-        console.log("============================")
-        console.log(this.getData())
 
         if(! onlyOnce) setTimeout(this.main.bind(this), 1000 * 60 * 60) // sleep for 1 hour
     }
