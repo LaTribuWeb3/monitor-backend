@@ -39,6 +39,7 @@ class Vesta {
       this.multiTroveGetter = new web3.eth.Contract(Addresses.multiTroveGetterAbi, Addresses.multiTroveGetterAddress)
       this.troveManager = new web3.eth.Contract(Addresses.troveManagerAbi, Addresses.vestaTroveManagerAddress)
       this.vst = new web3.eth.Contract(Addresses.erc20Abi, Addresses.vstAddress)
+      this.frax = new web3.eth.Contract(Addresses.erc20Abi, Addresses.fraxAddress)      
       this.gelatoKeeper = new web3.eth.Contract(Addresses.gelatoKeeperAbi, Addresses.gelatoKeeperAddress)
 
       this.blockStepInInit = 3000
@@ -69,6 +70,8 @@ class Vesta {
       this.stabilityPoolGemBalance = {}
       this.bprotocolVstBalance = {}      
       this.bprotocolGemBalance = {}
+      this.curveFraxBalance = 0.0
+      this.curveVstBalance = 0.0
     }
 
     getData() {
@@ -88,7 +91,9 @@ class Vesta {
             "stabilityPoolVstBalance" : JSON.stringify(this.stabilityPoolVstBalance),
             "stabilityPoolGemBalance" : JSON.stringify(this.stabilityPoolGemBalance),
             "bprotocolVstBalance" : JSON.stringify(this.bprotocolVstBalance),
-            "bprotocolGemBalance" : JSON.stringify(this.bprotocolGemBalance),                        
+            "bprotocolGemBalance" : JSON.stringify(this.bprotocolGemBalance),
+            "curveFraxBalance" : JSON.stringify(this.curveFraxBalance),
+            "curveVstBalance" : JSON.stringify(this.curveVstBalance),            
             "users" : JSON.stringify(this.users)
         }   
         try {
@@ -199,6 +204,9 @@ class Vesta {
 
             console.log(market, price.toString(), fromWei(collateralFactor), this.names[market])
         }
+
+        this.curveFraxBalance = Number(fromWei(await this.frax.methods.balanceOf(Addresses.curveVstFraxPoolAddress).call()))
+        this.curveVstBalance = Number(fromWei(await this.vst.methods.balanceOf(Addresses.curveVstFraxPoolAddress).call()))
 
         console.log("init prices: cf ", JSON.stringify(this.collateralFactors), "liquidation incentive ", this.liquidationIncentive)
     }

@@ -42,7 +42,8 @@ const vestaTroveManagerAddress = "0x100EC08129e0FD59959df93a8b914944A3BbD5df"
 const vstAddress = "0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17"
 const gelatoKeeperAddress = "0xDdcAF169cE7d42f8D486DF5582Da8D0aC48E0323"
 
-
+const curveVstFraxPoolAddress = "0x59bF0545FCa0E5Ad48E13DA269faCD2E8C886Ba4"
+const fraxAddress = "0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F"
 
 const multicallAddress = { "ETH" : "0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696", "BSC" : "0xcb6E2F66DF0493b4dD23ac7727D1677D1208b697",
     "AVAX" : "0xcb6E2F66DF0493b4dD23ac7727D1677D1208b697",
@@ -55,5 +56,6 @@ module.exports = {
     vestaParametersAbi, multiTroveGetterAbi, priceFeedAbi, troveManagerAbi,
     stabilityPoolManagerAbi, gelatoKeeperAbi, bammAbi, stabilityPoolAbi,
     multiTroveGetterAddress, vestaParametersAddress, vestaTroveManagerAddress,
-    multicallAddress, vstAddress, gelatoKeeperAddress
+    multicallAddress, vstAddress, gelatoKeeperAddress, curveVstFraxPoolAddress,
+    fraxAddress
 }
