@@ -60,7 +60,7 @@ class Compound {
       this.borrowCaps = {}
       this.collateralCaps = {}
       this.names = {}
-      this.liquidationIncentive = 0.0
+      this.liquidationIncentive = {}
       this.lastUpdateTime = 0
       this.users = {}
       this.prices = {}
@@ -81,7 +81,7 @@ class Compound {
             "markets" : JSON.stringify(this.markets),
             "prices" : JSON.stringify(this.prices),
             "lastUpdateTime" : this.lastUpdateTime,
-            "liquidationIncentive" : this.liquidationIncentive,
+            "liquidationIncentive" : JSON.stringify(this.liquidationIncentive),
             "collateralFactors" : JSON.stringify(this.collateralFactors),
             "names" : JSON.stringify(this.names),
             "borrowCaps" : JSON.stringify(this.borrowCaps),
@@ -179,13 +179,15 @@ class Compound {
         let tvl = toBN("0")
         let totalBorrows = toBN("0")
 
-        this.liquidationIncentive = fromWei(await this.comptroller.methods.liquidationIncentiveMantissa().call())
+        const liquidationIncentive = fromWei(await this.comptroller.methods.liquidationIncentiveMantissa().call())
 
         for(const market of this.markets) {
             let price
             let balance
             let borrows
             console.log({market})
+
+            this.liquidationIncentive[market] = liquidationIncentive
 
             const ctoken = new this.web3.eth.Contract(Addresses.cTokenAbi, market)
             console.log("getting market data")
