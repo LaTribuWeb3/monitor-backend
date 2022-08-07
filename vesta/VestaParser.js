@@ -53,6 +53,7 @@ class Vesta {
                      "0xDBf31dF14B66535aF65AaC99C32e9eA844e14501",
                      "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
                      "0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55"]
+      this.markets = this.assets
 
       this.collateralFactors = {}
       this.borrowCaps = {}
@@ -62,7 +63,6 @@ class Vesta {
       this.lastUpdateTime = 0
       this.users = {}
       this.prices = {}
-      this.markets = []
       this.decimals = {}
       this.underlying = {}
       this.closeFactor = 0.0
@@ -70,6 +70,8 @@ class Vesta {
       this.stabilityPoolGemBalance = {}
       this.bprotocolVstBalance = {}      
       this.bprotocolGemBalance = {}
+      this.totalCollateral = {}
+      this.totalBorrows = {}
       this.curveFraxBalance = 0.0
       this.curveVstBalance = 0.0
     }
@@ -93,7 +95,9 @@ class Vesta {
             "bprotocolVstBalance" : JSON.stringify(this.bprotocolVstBalance),
             "bprotocolGemBalance" : JSON.stringify(this.bprotocolGemBalance),
             "curveFraxBalance" : JSON.stringify(this.curveFraxBalance),
-            "curveVstBalance" : JSON.stringify(this.curveVstBalance),            
+            "curveVstBalance" : JSON.stringify(this.curveVstBalance),
+            "totalCollateral" : JSON.stringify(this.totalCollateral),
+            "totalBorrows" : JSON.stringify(this.totalBorrows),                        
             "users" : JSON.stringify(this.users)
         }   
         try {
@@ -203,6 +207,9 @@ class Vesta {
             this.prices[market] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(this.decimals[market]))))            
 
             console.log(market, price.toString(), fromWei(collateralFactor), this.names[market])
+
+            this.totalCollateral[market] = "0"
+            this.totalBorrows[market] = "0"
         }
 
         this.curveFraxBalance = Number(fromWei(await this.frax.methods.balanceOf(Addresses.curveVstFraxPoolAddress).call()))
@@ -300,9 +307,13 @@ class Vesta {
         
                     const userKey = user + "_" + market
 
-                    users[userKey] = {"assets" : [market], "borrowBalances" : [toBN(debt)],
-                                  "collateralBalances" : [toBN(coll)],
-                                  "succ" : troveResult.succ}                    
+                    const borrowBalances = {}
+                    const collateralBalances = {}
+                    borrowBalances[market] = toBN(debt)
+                    collateralBalances[market] = toBN(coll)
+                    users[userKey] = {"assets" : [market], borrowBalances,
+                                      collateralBalances,
+                                      "succ" : troveResult.succ}                    
                 }
 
                 if(results.length < count) break
