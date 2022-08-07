@@ -57,6 +57,8 @@ class MasterChef {
 
       this.totalSupply = 0
       this.balances = {}
+
+      this.finishedOnce = false
     }
 
     getData() {
@@ -71,6 +73,7 @@ class MasterChef {
         }
         try {
             fs.writeFileSync("data_" + this.name + ".json", JSON.stringify(result));
+            this.finishedOnce = true
         } catch (err) {
             console.error(err);
         } 
@@ -272,6 +275,11 @@ class MasterChef {
 
 module.exports = MasterChef
 
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
 
 async function test() {
     /*
@@ -291,6 +299,7 @@ async function test() {
     ]
 
     const web3 = new Web3("https://mainnet.aurora.dev")
+    const masters = []
 
     for(const pair of pairs) {
         const master = new MasterChef(pair.name,
@@ -298,8 +307,23 @@ async function test() {
                                       pair.version === 1 ? Addresses.triMasterChefV1Info : Addresses.triMasterChefV2Info,
                                       "NEAR",
                                       web3)
-        master.main(true)    
+
+        masters.push(master)                                      
+        master.main(false)
     }
+
+    while(true) {
+        let allDone = true
+        for(const master of masters) {
+            if(! master.finishedOnce) allDone = false
+        }
+
+        if(allDone) break;
+
+        await sleep(1000 * 10)
+    }
+
+    fs.writeFileSync("status.txt", "done")
  }
 
  test()
