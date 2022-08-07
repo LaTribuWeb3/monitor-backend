@@ -160,6 +160,11 @@ class Vesta {
         const stabilityPoolManagerAddress = await this.troveManager.methods.stabilityPoolManager().call()
         this.stabilityPoolManager = new this.web3.eth.Contract(Addresses.stabilityPoolManagerAbi, stabilityPoolManagerAddress)
 
+        this.decimals[Addresses.vstAddress] = 18
+        this.underlying[Addresses.vstAddress] = Addresses.vstAddress
+        this.names[Addresses.vstAddress] = "VST"
+        this.prices[Addresses.vstAddress] = toBN(toWei("1"))
+
         for(const market of this.assets) {
             console.log({market})
 
@@ -311,9 +316,11 @@ class Vesta {
 
                     const borrowBalances = {}
                     const collateralBalances = {}
-                    borrowBalances[market] = toBN(debt)
+                    borrowBalances[Addresses.vstAddress] = toBN(debt)
+                    borrowBalances[market] = toBN("0")                    
                     collateralBalances[market] = toBN(coll).mul(decimalsFactor).div(toBN(toWei("1")))
-                    users[userKey] = {"assets" : [market], borrowBalances,
+                    collateralBalances[Addresses.vstAddress] = toBN("0")
+                    users[userKey] = {"assets" : [market, Addresses.vstAddress], borrowBalances,
                                       collateralBalances,
                                       "succ" : troveResult.succ}                    
                 }
