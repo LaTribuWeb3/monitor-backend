@@ -304,13 +304,15 @@ class Vesta {
                     const params = this.web3.eth.abi.decodeParameters(paramsType, troveResult.returnData)
                     const debt = params[1]
                     const coll = params[2]
+
+                    const decimalsFactor = toBN(10).pow(toBN(this.decimals[market]))
         
                     const userKey = user + "_" + market
 
                     const borrowBalances = {}
                     const collateralBalances = {}
                     borrowBalances[market] = toBN(debt)
-                    collateralBalances[market] = toBN(coll)
+                    collateralBalances[market] = toBN(coll).mul(decimalsFactor).div(toBN(toWei("1")))
                     users[userKey] = {"assets" : [market], borrowBalances,
                                       collateralBalances,
                                       "succ" : troveResult.succ}                    
