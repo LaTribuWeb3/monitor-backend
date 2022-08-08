@@ -71,6 +71,8 @@ async function readPairEventsUniV3(token0, token1, fee, startBlock, endBlock, fi
     const pair = new web3.eth.Contract(Addresses.uniswapV3PairAbi, pairAddress)
     const firstToken = await pair.methods.token0().call()
     const secondToken = await pair.methods.token1().call()
+
+    console.log({pairAddress}, startBlock, endBlock)
     //console.log("pair address 3", pairAddress)
     //console.log(endBlock - startBlock)
     const events = await pair.getPastEvents("Swap",
@@ -133,7 +135,7 @@ async function getHistoricalData(token0, token1, isSushi, fee, numMonths, output
 
         //console.log(realStart, realEnd)
         if(isSushi) await readPairEventsSushi(token0, token1, realStart, realEnd, outputFileName)
-        else await readPairEventsUniV3(token0, token1, fee, startBlock, endBlock, outputFileName)
+        else await readPairEventsUniV3(token0, token1, fee, realStart, realEnd, outputFileName)
     }
 }
 
@@ -196,5 +198,6 @@ async function test() {
 }
 //test()
 
-getCSVHistoricalData(Addresses.wethArbitrum, Addresses.dpxArbitrum, true, 0, 3, "orisushi")
-//getCSVHistoricalData(Addresses.wethArbitrum, Addresses.gmxArbitrum, false, 10000, 3, "oriv3")
+getCSVHistoricalData(Addresses.wethArbitrum, Addresses.daiArbitrum, false, 3000, 3, "oriv3Dai.csv")
+//getCSVHistoricalData(Addresses.wethArbitrum, Addresses.dpxArbitrum, true, 0, 3, "orisushi.csv")
+//getCSVHistoricalData(Addresses.wethArbitrum, Addresses.gmxArbitrum, false, 10000, 3, "oriv3.csv")
