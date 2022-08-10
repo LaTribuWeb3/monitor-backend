@@ -212,7 +212,14 @@ async function findBlockInTheDessert(web3, targetTimestamp, startBlock, endBlock
     else return findBlockInTheDessert(web3, targetTimestamp, pivotBlock, endBlock)
 }
 
-getCSVHistoricalData(Addresses.daiAddress, Addresses.ohmAddress, true, 0, 3, "ohm-dai-mainnet.csv", web3Eth)
-getCSVHistoricalData(Addresses.wethArbitrum, Addresses.daiArbitrum, false, 3000, 3, "eth-dai-arbitrum.csv", web3Arbitrum)
-getCSVHistoricalData(Addresses.wethArbitrum, Addresses.dpxArbitrum, true, 0, 3, "eth-dpx-arbitrum.csv", web3Arbitrum)
-getCSVHistoricalData(Addresses.wethArbitrum, Addresses.gmxArbitrum, false, 10000, 3, "eth-gmx-arbitrum.csv", web3Arbitrum)
+
+async function slow() {
+    const fn = (...args) => getCSVHistoricalData(...args)
+
+    await retry(fn, [Addresses.daiAddress, Addresses.ohmAddress, true, 0, 3, "ohm-dai-mainnet.csv", web3Eth])
+    await retry(fn, [Addresses.wethArbitrum, Addresses.daiArbitrum, false, 3000, 3, "eth-dai-arbitrum.csv", web3Arbitrum])
+    await retry(fn, [Addresses.wethArbitrum, Addresses.dpxArbitrum, true, 0, 3, "eth-dpx-arbitrum.csv", web3Arbitrum])
+    await retry(fn, [Addresses.wethArbitrum, Addresses.gmxArbitrum, false, 10000, 3, "eth-gmx-arbitrum.csv", web3Arbitrum])
+}
+
+slow()
