@@ -43,7 +43,7 @@ class Vesta {
       this.gelatoKeeper = new web3.eth.Contract(Addresses.gelatoKeeperAbi, Addresses.gelatoKeeperAddress)
 
       this.blockStepInInit = 3000
-      this.multicallSize = 200
+      this.multicallSize = 100
 
       this.lastUpdateBlock = 18543000
 
@@ -140,13 +140,14 @@ class Vesta {
 
             // don't  increase cntr, this way if heavy update is needed, it will be done again next time
             console.log("sleeping", this.mainCntr++)
+
+            console.log("============================")
+            console.log(this.getData())            
         }
         catch(err) {
             console.log("main failed", {err})
         }
 
-        console.log("============================")
-        console.log(this.getData())
 
         if(! onlyOnce) setTimeout(this.main.bind(this), 1000 * 60 * 60) // sleep for 1 hour
     }
@@ -240,7 +241,7 @@ class Vesta {
             calls.push(call)
         }
 
-        const priceResults = await this.multicall.methods.tryAggregate(true, calls).call()  
+        const priceResults = await this.multicall.methods.tryAggregate(true, calls).call({gas:200e6})  
         for(let i = 0 ; i < priceResults.length ; i++) {
             const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)            
 
@@ -337,7 +338,7 @@ module.exports = Vesta
 
 
 async function test() {
-    const web3 = new Web3("https://rpc.ankr.com/arbitrum")
+    const web3 = new Web3("https://arb1.arbitrum.io/rpc")
     const vesta = new Vesta(web3 ,"ARBITRUM")
 
     /*
