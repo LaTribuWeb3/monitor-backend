@@ -366,7 +366,7 @@ class Aave {
 module.exports = Aave
 
 async function test() {
-    const web3 = new Web3("https://godwoken-testnet-v1.ckbapp.dev")
+    const web3 = new Web3("https://v1.mainnet.godwoken.io/rpc")
     const aave = new Aave(Addresses.hadoukenAddress, "GW", web3)
     await aave.main(false)
  }

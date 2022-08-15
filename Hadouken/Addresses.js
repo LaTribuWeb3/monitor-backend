@@ -17,7 +17,7 @@ const lendingPoolAddressesProviderAbi =
 
 const aaveUserInfoAddress = {
     "MATIC" : "0x76C595132e599CADAEFFf334611C001a021C8a70",
-    "GW" : "0x09D5d19EB3aA7A7240028D343624A6fd56A2E94f"
+    "GW" : "0xCaeb912207343A3282B0d1d93C2bac625a7543Fc"
 }
 
 const multicallAddress = { "ETH" : "0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696", "BSC" : "0xcb6E2F66DF0493b4dD23ac7727D1677D1208b697",
@@ -25,13 +25,13 @@ const multicallAddress = { "ETH" : "0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696",
     "MATIC" : "0xe539B93620570A92EF90eF7E60c79d9fAee91186", "NEAR": "0xcb6E2F66DF0493b4dD23ac7727D1677D1208b697",
     "FTM" : "0xab35D115974aC0A3C4Bd16A70DF77003c9f4C011",
     "ARBITRUM" : "0x0c05e6968AED7Ca120464a78731144e75052CeB1",
-    "GW" : "0xEcD1167Cc52127C20dDCe6708995bD0e6c6ffbA4" }
+    "GW" : "0x028418e730CF5e217655C83e5b4001C43d333D19" }
 
 
 const hadoukenAddress =
 { "GW":
-    { "lendingPoolAddressesProviderAddress" : "0xAA88deCE13Fd913e90100bfd7Ce19F86AB636F39",
-      "deployBlock" : 0,
+    { "lendingPoolAddressesProviderAddress" : "0xC4a3eC8bacf28C79B1A213c3b16c1Fb847485651",
+      "deployBlock" : 72540,
       "blockStepInInit" : 100000,
       "multicallSize" : 200 }
 }
