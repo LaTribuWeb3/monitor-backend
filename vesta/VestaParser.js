@@ -181,7 +181,7 @@ class Vesta {
 
             console.log("getting market price")
 
-            this.borrowCaps[market] = await this.vestaParameters.methods.vstMintCap(market).call()
+            this.borrowCaps[market] = toBN(await this.vestaParameters.methods.vstMintCap(market).call())
             this.collateralCaps[market] = "0"
 
             const stabilitypoolAddress = await this.stabilityPoolManager.methods.getAssetStabilityPool(market).call()
