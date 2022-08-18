@@ -5,6 +5,9 @@ const Addresses = require("./Addresses.js")
 const fs = require('fs');
 
 async function getTokaiLiquidity(web3, tokens) {
+    const output = {}
+    output["lastUpdate"] = Math.floor(Date.now() / 1000)
+
     const token0s = tokens
     const token1s = tokens
 
@@ -57,7 +60,7 @@ async function getTokaiLiquidity(web3, tokens) {
     const balanceOfResults = await multicall.methods.tryAggregate(true, balanceOfCalls).call()
     cntr = 0
     const assignedReserves = []
-    const output = {}
+    
     for(const token0 of token0s) {
         for(const token1 of token1s) {
             const i = parseInt(cntr / 2)
@@ -76,6 +79,8 @@ async function getTokaiLiquidity(web3, tokens) {
 
     return output
 }
+
+
 
 function calcDestQty(dx, x, y) {
     // (x + dx) * (y-dy) = xy
@@ -133,10 +138,20 @@ const ALL = [ETH, BNB, USDC, WCKB, USDT, BTC]
 async function test() {
     const liquidityJson = await getTokaiLiquidity(web3, ALL)
     console.log({liquidityJson})
+    fs.writeFileSync("data.json", JSON.stringify(liquidityJson));
+
+    console.log("sleeping for an hour")
+    setTimeout(test, 1000 * 60 * 60) // sleep for 1 hour    
+}
+
+/*
+async function test() {
+    const liquidityJson = await getTokaiLiquidity(web3, ALL)
+    console.log({liquidityJson})
 
     const ethPrice = findBestDestQty(ETH, toWei("1"), USDC, ALL, liquidityJson)
 
     console.log(ethPrice.toString(), {ETH}, {USDC})
 }
-
+*/
 test()
