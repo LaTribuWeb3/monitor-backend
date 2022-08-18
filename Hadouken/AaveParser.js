@@ -63,6 +63,9 @@ class Aave {
       this.closeFactor = {}
       this.borrowCaps = {}
       this.collateralCaps = {}
+
+      this.totalCollateral = {}
+      this.totalBorrows = {}      
     }
 
     getData() {
@@ -78,7 +81,9 @@ class Aave {
             "collateralCaps" : JSON.stringify(this.collateralCaps),
             "decimals" : JSON.stringify(this.decimals),
             "underlying" : JSON.stringify(this.underlying),
-            "closeFactor" : JSON.stringify(this.closeFactor),            
+            "closeFactor" : JSON.stringify(this.closeFactor),
+            "totalCollateral" : JSON.stringify(this.totalCollateral),
+            "totalBorrows" : JSON.stringify(this.totalBorrows),                          
             "users" : JSON.stringify(this.users)
         }   
         try {
@@ -143,6 +148,9 @@ class Aave {
             this.closeFactor[market] = 0.5
             this.borrowCaps[market] = toBN(borrowCap).mul(toBN(10).pow(toBN(Number(tokenDecimals))))
             this.collateralCaps[market] = toBN(collateralCap).mul(toBN(10).pow(toBN(Number(tokenDecimals))))
+
+            this.totalCollateral[market] = "0"
+            this.totalBorrows[market] = "0"            
 
             console.log(lastName, borrowCap.toString(), collateralCap.toString(), cfg[0].toString())
 

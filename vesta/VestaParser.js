@@ -170,7 +170,8 @@ class Vesta {
             console.log({market})
 
             console.log("getting liquidation incentive")
-            this.liquidationIncentive[market] = fromWei(await this.vestaParameters.methods.BonusToSP(market).call())
+            this.liquidationIncentive[market] = 
+                (Number(fromWei(await this.vestaParameters.methods.BonusToSP(market).call())) + 1).toString()
 
             console.log("getting MCR")
             const collateralFactor = await this.vestaParameters.methods.MCR(market).call()
