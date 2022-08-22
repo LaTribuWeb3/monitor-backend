@@ -318,13 +318,17 @@ class Aave {
             const result = await this.aaveUserInfo.methods.getUserInfo(this.lendingPool.options.address, user).call()
             //console.log({result})
 
-            const userObj = []
             const collaterals = {}
             const debts = {}
+            // init all markets to zero debt and collateral
+            for(const m of this.markets) {
+                collaterals[m] = toBN("0")
+                debts[m] = toBN("0")
+            }
+
             for(let i = 0 ; i < result.assets.length ; i++) {
                 collaterals[result.assets[i]] = toBN(result.collaterals[i])
                 debts[result.assets[i]] = toBN(result.debts[i])
-                //userObj.push({"asset" : result.assets[i], "collateral" : toBN(result.collaterals[i]), "debt" : toBN(result.debts[i])})
             }
 
             this.users[user] = {"asset": result.assets, "borrowBalances" : debts, "collateralBalances": collaterals,
