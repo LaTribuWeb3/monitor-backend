@@ -209,10 +209,12 @@ class Compound {
 
             this.prices[market] = this.web3.utils.toBN(price)
             console.log(market, price.toString(), fromWei(collateralFactor), this.names[market])
+            
 
-            this.borrowCaps[market] = await this.comptroller.methods.borrowCaps(market).call()
-            this.collateralCaps[market] = await this.comptroller.methods.mintCaps(market).call()
+            this.borrowCaps[market] = toBN(await this.comptroller.methods.borrowCaps(market).call())
+            this.collateralCaps[market] = toBN(await this.comptroller.methods.mintCaps(market).call())
 
+            console.log("borrow caps", this.borrowCaps[market].toString())            
             console.log("getting market balance")
 
             if(this.cETHAddresses.includes(market)) {
