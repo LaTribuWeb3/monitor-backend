@@ -39,7 +39,7 @@ async function getPastEvents(contract, key, fromBlock, toBlock) {
 async function readLiquidityEvents(web3, fileName, startBlock, endBlock) {
     const glpManager = new web3.eth.Contract(Addresses.glpManagerAbi, Addresses.glpManagerAddress)
     
-    const step = 10000
+    const step = 1000
 
     let allEvents = []
     for(let i = startBlock ; i < endBlock ; i += step) {
