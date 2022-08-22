@@ -81,7 +81,7 @@ class Compound {
             "markets" : JSON.stringify(this.markets),
             "prices" : JSON.stringify(this.prices),
             "lastUpdateTime" : this.lastUpdateTime,
-            "liquidationIncentive" : JSON.stringify(this.liquidationIncentive),
+            "liquidationIncentive" : (this.liquidationIncentive[this.markets[0]]),
             "collateralFactors" : JSON.stringify(this.collateralFactors),
             "names" : JSON.stringify(this.names),
             "borrowCaps" : JSON.stringify(this.borrowCaps),
