@@ -113,15 +113,35 @@ async function getGlpStatsToCsv(web3, filename, numMonths) {
     const startBlock = await findBlockInTheDessert(web3, xMonthsAgo, 0, endBlock)
     //const startBlock = 16243362
 
-    await readLiquidityEvents(web3Arbitrum, "glp.csv", startBlock, endBlock)
+    await readLiquidityEvents(web3Arbitrum, filename + ".draft", startBlock, endBlock)
 
-    /*
-    const fn = (...args) => getCSVHistoricalData(...args)
+    const allFileContents = fs.readFileSync(filename + ".draft", 'utf-8');
+    console.log({allFileContents})
 
-    await retry(fn, [Addresses.daiAddress, Addresses.ohmAddress, true, 0, 3, "ohm-dai-mainnet.csv", web3Eth])
-    await retry(fn, [Addresses.wethArbitrum, Addresses.daiArbitrum, false, 3000, 3, "eth-dai-arbitrum.csv", web3Arbitrum])
-    await retry(fn, [Addresses.wethArbitrum, Addresses.dpxArbitrum, true, 0, 3, "eth-dpx-arbitrum.csv", web3Arbitrum])
-    await retry(fn, [Addresses.wethArbitrum, Addresses.gmxArbitrum, false, 10000, 3, "eth-gmx-arbitrum.csv", web3Arbitrum])*/
+    const outputFileName = filename
+
+    let lastData = [0xFFFFFFFF, "", "", ""]
+    fs.writeFileSync(outputFileName, "block number, aum, glpSupply, price")
+    fs.appendFileSync(outputFileName, "\n")  
+    allFileContents.split(/\r?\n/).forEach(line =>  {
+        //console.log(`Line from file: ${line}`);
+    
+        const split = line.split(",")
+        const block = Number(split[0])
+        const x = split[1]
+        const y = split[2]
+        const price = split[3]
+        console.log({block}, {x}, {y}, {price});
+    
+        for(let i = lastData[0] ; i < block ; i++) {
+            const string = 
+                i.toString() + "," + lastData[1].toString() + "," + lastData[2].toString() + "," + lastData[3].toString() 
+            fs.appendFileSync(outputFileName, string + "\n")
+        }
+    
+        lastData = split
+        lastData[0] = block
+    })
 }
 
 async function main() {
