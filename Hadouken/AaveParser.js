@@ -123,7 +123,7 @@ class Aave {
 
         for(const market of this.markets) {
             const cfg = await this.lendingPool.methods.getConfiguration(market).call()
-            const ltv = Number(this.getBits(cfg[0], 0, 15)) / 1e4
+            const ltv = Number(this.getBits(cfg[0], 16, 31)) / 1e4
             const liquidationBonus = this.getBits(cfg[0], 32, 47) / 1e4
             const borrowCap = this.getBits(cfg[0], 80, 115)
             const collateralCap = this.getBits(cfg[0], 116, 151)
