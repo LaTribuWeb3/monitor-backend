@@ -99,9 +99,9 @@ def create_dex_information():
 
 
 ETH_PRICE = 1600
-dex_paths = [".." + os.path.sep + "monitor-backend" + os.path.sep + "trisolaris" + os.path.sep]
-lending_platform_json_file = ".." + os.path.sep + "monitor-backend" + os.path.sep + "aurigami" + os.path.sep + "data.json"
-oracle_json_file = ".." + os.path.sep + "monitor-backend" + os.path.sep + "aurigami" + os.path.sep + "oracle.json"
+dex_paths = [".." + os.path.sep + "trisolaris" + os.path.sep]
+lending_platform_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "data.json"
+oracle_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "oracle.json"
 assets_to_simulate = ["auETH", "auWBTC", "auWNEAR", "auSTNEAR", "auUSDC", "auUSDT"]
 assets_aliases = {"auETH": "ETH", "auWBTC": "BTC", "auWNEAR": "NEAR", "auSTNEAR": "NEAR", "auUSDT": "USDT",
                   "auUSDC": "USDT"}
@@ -135,9 +135,10 @@ if __name__ == '__main__':
     file = open(lending_platform_json_file)
     data = json.load(file)
 
-    file = open(oracle_json_file)
-    oracle = json.load(file)
-    data["prices"] = copy.deepcopy(oracle["prices"])
+    if os.path.exists(oracle_json_file):
+        file = open(oracle_json_file)
+        oracle = json.load(file)
+        data["prices"] = copy.deepcopy(oracle["prices"])
 
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \

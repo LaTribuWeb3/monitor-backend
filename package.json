@@ -5,9 +5,9 @@
   "main": "index.js",
   "dependencies": {
     "axios": "^0.27.2",
+    "package.json": "^2.0.1",
     "web3": "^1.7.4"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
