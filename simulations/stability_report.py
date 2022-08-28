@@ -34,7 +34,7 @@ class stability_report:
                 else:
                     # all_df = all_df.append(df)
                     all_df = pd.concat([all_df, df])
-        all_df["Debt ceiling (M)"] = all_df["collateral"] / 1_000_000
+        all_df["Debt ceiling (M)"] = round(all_df["collateral"] / 1_000_000, 1)
         all_df["Monthly liquidation volume factor"] = all_df["collateral_liquidation_factor"]
 
         gg = [('price_recovery_time', 'prc'),
