@@ -100,7 +100,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
 
 
 def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
-                               assets_liquidation_data):
+                               assets_liquidation_data, only_usdt = False):
     print("create_account_information")
     data = {"json_time": time.time()}
     for asset in inv_names:
@@ -119,14 +119,23 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
                 "NO_CF_COLLATERAL_" + asset].sum())
 
         data[asset]["total_debt"] = 0
-        if inv_names[asset] in totalAssetBorrow:
-            data[asset]["total_debt"] = totalAssetBorrow[inv_names[asset]]
-        if data[asset]["total_debt"] == 0:
-            data[asset]["total_debt"] = str(users_data["DEBT_" + asset].sum())
-        data[asset]["median_debt"] = str(np.median(users_data.loc[users_data["DEBT_" + asset] > 0]["DEBT_" + asset]))
-        data[asset]["top_1_debt"] = str(users_data["DEBT_" + asset].max())
-        data[asset]["top_10_debt"] = str(
-            users_data.sort_values("DEBT_" + asset, ascending=False).head(10)["DEBT_" + asset].sum())
+        if not only_usdt:
+            if inv_names[asset] in totalAssetBorrow:
+                data[asset]["total_debt"] = totalAssetBorrow[inv_names[asset]]
+            if data[asset]["total_debt"] == 0:
+                data[asset]["total_debt"] = str(users_data["DEBT_" + asset].sum())
+            data[asset]["median_debt"] = str(np.median(users_data.loc[users_data["DEBT_" + asset] > 0]["DEBT_" + asset]))
+            data[asset]["top_1_debt"] = str(users_data["DEBT_" + asset].max())
+            data[asset]["top_10_debt"] = str(
+                users_data.sort_values("DEBT_" + asset, ascending=False).head(10)["DEBT_" + asset].sum())
+        else:
+            users_data1 = users_data.loc[users_data["NO_CF_COLLATERAL_" + asset] > 0]
+            data[asset]["total_debt"] = str(users_data1["DEBT_VST"].sum())
+            data[asset]["median_debt"] = str(np.median(users_data1.loc[users_data["DEBT_VST"] > 0]["DEBT_VST"]))
+            data[asset]["top_1_debt"] = str(users_data1["DEBT_VST"].max())
+            data[asset]["top_10_debt"] = str(users_data1.sort_values("DEBT_VST", ascending=False).head(10)["DEBT_VST"].sum())
+
+
 
         if "nl_total_collateral" in users_data:
             data[asset]["nl_total_collateral"] = str(users_data["NL_COLLATERAL_" + asset].sum())
@@ -188,7 +197,7 @@ def create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate
     json.dump(data, fp)
 
 
-def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate):
+def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, only_usdt = False):
     data = {"json_time": time.time()}
     my_user_data = copy.deepcopy(users_data)
     # for base_to_simulation in assets_to_simulate:
@@ -213,12 +222,25 @@ def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate):
             data[base_to_simulation]["big_collateral"].append(
                 {"id": row["user"], "size": row["NO_CF_COLLATERAL_" + base_to_simulation], "whale_flag": is_whale})
 
-        big_debt_users = my_user_data.loc[my_user_data["DEBT_" + base_to_simulation] > 0.1 * total_debt]
-        for index, row in my_user_data.sort_values("DEBT_" + base_to_simulation, ascending=False).head(
-                10).iterrows():
-            is_whale = 1 if len(big_debt_users.loc[big_debt_users["user"] == row["user"]]) > 0 else 0
-            data[base_to_simulation]["big_debt"].append(
-                {"id": row["user"], "size": row["DEBT_" + base_to_simulation], "whale_flag": is_whale})
+        if not only_usdt:
+            big_debt_users = my_user_data.loc[my_user_data["DEBT_" + base_to_simulation] > 0.1 * total_debt]
+            for index, row in my_user_data.sort_values("DEBT_" + base_to_simulation, ascending=False).head(
+                    10).iterrows():
+                is_whale = 1 if len(big_debt_users.loc[big_debt_users["user"] == row["user"]]) > 0 else 0
+                data[base_to_simulation]["big_debt"].append(
+                    {"id": row["user"], "size": row["DEBT_" + base_to_simulation], "whale_flag": is_whale})
+        else:
+            my_user_data1 = my_user_data.loc[my_user_data["NO_CF_COLLATERAL_" + base_to_simulation] > 0]
+            my_user_data1 = my_user_data1.reset_index(drop=True)
+            total_debt = my_user_data1["DEBT_VST"].sum()
+            data[base_to_simulation]["total_debt"] = total_debt
+            big_debt_users = my_user_data1.loc[my_user_data1["DEBT_VST"] > 0.1 * total_debt]
+            for index, row in my_user_data1.sort_values("DEBT_VST", ascending=False).head(
+                    10).iterrows():
+                is_whale = 1 if len(big_debt_users.loc[big_debt_users["user"] == row["user"]]) > 0 else 0
+                data[base_to_simulation]["big_debt"].append(
+                    {"id": row["user"], "size": row["DEBT_VST"], "whale_flag": is_whale})
+
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "whale_accounts.json", "w")
     json.dump(data, fp)

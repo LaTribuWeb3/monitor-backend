@@ -195,12 +195,12 @@ if __name__ == '__main__':
                                                             underlying)
     fix_lending_platform_current_information(curveFraxBalance, curveVstBalance)
     base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
-                                           assets_liquidation_data)
+                                           assets_liquidation_data, True)
     create_dex_information()
     create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance)
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
-    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
+    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
     base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
     fix_usd_volume_for_slippage()
