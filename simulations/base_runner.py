@@ -15,6 +15,7 @@ import glob
 import sliipage_utils
 import traceback
 
+
 def create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow):
     print("create_overview")
     data = {"json_time": time.time()}
@@ -100,7 +101,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
 
 
 def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
-                               assets_liquidation_data, only_usdt = False):
+                               assets_liquidation_data, only_usdt=False):
     print("create_account_information")
     data = {"json_time": time.time()}
     for asset in inv_names:
@@ -124,7 +125,8 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
                 data[asset]["total_debt"] = totalAssetBorrow[inv_names[asset]]
             if data[asset]["total_debt"] == 0:
                 data[asset]["total_debt"] = str(users_data["DEBT_" + asset].sum())
-            data[asset]["median_debt"] = str(np.median(users_data.loc[users_data["DEBT_" + asset] > 0]["DEBT_" + asset]))
+            data[asset]["median_debt"] = str(
+                np.median(users_data.loc[users_data["DEBT_" + asset] > 0]["DEBT_" + asset]))
             data[asset]["top_1_debt"] = str(users_data["DEBT_" + asset].max())
             data[asset]["top_10_debt"] = str(
                 users_data.sort_values("DEBT_" + asset, ascending=False).head(10)["DEBT_" + asset].sum())
@@ -133,9 +135,8 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
             data[asset]["total_debt"] = str(users_data1["DEBT_VST"].sum())
             data[asset]["median_debt"] = str(np.median(users_data1.loc[users_data["DEBT_VST"] > 0]["DEBT_VST"]))
             data[asset]["top_1_debt"] = str(users_data1["DEBT_VST"].max())
-            data[asset]["top_10_debt"] = str(users_data1.sort_values("DEBT_VST", ascending=False).head(10)["DEBT_VST"].sum())
-
-
+            data[asset]["top_10_debt"] = str(
+                users_data1.sort_values("DEBT_VST", ascending=False).head(10)["DEBT_VST"].sum())
 
         if "nl_total_collateral" in users_data:
             data[asset]["nl_total_collateral"] = str(users_data["NL_COLLATERAL_" + asset].sum())
@@ -197,7 +198,7 @@ def create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate
     json.dump(data, fp)
 
 
-def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, only_usdt = False):
+def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, only_usdt=False):
     data = {"json_time": time.time()}
     my_user_data = copy.deepcopy(users_data)
     # for base_to_simulation in assets_to_simulate:
@@ -240,7 +241,6 @@ def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, o
                 is_whale = 1 if len(big_debt_users.loc[big_debt_users["user"] == row["user"]]) > 0 else 0
                 data[base_to_simulation]["big_debt"].append(
                     {"id": row["user"], "size": row["DEBT_VST"], "whale_flag": is_whale})
-
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "whale_accounts.json", "w")
     json.dump(data, fp)
@@ -311,37 +311,45 @@ def create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_ser
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     data = {"json_time": time.time()}
     jj = json.load(file)
-    to_returns = Parallel(n_jobs=total_jobs)(
-        delayed(plot_for_html)("simulation_results" + os.path.sep + SITE_ID + os.path.sep, j, print_time_series,
-                               ETH_PRICE) for j
-        in jj if j != "json_time")
-    for to_return in to_returns:
-        for x in to_return:
-            df = x[0]
-            simulation_name = x[1]
-            j = x[2]
-            df = copy.deepcopy(df)
-            if j not in data:
-                data[j] = {}
-            df.reset_index(inplace=True)
-            data[j][simulation_name] = []
-            for l_factor in l_factors:
-                data[j][simulation_name].append({'dc': 0, 'lf': l_factor, 'md': 0})
+    try:
+        to_returns = Parallel(n_jobs=total_jobs)(
+            delayed(plot_for_html)("simulation_results" + os.path.sep + SITE_ID + os.path.sep, j, print_time_series,
+                                   ETH_PRICE, jj[j]["liquidation_incentives"][0]) for j
+            in jj if j != "json_time")
 
-            for index, row in df.iterrows():
-                data[j][simulation_name].append(
-                    {'dc': round(row['Debt ceiling (M)'], 2),
-                     'lf': row['Monthly liquidation volume factor'],
-                     'md': round(row["max_drop"], 3)})
+        for to_return in to_returns:
+            for x in to_return:
+                df = x[0]
+                simulation_name = x[1]
+                j = x[2]
+                li = x[3]
+                df = copy.deepcopy(df)
+                if j not in data:
+                    data[j] = {}
+                df.reset_index(inplace=True)
+                data[j][simulation_name] = []
+                for l_factor in l_factors:
+                    data[j][simulation_name].append({'dc': 0, 'lf': l_factor, 'md': 0, "li": li})
+
+                for index, row in df.iterrows():
+                    data[j][simulation_name].append(
+                        {'dc': round(row['Debt ceiling (M)'], 2),
+                         'lf': row['Monthly liquidation volume factor'],
+                         'md': round(row["max_drop"], 3),
+                         "li": li})
+
+    except Exception as e:
+        print("Exception", e)
+        traceback.print_exc()
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "risk_params.json", "w")
     json.dump(data, fp)
 
 
-def plot_for_html(output_folder, j, print_time_series, ETH_PRICE):
+def plot_for_html(output_folder, j, print_time_series, ETH_PRICE, li):
     sr = stability_report.stability_report()
     sr.ETH_PRICE = ETH_PRICE
-    return sr.plot_for_html(output_folder, j, print_time_series)
+    return sr.plot_for_html(output_folder, j, print_time_series, li)
 
 
 def create_cefi_market_data():
@@ -374,7 +382,6 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
             ["COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
         my_user_data["COLLATERAL_" + base_to_simulation] -= my_user_data["MIN_" + base_to_simulation]
         my_user_data["DEBT_" + base_to_simulation] -= my_user_data["MIN_" + base_to_simulation]
-
     for base_to_simulation in assets_to_simulate:
         if not only_usdt or base_to_simulation != "VST":
             for quote_to_simulation in jj1[base_to_simulation]:
@@ -421,78 +428,87 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     jj = json.load(file)
     Parallel(n_jobs=total_jobs)(
-        delayed(plot_for_html)(output_folder, j, True, ETH_PRICE) for j in jj if j != "json_time" and "GLP" not in j)
+        delayed(plot_for_html)(output_folder, j, True, ETH_PRICE, jj[j]["liquidation_incentives"][0]) for j in jj if
+        j != "json_time" and "GLP" not in j)
 
     data = {"json_time": time.time()}
-    for base in jj1:
-        if base == "json_time": continue
-        if "GLP" in base: continue
-        data[base] = {}
-        for quote in jj1[base]:
-            files = glob.glob(
-                "current_risk_results" + os.path.sep + SITE_ID + os.path.sep + "*csv*" + base + "*" + quote + "*")
-            if len(files) == 0:
-                print("skip", base, quote)
-                continue
-            all_df = None
-            for file in files:
-                if "liquidation_data" not in file:
-                    all_df = pd.concat([all_df, pd.read_csv(file)])
 
-            total_liquidation = float(
-                all_df.sort_values("max_drop", ascending=False).head(1)["simulation volume"]) * ETH_PRICE
-            max_drop = float(all_df.sort_values("max_drop", ascending=False).head(1)["max_drop"])
-            max_liquidation_size = float(
-                all_df.sort_values("max_drop", ascending=False).head(1)["max_liquidation_volume"]) * ETH_PRICE
-            pnl = float(all_df.sort_values("max_drop", ascending=False).head(1)["pnl"])
+    try:
+        for base in jj1:
+            if base == "json_time": continue
+            if "GLP" in base: continue
+            data[base] = {}
+            for quote in jj1[base]:
+                files = glob.glob(
+                    "current_risk_results" + os.path.sep + SITE_ID + os.path.sep + "*csv*" + base + "*" + quote + "*")
+                if len(files) == 0:
+                    print("skip", base, quote)
+                    continue
+                all_df = None
+                for file in files:
+                    if "liquidation_data" not in file:
+                        all_df = pd.concat([all_df, pd.read_csv(file)])
 
-            data[base][quote] = {}
+                total_liquidation = float(
+                    all_df.sort_values("max_drop", ascending=False).head(1)["simulation volume"]) * ETH_PRICE
+                max_drop = float(all_df.sort_values("max_drop", ascending=False).head(1)["max_drop"])
+                max_liquidation_size = float(
+                    all_df.sort_values("max_drop", ascending=False).head(1)["max_liquidation_volume"]) * ETH_PRICE
+                pnl = float(all_df.sort_values("max_drop", ascending=False).head(1)["pnl"])
 
-            max_collateral = 1 - max_drop
-            max_collateral /= float(liquidation_incentive[inv_names[base]])
+                data[base][quote] = {}
 
-            data[base][quote]["total_liquidation"] = str(total_liquidation)
-            data[base][quote]["max_drop"] = str(max_drop)
-            data[base][quote]["max_collateral"] = str(max_collateral)
-            data[base][quote]["max_liquidation_size"] = str(max_liquidation_size)
-            data[base][quote]["pnl"] = str(pnl)
-            data[base][quote]["ts"] = {}
+                max_collateral = 1 - max_drop
+                max_collateral /= float(liquidation_incentive[inv_names[base]])
 
-            df = pd.read_csv("current_risk_results" + os.path.sep + SITE_ID + os.path.sep + str(
-                all_df.iloc[0]["simulation_name"]) + ".csv")
-            df["liquidation_volume"] = df["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000
-            df = df.dropna()
-            df = df.iloc[::10, :]
-            for index, row in df.iterrows():
-                data[base][quote]["ts"][round(row["ts"] / (1000 * 1000))] = {
-                    "a": round(row["price"]),
-                    "b": round(row["max_drop"], 2),
-                    "c": round(row["market_volume"] * ETH_PRICE / 1_000_000, 2),
-                    "d": round(row["open_liquidations"] * ETH_PRICE / 1_000_000, 2),
-                    "e": round(row["pnl"] / 1_000_000, 2),
-                    "f": round(row["liquidation_volume"] * ETH_PRICE / 1_000_000, 2)
-                }
+                data[base][quote]["total_liquidation"] = str(total_liquidation)
+                data[base][quote]["max_drop"] = str(max_drop)
+                data[base][quote]["max_collateral"] = str(max_collateral)
+                data[base][quote]["max_liquidation_size"] = str(max_liquidation_size)
+                data[base][quote]["pnl"] = str(pnl)
+                data[base][quote]["ts"] = {}
 
-        data[base]["summary"] = {}
-        data[base]["summary"]["total_liquidation"] = 0
-        data[base]["summary"]["max_drop"] = 0
-        data[base]["summary"]["max_collateral"] = 0
-        data[base]["summary"]["pnl"] = 0
-        try:
-            data[base]["summary"]["total_liquidation"] = sum(
-                [float(data[base][x]["total_liquidation"]) for x in data[base] if x != "summary"])
+                df = pd.read_csv("current_risk_results" + os.path.sep + SITE_ID + os.path.sep + str(
+                    all_df.iloc[0]["simulation_name"]) + ".csv")
+                df["liquidation_volume"] = df["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000
+                df = df.dropna()
+                df = df.iloc[::10, :]
+                for index, row in df.iterrows():
+                    data[base][quote]["ts"][round(row["ts"] / (1000 * 1000))] = {
+                        "a": round(row["price"]),
+                        "b": round(row["max_drop"], 2),
+                        "c": round(row["market_volume"] * ETH_PRICE / 1_000_000, 2),
+                        "d": round(row["open_liquidations"] * ETH_PRICE / 1_000_000, 2),
+                        "e": round(row["pnl"] / 1_000_000, 2),
+                        "f": round(row["liquidation_volume"] * ETH_PRICE / 1_000_000, 2)
+                    }
 
-            data[base]["summary"]["max_drop"] = np.max(
-                [float(data[base][x]["max_drop"]) for x in data[base] if x != "summary"])
+            data[base]["summary"] = {}
+            data[base]["summary"]["total_liquidation"] = 0
+            data[base]["summary"]["max_drop"] = 0
+            data[base]["summary"]["max_collateral"] = 0
+            data[base]["summary"]["pnl"] = 0
 
-            data[base]["summary"]["max_collateral"] = np.min(
-                [float(data[base][x]["max_collateral"]) for x in data[base] if x != "summary"])
+            try:
+                data[base]["summary"]["total_liquidation"] = sum(
+                    [float(data[base][x]["total_liquidation"]) for x in data[base] if x != "summary"])
 
-            data[base]["summary"]["pnl"] = sum(
-                [float(data[base][x]["pnl"]) for x in data[base] if x != "summary"])
+                data[base]["summary"]["max_drop"] = np.max(
+                    [float(data[base][x]["max_drop"]) for x in data[base] if x != "summary"])
 
-        except Exception as e:
-            print("Exception in Current Simulation Risk")
+                data[base]["summary"]["max_collateral"] = np.min(
+                    [float(data[base][x]["max_collateral"]) for x in data[base] if x != "summary"])
+
+                data[base]["summary"]["pnl"] = sum(
+                    [float(data[base][x]["pnl"]) for x in data[base] if x != "summary"])
+
+            except Exception as e:
+                print("Exception in Current Simulation Risk", e)
+                traceback.print_exc()
+
+    except Exception as e:
+        print("Exception in Current Simulation Risk", e)
+        traceback.print_exc()
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "current_simulation_risk.json", "w")
     json.dump(data, fp)

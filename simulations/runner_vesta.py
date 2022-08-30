@@ -16,10 +16,10 @@ def create_dex_information():
 def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance):
     data = {}
-    data["stabilityPoolVstBalance"] = stabilityPoolVstBalance
-    data["stabilityPoolGemBalance"] = stabilityPoolGemBalance
-    data["bprotocolBalance"] = bprotocolVstBalance
-    data["bprotocolGemBalance"] = bprotocolGemBalance
+    data["stabilityPoolVstBalance"] = {names[x]: stabilityPoolVstBalance[x] for x in stabilityPoolVstBalance}
+    data["stabilityPoolGemBalance"] = {names[x]: stabilityPoolGemBalance[x] for x in stabilityPoolGemBalance}
+    data["bprotocolBalance"] = {names[x]: bprotocolVstBalance[x] for x in bprotocolVstBalance}
+    data["bprotocolGemBalance"] = {names[x]: bprotocolGemBalance[x] for x in bprotocolGemBalance}
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "stability_pool.json", "w")
 
     json.dump(data, fp)
@@ -115,8 +115,8 @@ def fix_usd_volume_for_slippage():
         new_json[d] = {}
         new_json[d]["VST"] = data["VST"][d]
 
-    new_json["GLP"] = {}
-    new_json["GLP"]["VST"] = new_json["renBTC"]["VST"]
+    # new_json["GLP"] = {}
+    # new_json["GLP"]["VST"] = new_json["renBTC"]["VST"]
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
     json.dump(new_json, fp)
@@ -187,42 +187,45 @@ if __name__ == '__main__':
     curveFraxBalance = eval(data["curveFraxBalance"])
     curveVstBalance = eval(data["curveVstBalance"])
 
-    kp = kyber_prices.KyberPrices(chain_id, inv_names, underlying, decimals)
-
-    base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
-    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
-                                                            prices, collateral_factors, collateral_caps, borrow_caps,
-                                                            underlying)
-    fix_lending_platform_current_information(curveFraxBalance, curveVstBalance)
-    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
-                                           assets_liquidation_data, True)
-    create_dex_information()
+    # kp = kyber_prices.KyberPrices(chain_id, inv_names, underlying, decimals)
+    #
+    # base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
+    # base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
+    #                                                         prices, collateral_factors, collateral_caps, borrow_caps,
+    #                                                         underlying)
+    # fix_lending_platform_current_information(curveFraxBalance, curveVstBalance)
+    # base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
+    #                                        assets_liquidation_data, True)
+    # create_dex_information()
     create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance)
-    base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
-    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
-    base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-    fix_usd_volume_for_slippage()
-    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
-                                                    [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
-    assets_to_simulate += ["GLP"]
-    assets_aliases["GLP"] = "GLP"
-    liquidation_incentive["GLP"] = 1.1
-    collateral_factors["GLP"] = 0.8
-    inv_names["GLP"] = "GLP"
-    create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
-                             inv_names)
-    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
-                                          print_time_series)
+    # base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
+    # base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
+    # base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+    # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
+    # fix_usd_volume_for_slippage()
+    # base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
+    #                                                 [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
+
+    # assets_to_simulate += ["GLP"]
+    # assets_aliases["GLP"] = "GLP"
+    # liquidation_incentive["GLP"] = 1.1
+    # collateral_factors["GLP"] = 0.8
+    # inv_names["GLP"] = "GLP"
+
+    # create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
+    #                          inv_names)
+    # base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
+    #                                       print_time_series)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    assets_to_simulate.remove("GLP")
-    del assets_aliases["GLP"]
-    del liquidation_incentive["GLP"]
-    del collateral_factors["GLP"]
-    del inv_names["GLP"]
-    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
+
+    # assets_to_simulate.remove("GLP")
+    # del assets_aliases["GLP"]
+    # del liquidation_incentive["GLP"]
+    # del collateral_factors["GLP"]
+    # del inv_names["GLP"]
+    # base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+    #                                            collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
     # if len(sys.argv) > 1:
     #     exit()

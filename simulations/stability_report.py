@@ -19,7 +19,7 @@ class stability_report:
     liquidation_factor = 1  # ratio of liquidation
     ETH_PRICE = 2000
 
-    def plot_for_html(self, directory, name, print_time_series):
+    def plot_for_html(self, directory, name, print_time_series, li):
         if os.path.isdir(directory + os.path.sep + name.replace("|", "-")):
             shutil.rmtree(directory + os.path.sep + name.replace("|", "-"))
         os.makedirs(directory + os.path.sep + name.replace("|", "-"))
@@ -62,7 +62,7 @@ class stability_report:
             group_by_df = pd.DataFrame({'max_drop':
                                             batch_df.groupby(["Debt ceiling (M)", "Monthly liquidation volume factor"])[
                                                 "max_drop"].max()}).reset_index()
-            to_return.append((group_by_df, file_name, name))
+            to_return.append((group_by_df, file_name, name, li))
 
         if print_time_series:
             for index, row in all_df.iterrows():
