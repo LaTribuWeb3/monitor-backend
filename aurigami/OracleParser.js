@@ -5,10 +5,15 @@ const Addresses = require("./Addresses.js")
 let iter = 0
 let comp
 async function updateOracle() {
-    if(iter++ % 50 == 0) await comp.initPrices()
-    else await comp.initPricesQuickly()
+    try {
+        if(iter++ % 50 == 0) await comp.initPrices()
+        else await comp.initPricesQuickly()
 
-    console.log(comp.getData())
+        console.log(comp.getData())
+    }
+    catch(error) {
+        console.log(error, "will try again in 10 minutes")
+    }
 
     console.log("sleeping for 10 minute")
     setTimeout(updateOracle, 1000 * 6 * 1)
