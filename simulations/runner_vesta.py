@@ -15,7 +15,8 @@ def create_dex_information():
 
 def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance):
-    data = {}
+    
+    data = {"json_time": time.time()}
     data["stabilityPoolVstBalance"] = {names[x]: stabilityPoolVstBalance[x] for x in stabilityPoolVstBalance}
     data["stabilityPoolGemBalance"] = {names[x]: stabilityPoolGemBalance[x] for x in stabilityPoolGemBalance}
     data["bprotocolBalance"] = {names[x]: bprotocolVstBalance[x] for x in bprotocolVstBalance}
