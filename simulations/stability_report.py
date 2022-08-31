@@ -53,7 +53,7 @@ class stability_report:
             ax = sns.heatmap(hm, annot=True, linewidths=.5, cmap="PiYG", vmin=0.5, vmax=1)
             file_name = "hm"
             for g in gg:
-                file_name += "-" + g[1] + "-" + str(row[g[0]])
+                file_name += "^" + g[1] + "^" + str(row[g[0]])
             fig = plt.gcf()
             fig.set_size_inches(12.5, 8.5)
             plt.savefig(directory + os.path.sep + name.replace("|", "-") + os.path.sep + file_name + ".jpg")
@@ -93,7 +93,7 @@ class stability_report:
 
                 file_name = "ts." + str(row["simulation_name"])
                 for g in gg:
-                    file_name += "-" + g[1] + "-" + str(row[g[0]])
+                    file_name += "^" + g[1] + "^" + str(row[g[0]])
                 plt.title("Max Drop:" + str(round(row["max_drop"], 2)))
                 plt.legend()
                 plt.savefig(directory + os.path.sep + name.replace("|", "-") + os.path.sep + file_name + ".jpg")
