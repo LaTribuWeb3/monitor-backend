@@ -41,6 +41,7 @@ class Vesta {
       this.vst = new web3.eth.Contract(Addresses.erc20Abi, Addresses.vstAddress)
       this.frax = new web3.eth.Contract(Addresses.erc20Abi, Addresses.fraxAddress)      
       this.gelatoKeeper = new web3.eth.Contract(Addresses.gelatoKeeperAbi, Addresses.gelatoKeeperAddress)
+      this.glpVault = new web3.eth.Contract(Addresses.glpVaultAbi, Addresses.glpAddress)
 
       this.blockStepInInit = 3000
       this.multicallSize = 100
@@ -74,6 +75,8 @@ class Vesta {
       this.totalBorrows = {}
       this.curveFraxBalance = 0.0
       this.curveVstBalance = 0.0
+
+      this.glpData = "not init"
     }
 
     getData() {
@@ -97,7 +100,8 @@ class Vesta {
             "curveFraxBalance" : JSON.stringify(this.curveFraxBalance),
             "curveVstBalance" : JSON.stringify(this.curveVstBalance),
             "totalCollateral" : JSON.stringify(this.totalCollateral),
-            "totalBorrows" : JSON.stringify(this.totalBorrows),                        
+            "totalBorrows" : JSON.stringify(this.totalBorrows),
+            "glpData" : JSON.stringify(this.glpData),                     
             "users" : JSON.stringify(this.users)
         }   
         try {
@@ -129,6 +133,7 @@ class Vesta {
         try {
             await this.initPrices()
             await this.initBProtocol()
+            await this.initGLP()
                         
             const currBlock = await this.web3.eth.getBlockNumber() - 10
             const currTime = (await this.web3.eth.getBlock(currBlock)).timestamp
@@ -268,6 +273,114 @@ class Vesta {
         }
     }
 
+    async initGLP() {
+        const numAssets = await this.glpVault.methods.allWhitelistedTokensLength().call()
+        console.log("num glp assets", numAssets)
+
+        // init a multicall to fetch all assets
+        const calls = []
+        for(let i = 0 ; i < numAssets ; i++) {
+            const call = {}
+            call["target"] = this.glpVault.options.address
+            call["callData"] = this.glpVault.methods.allWhitelistedTokens(i).encodeABI()
+            calls.push(call)
+        }
+
+        console.log("calling multi get assets")
+        const glpAssetResults = await this.multicall.methods.tryAggregate(true, calls).call({gas: 200e6})
+        const glpAssets = []
+        const balanceOfCalls = []
+        const decimalsCalls = []
+        const priceOracleCalls = []
+        const utilizationCalls = []
+        for(let i = 0 ; i < glpAssetResults.length ; i++) {
+            const asset = this.web3.eth.abi.decodeParameter("address", glpAssetResults[i].returnData)
+            glpAssets.push(asset)
+
+            // balanceOf
+            const balanceOfCall = {}
+            balanceOfCall["target"] = asset
+            balanceOfCall["callData"] = this.vst.methods.balanceOf(this.glpVault.options.address).encodeABI()
+            balanceOfCalls.push(balanceOfCall)
+
+            // decimals
+            const decimalsCall = {}
+            decimalsCall["target"] = asset
+            decimalsCall["callData"] = this.vst.methods.decimals().encodeABI()
+            decimalsCalls.push(decimalsCall)            
+
+            // price oracle
+            const priceOracleCall = {}
+            priceOracleCall["target"] = this.glpVault.options.address
+            priceOracleCall["callData"] = this.glpVault.methods.getMaxPrice(asset).encodeABI()
+            priceOracleCalls.push(priceOracleCall)
+
+            // utilization
+            const utilizationCall = {}
+            utilizationCall["target"] = this.glpVault.options.address
+            utilizationCall["callData"] = this.glpVault.methods.getUtilisation(asset).encodeABI()
+            utilizationCalls.push(utilizationCall)
+        }
+
+        console.log({glpAssets})
+
+        console.log("calling multi balance of")
+        const balanceOfResults = await this.multicall.methods.tryAggregate(true, balanceOfCalls).call({gas: 200e6})
+        console.log("calling multi decimals")
+        const decimalsResults = await this.multicall.methods.tryAggregate(true, decimalsCalls).call({gas: 200e6})        
+        console.log("calling multi price oracle")
+        const priceResults = await this.multicall.methods.tryAggregate(true, priceOracleCalls).call({gas: 200e6})
+        console.log("calling multi utilization")
+        const utilizationResults = await this.multicall.methods.tryAggregate(true, utilizationCalls).call({gas: 200e6})                
+
+        let totalUsdAmount = 0.0
+        let totalUsdUsed = 0.0
+        let totalStableUsdAmount = 0.0
+        let totalStableUsdUsed = 0.0
+        let totalSolidAssetsUsdAmount = 0.0
+        let totalSolidAssetsUsdUsed = 0.0
+
+
+        for(let i = 0 ; i < glpAssets.length ; i++) {
+            const balanceOf = this.web3.eth.abi.decodeParameter("uint256", balanceOfResults[i].returnData)
+            const decimals = this.web3.eth.abi.decodeParameter("uint256", decimalsResults[i].returnData)
+            const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)
+            const utilization = this.web3.eth.abi.decodeParameter("uint256", utilizationResults[i].returnData)
+
+            const factor = toBN("10").pow(toBN(decimals - 6))
+            const usdValue = Number(fromWei(fromWei(toBN(price).mul(toBN(balanceOf).div(toBN(factor))))))
+            const usdValueUsd = (utilization) * usdValue / 1000000
+
+            totalUsdAmount += usdValue
+            totalUsdUsed += usdValueUsd
+
+            const asset = glpAssets[i]
+
+            if(Addresses.glpStableAddresses.includes(asset)) {
+                totalStableUsdAmount += usdValue
+                totalStableUsdUsed += usdValueUsd
+            }
+
+            if(Addresses.glpSolidAssetAddresses.includes(asset)) {
+                totalSolidAssetsUsdAmount += usdValue
+                totalSolidAssetsUsdUsed += usdValueUsd
+            }
+        }
+
+        this.glpData = {
+            "liquidTreasury" : totalUsdAmount - totalUsdUsed,
+            "treasuryUtilization" : totalUsdUsed / totalUsdAmount,
+            "liquidStableTreasury" : totalStableUsdAmount - totalStableUsdUsed,
+            "stableTreasuryUtilization" : totalStableUsdUsed / totalStableUsdAmount,
+            "liquidSolidAssetTreasury" : totalSolidAssetsUsdAmount - totalSolidAssetsUsdUsed,
+            "solidTreasuryUtilization" : totalSolidAssetsUsdUsed / totalSolidAssetsUsdAmount
+        }
+
+        // balanceOf, price oracle, utilization
+
+
+    }
+
     async collectAllUsers() {
         const users = {}
         for(const market of this.assets) {
@@ -343,6 +456,10 @@ async function test() {
     const vesta = new Vesta(web3 ,"ARBITRUM")
 
     /*
+    await vesta.initGLP()
+    console.log(vesta.glpData)
+    sd
+
     console.log("getting last block")
     const lastblock = await web3.eth.getBlockNumber() - 10
     console.log({lastblock})
