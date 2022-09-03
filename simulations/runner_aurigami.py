@@ -12,6 +12,15 @@ import kyber_prices
 
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                              inv_names):
+
+    def roundUp(x):
+        x = max(x, 1_000_000)
+        x = int((x + 1e6 - 1) / 1e6) * 1e6
+        if x == 0:
+            print(x)
+            exit()
+        return x
+
     print("create_simulation_config")
     f1 = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     jj1 = json.load(f1)
@@ -38,6 +47,30 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 new_c["series_std_ratio"] = std_ratio
                 new_c["volume_for_slippage_10_percentss"] = [slippage]
                 new_c["json_time"] = now_time
+
+                max_collateral = collateral_caps[inv_names[base_to_simulation]]
+                max_debt = borrow_caps[inv_names[quote_to_simulation]]
+
+                cc = [0.25 * max_collateral, 0.5 * max_collateral, 0.75 * max_collateral, 1 * max_collateral,
+                      1.25 * max_collateral,1.5 * max_collateral, 1.75 * max_collateral, 2 * max_collateral]
+
+                dd = [0.25 * max_debt, 0.5 * max_debt, 0.75 * max_debt, 1 * max_debt, 1.25 * max_debt,
+                      1.5 * max_debt, 1.75 * max_debt, 2 * max_debt]
+
+                for c1 in cc:
+                    c1 = roundUp(c1)
+                    c1 = c1 / ETH_PRICE
+                    c1 = int(c1)
+                    if c1 not in new_c["collaterals"]:
+                        new_c["collaterals"].append(c1)
+                    for d1 in dd:
+                        d1 = roundUp(d1)
+                        d1 = d1 / ETH_PRICE
+                        d1 = int(d1)
+                        if d1 < c1 and d1 not in new_c["collaterals"]:
+                            new_c["collaterals"].append(d1)
+                if 0 in new_c["collaterals"]:
+                    print(new_c)
 
                 data[key] = new_c
 
@@ -109,12 +142,7 @@ c = {
     "series_std_ratio": 0,
     'volume_for_slippage_10_percentss': [],
     'trade_every': 1800,
-    "collaterals": [1_000_000 / ETH_PRICE, 2_000_000 / ETH_PRICE, 3_000_000 / ETH_PRICE,
-                    4_000_000 / ETH_PRICE, 6_000_000 / ETH_PRICE,
-                    8_000_000 / ETH_PRICE, 16_000_000 / ETH_PRICE,
-                    24_000_000 / ETH_PRICE, 30_000_000 / ETH_PRICE, 40_000_000 / ETH_PRICE, 50_000_000 / ETH_PRICE,
-                    60_000_000 / ETH_PRICE, 70_000_000 / ETH_PRICE, 80_000_000 / ETH_PRICE,
-                    90_000_000 / ETH_PRICE, 100_000_000 / ETH_PRICE],
+    "collaterals": [],
     'liquidation_incentives': [],
     "stability_pool_initial_balances": [0],
     'share_institutionals': [0],
