@@ -17,7 +17,7 @@ async function checkMetapoolLiquidity(web3) {
 
     console.log(balance.toString())
 
-    fs.writeFileSync("stNEARLiquidity.json", JSON.stringify({"nearBalance" : balance.toString()}))
+    fs.writeFileSync("stNEARLiquidity.json", JSON.stringify({"wNEARBalance" : balance.toString()}))
 }
 
 function sleep(ms) {
