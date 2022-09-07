@@ -9,7 +9,7 @@ async function updateOracle() {
         if(iter++ % 50 == 0) await comp.initPrices()
         else await comp.initPricesQuickly()
 
-        console.log(comp.getData())
+        comp.getData()
     }
     catch(error) {
         console.log(error, "will try again in 10 minutes")
