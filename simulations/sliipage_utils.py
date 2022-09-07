@@ -1,5 +1,5 @@
 
-def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_price_function):
+def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_price_function, near_to_stnear_volume=0):
     print(base, quote)
 
     base_price = get_price_function(base, quote, 1000 / asset_usdc_price[base])
@@ -14,7 +14,24 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
             return v
 
         avg_volume = (min_price_volume + max_price_volume) / 2
-        price = get_price_function(base, quote, avg_volume / asset_usdc_price[base])
+
+        if base == "auSTNEAR":
+            near_volume_to_kyber_in_usd = min(avg_volume, near_to_stnear_volume)
+            if avg_volume > near_to_stnear_volume:
+                stnear_volume_to_kyber_in_usd = avg_volume - near_to_stnear_volume
+                price = get_price_function("auSTNEAR", "auWNEAR",
+                                       stnear_volume_to_kyber_in_usd / asset_usdc_price["auSTNEAR"])
+                near_volume_in_near = (stnear_volume_to_kyber_in_usd / asset_usdc_price["auSTNEAR"]) / price
+                near_volume_to_kyber_in_usd += asset_usdc_price["auWNEAR"] * near_volume_in_near
+
+            near_to_quote_price = 1
+            if quote != "auWNEAR":
+                near_to_quote_price = get_price_function("auWNEAR", quote, near_volume_to_kyber_in_usd / asset_usdc_price["auWNEAR"])
+            quote_volume_in_quote = (near_volume_to_kyber_in_usd / asset_usdc_price["auWNEAR"]) / near_to_quote_price
+            price = (avg_volume / asset_usdc_price["auSTNEAR"]) / quote_volume_in_quote
+        else:
+            price = get_price_function(base, quote, avg_volume / asset_usdc_price[base])
+
         avg_slippage = price / base_price
         print("min_price_volume", round(min_price_volume), "max_price_volume", round(max_price_volume),
               "Volume", round(avg_volume), "Slippage", round(avg_slippage, 3), "Target", slippage, "Price", price)
@@ -25,7 +42,8 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
             max_price_volume = avg_volume
 
 
-def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get_price_function, only_usdt=False):
+def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get_price_function, only_usdt=False,
+                                 near_to_stnear_volume=0):
     base = ""
     asset_usdc_price = {}
 
@@ -49,7 +67,9 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
                 continue
             base = "USDC"
 
+        print(base, quote)
         price_in_base = get_price_function(base, quote, 1000)
+        print(price_in_base)
         asset_usdc_price[quote] = price_in_base
 
     print(asset_usdc_price)
@@ -65,7 +85,8 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
             else:
                 lic = float(liquidation_incentive[inv_names[quote]])
             print(base, quote)
-            volume = get_usd_volume_for_slippage(base, quote, lic if lic >= 1 else 1 + lic, asset_usdc_price, get_price_function)
+            volume = get_usd_volume_for_slippage(base, quote, lic if lic >= 1 else 1 + lic, asset_usdc_price, get_price_function,
+                                                 near_to_stnear_volume)
             all_prices[base][quote] = volume
 
     return all_prices

@@ -23,6 +23,7 @@ def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilit
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "stability_pool.json", "w")
 
     json.dump(data, fp)
+    fp.close()
 
 
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
@@ -46,7 +47,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 std_ratio = jj2[assets_aliases[base_to_simulation]][assets_aliases[quote_to_simulation]]
             else:
                 std_ratio = jj2[assets_aliases[quote_to_simulation]][assets_aliases[base_to_simulation]]
-
+            print(base_to_simulation, quote_to_simulation)
             slippage = jj1[base_to_simulation][quote_to_simulation] / ETH_PRICE
             li = float(liquidation_incentive[inv_names[base_to_simulation]])
             li = li if li < 1 else li - 1
@@ -93,6 +94,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
     json.dump(data, fp)
+    fp.close()
 
 
 def fix_lending_platform_current_information(curveFraxBalance, curveVstBalance):
@@ -103,6 +105,7 @@ def fix_lending_platform_current_information(curveFraxBalance, curveVstBalance):
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "lending_platform_current.json", "w")
     json.dump(data, fp)
+    fp.close()
 
 
 def fix_usd_volume_for_slippage():
@@ -120,12 +123,15 @@ def fix_usd_volume_for_slippage():
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
     json.dump(new_json, fp)
+    fp.close()
 
 def fix_risk_params():
     file = open("webserver" + os.sep + SITE_ID + os.sep + "risk_params.json")
     data = json.load(file)
+    new_json = {"json_time": data["json_time"]}
     for key1 in data:
         if key1 != "json_time":
+            new_json[key1] = {"key":[]}
             for key2 in data[key1]:
                 #"hm-prc-0.0-vfs10p-2715.31583160162-rhr-3.333333333333333-spibr-0.2985054202706127-si-0.2337509781682822"
                 params = key2.split("^")
@@ -134,15 +140,23 @@ def fix_risk_params():
                 for key3 in data[key1][key2]:
                     key3["spibr"] = spibr
                     key3["si"] = si
+                    new_json[key1]["key"].append(
+                        {"spibr":spibr,
+                        "si":si,
+                        "dc":key3["dc"],
+                        "lf":key3["lf"],
+                        "md":key3["md"],
+                        "li":key3["li"]})
 
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "risk_params.json", "w")
-    json.dump(data, fp)
+    json.dump(new_json, fp)
+    fp.close()
 
 
 lending_platform_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "data.json"
 assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST"]
-assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "GLP": "GLP"}
+assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST"}
 
 ETH_PRICE = 1600
 SITE_ID = "2"
@@ -222,14 +236,8 @@ if __name__ == '__main__':
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
     base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
     fix_usd_volume_for_slippage()
-    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
+    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT"],
                                                     [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
-
-    # assets_to_simulate += ["GLP"]
-    # assets_aliases["GLP"] = "GLP"
-    # liquidation_incentive["GLP"] = 1.1
-    # collateral_factors["GLP"] = 0.8
-    # inv_names["GLP"] = "GLP"
 
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                              inv_names)
@@ -237,11 +245,7 @@ if __name__ == '__main__':
                                           print_time_series)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
     fix_risk_params()
-    # assets_to_simulate.remove("GLP")
-    # del assets_aliases["GLP"]
-    # del liquidation_incentive["GLP"]
-    # del collateral_factors["GLP"]
-    # del inv_names["GLP"]
+
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 

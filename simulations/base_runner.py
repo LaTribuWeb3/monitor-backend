@@ -52,6 +52,7 @@ def create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "overview.json", "w")
     json.dump(data, fp)
+    fp.close()
 
 
 def create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals, prices,
@@ -68,6 +69,7 @@ def create_lending_platform_current_information(SITE_ID, last_update_time, names
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "lending_platform_current.json", "w")
     json.dump(data, fp)
+    fp.close()
 
 
 def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_aliases, dex_get_price_function):
@@ -98,6 +100,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "oracles.json", "w")
     json.dump(data, fp)
+    fp.close()
 
 
 def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
@@ -158,17 +161,21 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "accounts.json", "w")
     json.dump(data, fp)
-
+    fp.close()
 
 def create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, get_price_function,
-                                    only_usdt=False):
-    print("create_usd_volumes_for_slippage")
-    data = sliipage_utils.get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get_price_function,
-                                                       only_usdt)
-    data["json_time"] = time.time()
+                                    only_usdt=False, near_to_stnear_volume=0):
 
-    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
-    json.dump(data, fp)
+    try:
+        print("create_usd_volumes_for_slippage")
+        data = sliipage_utils.get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get_price_function,
+                                                           only_usdt, near_to_stnear_volume)
+        data["json_time"] = time.time()
+        fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
+        json.dump(data, fp)
+        fp.close()
+    except Exception as e:
+        print(e)
 
 
 def create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate):
@@ -196,6 +203,7 @@ def create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "open_liquidations.json", "w")
     json.dump(data, fp)
+    fp.close()
 
 
 def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, only_usdt=False):
@@ -244,7 +252,7 @@ def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, o
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "whale_accounts.json", "w")
     json.dump(data, fp)
-
+    fp.close()
 
 def create_assets_std_ratio_information(SITE_ID, assets, dates, only_usdt=False):
     print("create_assets_std_ratio_information")
@@ -277,7 +285,7 @@ def create_assets_std_ratio_information(SITE_ID, assets, dates, only_usdt=False)
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "assets_std_ratio.json", "w")
     json.dump(data, fp)
-
+    fp.close()
 
 def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series):
     output_folder = "simulation_results" + os.path.sep + SITE_ID
@@ -344,7 +352,7 @@ def create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_ser
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "risk_params.json", "w")
     json.dump(data, fp)
-
+    fp.close()
 
 def plot_for_html(output_folder, j, print_time_series, ETH_PRICE, li):
     sr = stability_report.stability_report()
@@ -424,9 +432,12 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "current_simulation_config.json", "w")
     json.dump(jj, fp)
+    fp.close()
 
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     jj = json.load(file)
+    file.close()
+
     Parallel(n_jobs=total_jobs)(
         delayed(plot_for_html)(output_folder, j, True, ETH_PRICE, jj[j]["liquidation_incentives"][0]) for j in jj if
         j != "json_time" and "GLP" not in j)
@@ -512,3 +523,4 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "current_simulation_risk.json", "w")
     json.dump(data, fp)
+    fp.close()
