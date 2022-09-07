@@ -12,7 +12,6 @@ import kyber_prices
 
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                              inv_names):
-
     def roundUp(x):
         x = max(x, 1_000_000)
         x = int((x + 1e6 - 1) / 1e6) * 1e6
@@ -52,7 +51,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 max_debt = borrow_caps[inv_names[quote_to_simulation]]
 
                 cc = [0.25 * max_collateral, 0.5 * max_collateral, 0.75 * max_collateral, 1 * max_collateral,
-                      1.25 * max_collateral,1.5 * max_collateral, 1.75 * max_collateral, 2 * max_collateral]
+                      1.25 * max_collateral, 1.5 * max_collateral, 1.75 * max_collateral, 2 * max_collateral]
 
                 dd = [0.25 * max_debt, 0.5 * max_debt, 0.75 * max_debt, 1 * max_debt, 1.25 * max_debt,
                       1.5 * max_debt, 1.75 * max_debt, 2 * max_debt]
@@ -69,6 +68,17 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                         d1 = int(d1)
                         if d1 < c1 and d1 not in new_c["collaterals"]:
                             new_c["collaterals"].append(d1)
+
+                current_collateral = 0
+                current_debt = 0
+
+                for index, row in users_data.iterrows():
+                    current_debt += float(row["DEBT_" + base_to_simulation])
+                    current_collateral += float(row["COLLATERAL_" + base_to_simulation])
+
+                new_c["collaterals"].append(roundUp(current_debt) / ETH_PRICE)
+                new_c["collaterals"].append(roundUp(current_collateral) / ETH_PRICE)
+
                 if 0 in new_c["collaterals"]:
                     print(new_c)
 
@@ -131,9 +141,18 @@ def create_dex_information():
     json.dump(data, fp)
 
 
+def fix_usd_volumes_for_slippage():
+    file = open("webserver" + os.sep + SITE_ID + os.sep + "usd_volume_for_slippage.json")
+    data = json.load(file)
+    file.close()
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
+    json.dump(data, fp)
+
+
 ETH_PRICE = 1600
 dex_paths = [".." + os.path.sep + "trisolaris" + os.path.sep]
 lending_platform_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "data.json"
+stnear_stash = ".." + os.path.sep + "aurigami" + os.path.sep + "stNEARLiquidity.json"
 oracle_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "oracle.json"
 assets_to_simulate = ["auETH", "auWBTC", "auWNEAR", "auSTNEAR", "auUSDC", "auUSDT"]
 assets_aliases = {"auETH": "ETH", "auWBTC": "BTC", "auWNEAR": "NEAR", "auSTNEAR": "NEAR", "auUSDT": "USDT",
@@ -168,6 +187,9 @@ if __name__ == '__main__':
         oracle = json.load(file)
         data["prices"] = copy.deepcopy(oracle["prices"])
 
+    file = open(stnear_stash)
+    data1 = json.load(file)
+
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \
     last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
@@ -190,18 +212,29 @@ if __name__ == '__main__':
 
     kp = kyber_prices.KyberPrices(chain_id, inv_names, underlying, decimals)
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
-    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,prices, collateral_factors, collateral_caps,borrow_caps, underlying)
-    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,assets_liquidation_data)
+    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
+                                                            prices, collateral_factors, collateral_caps, borrow_caps,
+                                                            underlying)
+    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
+                                           assets_liquidation_data)
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
     create_dex_information()
     base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price)
-    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
-    create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
-    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series)
+
+    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
+                                                False,
+                                                float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]])
+    fix_usd_volumes_for_slippage()
+    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"],
+                                                    [("04", "2022"), ("05", "2022"), ("06", "2022")])
+    create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
+                             inv_names)
+    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
+                                          print_time_series)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
 
     # if len(sys.argv) > 1:
     #     exit()
