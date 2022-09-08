@@ -77,6 +77,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 max_debt = borrow_caps[base_id_to_simulation] * 5
                 step_size = (max_debt - current_debt) / 30
                 new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
+                new_c["current_debt"] = current_debt / ETH_PRICE
                 data[key] = new_c
 
                 stability_pool_initial_balance = stabilityPoolVstBalance[base_id_to_simulation]
@@ -234,8 +235,8 @@ if __name__ == '__main__':
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
     base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-    fix_usd_volume_for_slippage()
+    # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
+    # fix_usd_volume_for_slippage()
     base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT"],
                                                     [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
 

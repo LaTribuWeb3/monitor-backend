@@ -304,7 +304,7 @@ class stability_report:
 
                                         if liquidation_df is not None:
                                             liquidation_ratio = 1
-                                            stability_pool_initial_balance = s_balance
+                                            stability_pool_initial_balance = s_balance * config["current_debt"]
                                         else:
                                             target_volume = collateral * l_factor * total_days_in_files_factor
                                             stability_pool_initial_balance = collateral * s_balance
