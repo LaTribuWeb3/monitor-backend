@@ -49,11 +49,13 @@ class Vesta {
       this.lastUpdateBlock = 18543000
 
       this.userList = []
+      this.glpAddress = "0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE"
       this.assets = ["0x0000000000000000000000000000000000000000",
                      "0x8D9bA570D6cb60C7e3e0F31343Efe75AB8E65FB1",
                      "0xDBf31dF14B66535aF65AaC99C32e9eA844e14501",
                      "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
-                     "0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55"]
+                     "0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55",
+                     this.glpAddress]
       this.markets = this.assets
 
       this.collateralFactors = {}
@@ -257,6 +259,14 @@ class Vesta {
 
     async initBProtocol() {
         for(let i = 0 ; i < this.assets.length ; i++) {
+            if(this.assets[i] === this.glpAddress) {
+                // GLP is not supported by bprotocol yet
+                this.bprotocolGemBalance[this.glpAddress] = toBN("0")
+                this.bprotocolVstBalance[this.glpAddress] = toBN("0")
+
+                continue
+            }
+
             const bammAddress = await this.gelatoKeeper.methods.bamms(i).call()
             console.log({bammAddress})
             const bammContract = new this.web3.eth.Contract(Addresses.bammAbi, bammAddress)
