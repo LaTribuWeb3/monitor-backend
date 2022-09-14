@@ -242,12 +242,17 @@ class stability_report:
                     liquidation_df = liquidation_df.reset_index(drop=True)
         return arr
 
-    def calc_simulation_pnl(self, open_liquidations, closed_liquidations, collateral_factor, liquidation_incentive):
+    def calc_simulation_pnl(self, open_liquidations, closed_liquidations, collateral_factor, liquidation_incentive, max_drop, prev_max_drop):
         all_liquidations = open_liquidations + closed_liquidations
         liquidation_total_pnl = 0
         for liquidation in all_liquidations:
             liquidation_pnl = 0
-            liquidation_price = liquidation["price"] * float(collateral_factor) * (1 - liquidation_incentive)
+
+            #liquidation_price = liquidation["price"] * float(collateral_factor) * (1 - liquidation_incentive)
+            #md = 1 - cf(li + 1)
+            liquidation_price = 1 - float(collateral_factor) * (liquidation_incentive + 1)
+            liquidation_price = liquidation["price"] * (1 - liquidation_price)
+
             for trade in liquidation["trades"]:
                 volume = trade["volume"]
                 price = trade["price"]
@@ -310,9 +315,8 @@ class stability_report:
                                             stability_pool_initial_balance = collateral * s_balance
                                             liquidation_ratio = target_volume / file_total_volume
 
-                                        cycle_trade_volume = self.get_volume_for_slippage(
-                                            volume_for_slippage_10_percents * self.liquidation_factor, 1 - 0.1,
-                                            1 - l_incentive)
+                                        cycle_trade_volume = volume_for_slippage_10_percents
+                                        #self.get_volume_for_slippage(volume_for_slippage_10_percents * self.liquidation_factor, 1 - 0.1,1 - l_incentive)
 
                                         stability_pool_simple_instance = stability_pool_simple.stability_pool(
                                             initial_balance=stability_pool_initial_balance,
@@ -325,6 +329,7 @@ class stability_report:
                                         historical_cycle_trade_volume = []
                                         closed_liquidations = []
                                         open_liquidations = []
+                                        prev_max_drop = 0
                                         max_drop = 0
                                         max_drop_open_volume = 0
                                         simulation_pnl = 0
@@ -409,6 +414,10 @@ class stability_report:
                                                 price_at_max_drop = price
                                                 max_drop_open_volume = open_liquidations_volume
 
+                                            if prev_max_drop < 0.25 and max_drop > 0.25:
+                                                x = 1
+
+
                                             market_volume = cycle_trade_volume - sum(historical_cycle_trade_volume)
                                             close_liquidation_volume = 0
                                             trade_volume = 0
@@ -438,11 +447,13 @@ class stability_report:
                                                         and close_liquidation_volume - open_liquidations_volume < 1:
                                                     close_liquidation_volume += 1  # for Rounding issues
                                                 trade_volume += using_market_volume
-                                            if calc_pnl:
-                                                simulation_pnl = self.calc_simulation_pnl(open_liquidations,
+
+                                                if calc_pnl:
+                                                    simulation_pnl = self.calc_simulation_pnl(open_liquidations,
                                                                                           closed_liquidations,
                                                                                           collateral_factor,
-                                                                                          l_incentive)
+                                                                                          l_incentive, max_drop, prev_max_drop)
+                                            prev_max_drop = max_drop
 
                                             ts_report.append({
                                                 "ts": time,

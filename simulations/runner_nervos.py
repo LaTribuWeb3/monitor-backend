@@ -45,7 +45,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 else:
                     std_ratio = jj2[assets_aliases[quote_to_simulation]][assets_aliases[base_to_simulation]]
 
-                slippage = jj1[base_to_simulation][quote_to_simulation] / ETH_PRICE
+                slippage = jj1[base_to_simulation][quote_to_simulation]["volume"] / ETH_PRICE
                 li = float(liquidation_incentive[inv_names[base_to_simulation]])
                 li = li if li < 1 else li - 1
                 new_c["liquidation_incentives"] = [li]

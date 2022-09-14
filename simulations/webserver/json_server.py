@@ -132,6 +132,12 @@ def stability_pool(client_id):
     j = json.load(f)
     return jsonify(j)
 
+@app.route("/glp_data/<client_id>")
+@cross_origin()
+def glp_data(client_id):
+    f = open(f"{client_id}/glp_data.json")
+    j = json.load(f)
+    return jsonify(j)
 
 
 if __name__ == "__main__":

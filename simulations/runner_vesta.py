@@ -48,7 +48,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
             else:
                 std_ratio = jj2[assets_aliases[quote_to_simulation]][assets_aliases[base_to_simulation]]
             print(base_to_simulation, quote_to_simulation)
-            slippage = jj1[base_to_simulation][quote_to_simulation] / ETH_PRICE
+            slippage = jj1[base_to_simulation][quote_to_simulation]["volume"] / ETH_PRICE
             li = float(liquidation_incentive[inv_names[base_to_simulation]])
             li = li if li < 1 else li - 1
             new_c["liquidation_incentives"] = [li]
@@ -62,36 +62,32 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
             base_id_to_simulation = inv_names[base_to_simulation]
 
-            if base_to_simulation == "GLP":
-                new_c["collaterals"] = [1_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE, 10_000_000 / ETH_PRICE,
-                                        15_000_000 / ETH_PRICE, 20_000_000 / ETH_PRICE, 25_000_000 / ETH_PRICE,
-                                        30_000_000 / ETH_PRICE]
-                data[key] = new_c
-            else:
-                current_debt = 0
-                for index, row in users_data.iterrows():
-                    if row["COLLATERAL_" + base_to_simulation] > 0:
-                        cc = row["DEBT_VST"]
-                        if not math.isnan(cc):
-                            current_debt += cc
-                max_debt = borrow_caps[base_id_to_simulation] * 5
-                step_size = (max_debt - current_debt) / 30
-                new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
-                new_c["current_debt"] = current_debt / ETH_PRICE
-                data[key] = new_c
+            current_debt = 0
+            for index, row in users_data.iterrows():
+                if row["COLLATERAL_" + base_to_simulation] > 0:
+                    cc = row["DEBT_VST"]
+                    if not math.isnan(cc):
+                        current_debt += cc
 
-                stability_pool_initial_balance = stabilityPoolVstBalance[base_id_to_simulation]
-                new_c["stability_pool_initial_balances"] = [
-                    (1 * stability_pool_initial_balance) / current_debt,
-                    (0.5 * stability_pool_initial_balance) / current_debt,
-                    (2 * stability_pool_initial_balance) / current_debt]
+            max_debt = borrow_caps[base_id_to_simulation] * 5
+            step_size = (max_debt - current_debt) / 30
+            new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
+            new_c["current_debt"] = current_debt / ETH_PRICE
+            data[key] = new_c
 
-                share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
-                    base_id_to_simulation]) / stability_pool_initial_balance
-                new_c["share_institutionals"] = [
-                    1 * share_institutional,
-                    0.5 * share_institutional,
-                    min(1, 2 * share_institutional)]
+            stability_pool_initial_balance = stabilityPoolVstBalance[base_id_to_simulation]
+            new_c["stability_pool_initial_balances"] = [
+                (1 * stability_pool_initial_balance) / current_debt,
+                (0.5 * stability_pool_initial_balance) / current_debt,
+                (2 * stability_pool_initial_balance) / current_debt]
+
+            share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
+                base_id_to_simulation]) / stability_pool_initial_balance
+            new_c["share_institutionals"] = [
+                1 * share_institutional,
+                0.5 * share_institutional,
+                min(1, 2 * share_institutional),
+                1]
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
     json.dump(data, fp)
@@ -118,9 +114,6 @@ def fix_usd_volume_for_slippage():
     for d in data["VST"]:
         new_json[d] = {}
         new_json[d]["VST"] = data["VST"][d]
-
-    # new_json["GLP"] = {}
-    # new_json["GLP"]["VST"] = new_json["renBTC"]["VST"]
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
     json.dump(new_json, fp)
@@ -155,9 +148,17 @@ def fix_risk_params():
     fp.close()
 
 
+def create_glp_data(glp_data):
+    data = {"json_time": time.time()}
+    data["glp_data"] = glp_data
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "glp_data.json", "w")
+    json.dump(data, fp)
+    fp.close()
+
+
 lending_platform_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "data.json"
-assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST"]
-assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST"}
+assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST", "sGLP"]
+assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "sGLP":"GLP"}
 
 ETH_PRICE = 1600
 SITE_ID = "2"
@@ -202,6 +203,7 @@ if __name__ == '__main__':
     stabilityPoolGemBalance = eval(data["stabilityPoolGemBalance"])
     bprotocolVstBalance = eval(data["bprotocolVstBalance"])
     bprotocolGemBalance = eval(data["bprotocolGemBalance"])
+    glp_data = eval(data["glpData"])
 
     for i_d in stabilityPoolVstBalance:
         stabilityPoolVstBalance[i_d] = prices[inv_names["VST"]] * int(stabilityPoolVstBalance[i_d], 16) / 10 ** (
@@ -235,9 +237,9 @@ if __name__ == '__main__':
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
     base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-    # fix_usd_volume_for_slippage()
-    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT"],
+    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
+    fix_usd_volume_for_slippage()
+    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
                                                     [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
 
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
@@ -248,8 +250,9 @@ if __name__ == '__main__':
     fix_risk_params()
 
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
+                                              collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
+    create_glp_data(glp_data)
     # if len(sys.argv) > 1:
     #     exit()
     # print("------------------------ SLEEPING --------------------------------------")

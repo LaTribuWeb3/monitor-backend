@@ -80,6 +80,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
     ignore_list = ["DPX", "GMX", "OHM", "STNEAR"]
     for asset_id in prices:
         asset_name = names[asset_id]
+        if asset_name == "sGLP": continue
         cex_name = assets_cex_aliases[asset_name]
         cex_price = 1
         if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
@@ -287,6 +288,7 @@ def create_assets_std_ratio_information(SITE_ID, assets, dates, only_usdt=False)
     json.dump(data, fp)
     fp.close()
 
+
 def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series):
     output_folder = "simulation_results" + os.path.sep + SITE_ID
     shutil.rmtree(output_folder)
@@ -295,7 +297,7 @@ def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     jj = json.load(file)
     Parallel(n_jobs=total_jobs)(
-        delayed(run_simulation_on_dir)(ETH_PRICE, "data_worst_day" + os.path.sep + "*ETH*", output_folder,
+        delayed(run_simulation_on_dir)(ETH_PRICE, "data_worst" + os.path.sep + "*ETH*", output_folder,
                                        collateral_factors, inv_names, j, jj[j], print_time_series,
                                        None, False, False)
         for j in jj if j != "json_time")
@@ -439,15 +441,13 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
     file.close()
 
     Parallel(n_jobs=total_jobs)(
-        delayed(plot_for_html)(output_folder, j, True, ETH_PRICE, jj[j]["liquidation_incentives"][0]) for j in jj if
-        j != "json_time" and "GLP" not in j)
+        delayed(plot_for_html)(output_folder, j, True, ETH_PRICE, jj[j]["liquidation_incentives"][0]) for j in jj if j != "json_time")
 
     data = {"json_time": time.time()}
 
     try:
         for base in jj1:
             if base == "json_time": continue
-            if "GLP" in base: continue
             data[base] = {}
             for quote in jj1[base]:
                 files = glob.glob(
