@@ -367,13 +367,11 @@ class Compound {
             const start = i
             const end = i + bulkSize > users.length ? users.length : i + bulkSize
             console.log("update", i.toString() + " / " + users.length.toString())
-            try {
-                await this.updateUsers(users.slice(start, end))
-            }
-            catch(err) {
-                console.log("update user failed, trying again", err)
-                i -= bulkSize
-            }
+
+
+            const slice = users.slice(start, end)
+            const fn = (...args) => this.updateUsers(...args)
+            await retry(fn, [slice])
         }
     }
 
