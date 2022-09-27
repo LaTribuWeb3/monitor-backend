@@ -10,6 +10,9 @@ import copy
 import aggregator
 import shutil
 
+import utils
+
+
 def create_dex_information():
     print("create_dex_information")
     data = {"json_time": time.time()}
@@ -130,22 +133,24 @@ if __name__ == '__main__':
         users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
         users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
 
-    # ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals)
-    # base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
-    # base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,prices, collateral_factors, collateral_caps,borrow_caps, underlying)
-    # base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,assets_liquidation_data)
-    # base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, cex_aliases, ap.get_price)
-    # create_dex_information()
-    # base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
-    # base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
-    # base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
-    # create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases,liquidation_incentive, inv_names)
-    # base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series)
-    # base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+    ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals)
+    base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
+    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,prices, collateral_factors, collateral_caps,borrow_caps, underlying)
+    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,assets_liquidation_data)
+    base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, cex_aliases, ap.get_price)
+    create_dex_information()
+    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
+    base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
+    base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
+    create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases,liquidation_incentive, inv_names)
+    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series)
+    base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
 
+    d = utils.get_file_time(aggregator_path)
+    utils.update_time_stamps(SITE_ID, min(d,last_update_time))
     # for x in os.walk("simulation_results\\1\\"):
     #     if "simulation_results" in x[0] and "-" in x[0]:
     #         f = glob.glob(x[0] + "\\*.*")[0]

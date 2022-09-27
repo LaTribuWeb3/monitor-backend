@@ -295,6 +295,10 @@ class stability_report:
         file_total_volume = sum(dai_eth[self.liquidation_side])
         simulation_id = str(uuid.uuid4())
         simulation_index = 0
+        total_runs = len(config["volume_for_slippage_10_percentss"]) * len(config["l_factors"]) * len(config["price_recovery_times"]) \
+                * len(config["share_institutionals"]) * len(config["recovery_halflife_retails"]) * len(config["liquidation_incentives"]) * config["stability_pool_initial_balances"]
+        current_run = 0
+
         for volume_for_slippage_10_percents in config["volume_for_slippage_10_percentss"]:
             for l_factor in config["l_factors"]:
                 for price_recovery_time in config["price_recovery_times"]:
@@ -303,6 +307,7 @@ class stability_report:
                             for collateral in config["collaterals"]:
                                 for l_incentive in config["liquidation_incentives"]:
                                     for s_balance in config["stability_pool_initial_balances"]:
+                                        current_run += 1
                                         simulation_index += 1
                                         simulation_name = str(simulation_id) + "_" + str(simulation_index)
                                         target_volume = 0
@@ -524,7 +529,7 @@ class stability_report:
                                              open_liquidation in
                                              open_liquidations])
 
-                                        print(os.path.basename(file_name), name,
+                                        print(os.path.basename(file_name), name, "total runs", total_runs, "run", current_run,
                                               "max_drop", round(max_drop, 2),
                                               "simulation_pnl", round(simulation_pnl, 2))
 

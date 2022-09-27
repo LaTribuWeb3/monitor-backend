@@ -33,26 +33,31 @@ class KyberPrices:
             token_in = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
             amount_in = volume_in_base * 10 ** 6
 
-        url_to_send = self.url.replace("DEAD_LINE", str(time.time() + 1000))
-        url_to_send = url_to_send.replace("TOKEN_IN", str(token_in))
-        url_to_send = url_to_send.replace("TOKEN_OUT", str(token_out))
-        url_to_send = url_to_send.replace("AMOUNT_IN", str(int(amount_in)))
+        # url_to_send = self.url.replace("DEAD_LINE", str(time.time() + 1000))
+        # url_to_send = url_to_send.replace("TOKEN_IN", str(token_in))
+        # url_to_send = url_to_send.replace("TOKEN_OUT", str(token_out))
+        # url_to_send = url_to_send.replace("AMOUNT_IN", str(int(amount_in)))
+        url_to_send = "https://api.1inch.io/v4.0/" + str(self.chain_id) + "/quote?" \
+                "fromTokenAddress=" + str(token_in) + "&" \
+                "toTokenAddress=" + str(token_out) + "&" \
+                "amount=" + str(int(amount_in))
         time.sleep(1)
         time_to_sleep = 1
         while True:
             try:
-                response = requests.get(url_to_send, headers={"Accept-Version": "Latest"})
+                response = requests.get(url_to_send)
                 data = response.json()
-                response_amount_in = int(data["inputAmount"]) / 10 ** self.decimals[self.inv_names[base]]
+                response_amount_in = int(amount_in) / 10 ** self.decimals[self.inv_names[base]]
                 if base == "VST":
-                    response_amount_in = int(data["inputAmount"]) / 10 ** 6
+                    response_amount_in = int(amount_in) / 10 ** 6
 
-                response_amount_out = int(data["outputAmount"]) / 10 ** self.decimals[self.inv_names[quote]]
+                response_amount_out = int(data["toTokenAmount"]) / 10 ** self.decimals[self.inv_names[quote]]
                 price_in_base = response_amount_in / response_amount_out
                 return price_in_base
             except Exception as e:
                 print(e)
-                print(response)
+                print(response.json)
+                print(response.text)
                 time.sleep(time_to_sleep)
                 time_to_sleep += 3
 

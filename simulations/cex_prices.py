@@ -11,7 +11,8 @@ class CCXTClient:
             base = "BTC"
         if base == "WNEAR" or base == "STNEAR":
             base = "NEAR"
-
+        if base == "USDC" and quote == "USDT":
+            return 1
         client = getattr(ccxt, exchange)()
         ob = client.fetch_order_book(base + "/" + quote)
         return (ob["bids"][0][0] + ob["asks"][0][0]) * 0.5

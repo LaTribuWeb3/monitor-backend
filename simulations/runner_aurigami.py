@@ -8,6 +8,7 @@ import compound_parser
 import base_runner
 import copy
 import kyber_prices
+import utils
 
 
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
@@ -150,10 +151,12 @@ def fix_usd_volumes_for_slippage():
 
 
 ETH_PRICE = 1600
-dex_paths = [".." + os.path.sep + "trisolaris" + os.path.sep]
+
 lending_platform_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "data.json"
+dex_paths = [".." + os.path.sep + "trisolaris" + os.path.sep]
 stnear_stash = ".." + os.path.sep + "aurigami" + os.path.sep + "stNEARLiquidity.json"
 oracle_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "oracle.json"
+
 assets_to_simulate = ["auETH", "auWBTC", "auWNEAR", "auSTNEAR", "auUSDC", "auUSDT"]
 assets_aliases = {"auETH": "ETH", "auWBTC": "BTC", "auWNEAR": "NEAR", "auSTNEAR": "NEAR", "auUSDT": "USDT",
                   "auUSDC": "USDT"}
@@ -210,7 +213,7 @@ if __name__ == '__main__':
         users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
         users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
 
-    kp = kyber_prices.KyberPrices(chain_id, inv_names, underlying, decimals)
+    kp = kyber_prices.KyberPrices("1313161554", inv_names, underlying, decimals)
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
     base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
                                                             prices, collateral_factors, collateral_caps, borrow_caps,
@@ -235,7 +238,10 @@ if __name__ == '__main__':
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
-
+    d1 = utils.get_file_time(oracle_json_file)
+    d2 = utils.get_file_time(stnear_stash)
+    d1 = min(d1, d2)
+    utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
     # if len(sys.argv) > 1:
     #     exit()
     # print("------------------------ SLEEPING --------------------------------------")

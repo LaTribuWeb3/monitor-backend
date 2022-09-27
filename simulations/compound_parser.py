@@ -56,21 +56,21 @@ class CompoundParser:
     def parse(self, data, is_stable=False):
 
         last_update_time = data["lastUpdateTime"]
-        self.names = eval(data["names"])
+        self.names = eval(str(data["names"]))
         self.inv_names = {v: k for k, v in self.names.items()}
-        self.decimals = eval(data["decimals"])
+        self.decimals = eval(str(data["decimals"]))
         for x in self.decimals:
             self.decimals[x] = int(self.decimals[x])
-        self.collateral_factors = eval(data["collateralFactors"])
-        self.borrow_caps = eval(data["borrowCaps"])
-        self.collateral_caps = eval(data["collateralCaps"])
-        self.prices = eval(data["prices"])
-        self.underlying = eval(data["underlying"])
+        self.collateral_factors = eval(str(data["collateralFactors"]))
+        self.borrow_caps = eval(str(data["borrowCaps"]))
+        self.collateral_caps = eval(str(data["collateralCaps"]))
+        self.prices = eval(str(data["prices"]))
+        self.underlying = eval(str(data["underlying"]))
         self.inv_underlying = {v: k for k, v in self.underlying.items()}
         self.liquidation_incentive = eval(str(data["liquidationIncentive"]))
 
-        self.totalAssetBorrow = eval(data["totalBorrows"])
-        self.totalAssetCollateral = eval(data["totalCollateral"])
+        self.totalAssetBorrow = eval(str(data["totalBorrows"]))
+        self.totalAssetCollateral = eval(str(data["totalCollateral"]))
 
         for i_d in self.prices:
             self.prices[i_d] = int(self.prices[i_d], 16) / 10 ** (36 - self.decimals[i_d])
@@ -90,10 +90,10 @@ class CompoundParser:
         for i_d in self.totalAssetBorrow:
             self.totalAssetBorrow[i_d] = self.prices[i_d] * int(self.totalAssetBorrow[i_d], 16) / 10 ** (self.decimals[i_d])
 
-        users = data["users"]
+        users = str(data["users"])
         users = users.replace("true", "True")
         users = users.replace("false", "False")
-        users = eval(users)
+        users = eval(str(users))
         users_data = []
         orig_user_data = []
         for user in users:

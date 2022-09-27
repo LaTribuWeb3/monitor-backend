@@ -218,6 +218,22 @@ def get_total_bad_debt(users, asset, price_factor, prices, collateral_factors, n
 
     return total_bad_debt, assets_total_bad_debt
 
+def get_file_time(file_name):
+    file = open(file_name)
+    liquidityJson = json.load(file)
+    return liquidityJson["lastUpdateTime"]
+
+def update_time_stamps(SITE_ID, last_update_time):
+    path = os.path.sep + "webserver" + os.path.sep + SITE_ID + os.path.sep
+    files = glob.glob(path)
+    for file_name in files:
+        file = open(file_name)
+        data = json.load(file)
+        file.close()
+        data["json_time"] = last_update_time
+        fp = open(file_name, "w")
+        json.dump(data, fp)
+        fp.close()
 
 def create_liquidata_data_from_json(json_file):
     file = open(json_file)

@@ -77,25 +77,25 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
     # kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
     cp = cex_prices.CCXTClient()
     data = {"json_time": time.time()}
-    ignore_list = ["DPX", "GMX", "OHM", "STNEAR"]
+    cex_ignore_list = ["DPX", "GMX", "OHM", "STNEAR", "GLP"]
+    dex_ignore_list = ["sGLP"]
     for asset_id in prices:
         asset_name = names[asset_id]
-        if asset_name == "sGLP": continue
         cex_name = assets_cex_aliases[asset_name]
         cex_price = 1
         if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
-            cex_price = cp.get_price("binance", cex_name, "USDT") if cex_name not in ignore_list else 'NaN'
+            cex_price = cp.get_price("binance", cex_name, "USDT") if cex_name not in cex_ignore_list else 'NaN'
 
         dex_price = 1
         if chain_id == "aurora":
             if asset_name != "auUSDC":
-                dex_price = dex_get_price_function("auUSDC", asset_name, 1000)
+                dex_price = dex_get_price_function("auUSDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
         elif chain_id == "arbitrum":
             if asset_name != "VST":
-                dex_price = dex_get_price_function("VST", asset_name, 1000)
+                dex_price = dex_get_price_function("VST", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
         elif chain_id == "yokaiswap":
             if asset_name != "USDC":
-                dex_price = dex_get_price_function("USDC", asset_name, 1000)
+                dex_price = dex_get_price_function("USDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
 
         data[asset_name] = {"oracle": prices[asset_id], "cex_price": cex_price, "dex_price": dex_price}
 

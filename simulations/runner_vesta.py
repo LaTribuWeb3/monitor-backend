@@ -7,6 +7,7 @@ import compound_parser
 import base_runner
 import copy
 import kyber_prices
+import utils
 
 def create_dex_information():
     pass
@@ -37,6 +38,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     data = {"json_time": time.time()}
     now_time = time.time()
 
+    #assets_to_simulate = ["gOHM"]
     for base_to_simulation in assets_to_simulate:
         if base_to_simulation != "VST":
             quote_to_simulation = "VST"
@@ -72,6 +74,8 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
             max_debt = borrow_caps[base_id_to_simulation] * 5
             step_size = (max_debt - current_debt) / 30
             new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
+            new_c["collaterals"].append(borrow_caps[base_id_to_simulation] / ETH_PRICE)
+            # new_c["collaterals"] = [6_000_000 / ETH_PRICE, 8_000_000 / ETH_PRICE, 10_000_000 / ETH_PRICE, 12_000_000 / ETH_PRICE]
             new_c["current_debt"] = current_debt / ETH_PRICE
             data[key] = new_c
 
@@ -80,6 +84,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 (1 * stability_pool_initial_balance) / current_debt,
                 (0.5 * stability_pool_initial_balance) / current_debt,
                 (2 * stability_pool_initial_balance) / current_debt]
+            #new_c["stability_pool_initial_balances"] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
             share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
                 base_id_to_simulation]) / stability_pool_initial_balance
@@ -88,6 +93,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 0.5 * share_institutional,
                 min(1, 2 * share_institutional),
                 1]
+            #new_c["share_institutionals"] = [0]
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
     json.dump(data, fp)
@@ -222,7 +228,7 @@ if __name__ == '__main__':
     curveFraxBalance = eval(data["curveFraxBalance"])
     curveVstBalance = eval(data["curveVstBalance"])
 
-    kp = kyber_prices.KyberPrices(chain_id, inv_names, underlying, decimals)
+    kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
 
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
     base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
@@ -252,7 +258,9 @@ if __name__ == '__main__':
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
+
     create_glp_data(glp_data)
+    utils.update_time_stamps(SITE_ID, last_update_time)
     # if len(sys.argv) > 1:
     #     exit()
     # print("------------------------ SLEEPING --------------------------------------")
