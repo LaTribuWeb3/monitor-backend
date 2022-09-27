@@ -10,7 +10,6 @@ import os
 import matplotlib.pyplot as plt
 import collections
 from pathlib import Path
-from dateutil import rrule
 
 
 def get_gmx_price():
