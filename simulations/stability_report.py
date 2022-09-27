@@ -296,7 +296,7 @@ class stability_report:
         simulation_id = str(uuid.uuid4())
         simulation_index = 0
         total_runs = len(config["volume_for_slippage_10_percentss"]) * len(config["l_factors"]) * len(config["price_recovery_times"]) \
-                * len(config["share_institutionals"]) * len(config["recovery_halflife_retails"]) * len(config["liquidation_incentives"]) * config["stability_pool_initial_balances"]
+                * len(config["share_institutionals"]) * len(config["recovery_halflife_retails"]) * len(config["liquidation_incentives"]) * len(config["stability_pool_initial_balances"])
         current_run = 0
 
         for volume_for_slippage_10_percents in config["volume_for_slippage_10_percentss"]:
