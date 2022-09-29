@@ -10,7 +10,7 @@ import os
 import matplotlib.pyplot as plt
 import collections
 from pathlib import Path
-import cv2
+#import cv2
 import os
 
 
@@ -510,23 +510,23 @@ def print_time_series(base_path, path, ETH_PRICE):
             plt.close()
 
 
-def create_video():
-    image_folder = 'results'
-    video_name = 'video.avi'
-
-    images = [img for img in os.listdir(image_folder)]
-    frame = cv2.imread(os.path.join(image_folder, images[0]))
-    height, width, layers = frame.shape
-
-    video = cv2.VideoWriter(video_name, 0, 1, (width,height))
-
-    for image in images:
-        video.write(cv2.imread(os.path.join(image_folder, image)))
-
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FPS, 1000)
-    cv2.destroyAllWindows()
-    video.release()
+# def create_video():
+#     image_folder = 'results'
+#     video_name = 'video.avi'
+#
+#     images = [img for img in os.listdir(image_folder)]
+#     frame = cv2.imread(os.path.join(image_folder, images[0]))
+#     height, width, layers = frame.shape
+#
+#     video = cv2.VideoWriter(video_name, 0, 1, (width,height))
+#
+#     for image in images:
+#         video.write(cv2.imread(os.path.join(image_folder, image)))
+#
+#     cap = cv2.VideoCapture(0)
+#     cap.set(cv2.CAP_PROP_FPS, 1000)
+#     cv2.destroyAllWindows()
+#     video.release()
 
 def copy_site():
     assets_to_replace = {"auETH": "vETH", "auWBTC": "vrenBTC", "auWNEAR": "vgOHM", "auSTNEAR": "vDPX", "auUSDC": "vGMX",
