@@ -243,7 +243,7 @@ if __name__ == '__main__':
     curveFraxBalance = eval(data["curveFraxBalance"])
     curveVstBalance = eval(data["curveVstBalance"])
 
-    prices[inv_names["VST"]] = get_vst_price()
+    prices["VST"] = get_vst_price()
     kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
 
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
