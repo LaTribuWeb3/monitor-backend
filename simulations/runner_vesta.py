@@ -9,13 +9,13 @@ import copy
 import kyber_prices
 import utils
 
+
 def create_dex_information():
     pass
 
 
 def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance):
-
     data = {"json_time": time.time()}
     data["stabilityPoolVstBalance"] = {names[x]: stabilityPoolVstBalance[x] for x in stabilityPoolVstBalance}
     data["stabilityPoolGemBalance"] = {names[x]: stabilityPoolGemBalance[x] for x in stabilityPoolGemBalance}
@@ -38,7 +38,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     data = {"json_time": time.time()}
     now_time = time.time()
 
-    #assets_to_simulate = ["gOHM"]
+    # assets_to_simulate = ["gOHM"]
     for base_to_simulation in assets_to_simulate:
         if base_to_simulation != "VST":
             quote_to_simulation = "VST"
@@ -84,16 +84,17 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 (1 * stability_pool_initial_balance) / current_debt,
                 (0.5 * stability_pool_initial_balance) / current_debt,
                 (2 * stability_pool_initial_balance) / current_debt]
-            #new_c["stability_pool_initial_balances"] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            # new_c["stability_pool_initial_balances"] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
             share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
                 base_id_to_simulation]) / stability_pool_initial_balance
+
             new_c["share_institutionals"] = [
                 1 * share_institutional,
                 0.5 * share_institutional,
                 min(1, 2 * share_institutional),
                 1]
-            #new_c["share_institutionals"] = [0]
+            # new_c["share_institutionals"] = [0]
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
     json.dump(data, fp)
@@ -125,15 +126,16 @@ def fix_usd_volume_for_slippage():
     json.dump(new_json, fp)
     fp.close()
 
+
 def fix_risk_params():
     file = open("webserver" + os.sep + SITE_ID + os.sep + "risk_params.json")
     data = json.load(file)
     new_json = {"json_time": data["json_time"]}
     for key1 in data:
         if key1 != "json_time":
-            new_json[key1] = {"key":[]}
+            new_json[key1] = {"key": []}
             for key2 in data[key1]:
-                #"hm-prc-0.0-vfs10p-2715.31583160162-rhr-3.333333333333333-spibr-0.2985054202706127-si-0.2337509781682822"
+                # "hm-prc-0.0-vfs10p-2715.31583160162-rhr-3.333333333333333-spibr-0.2985054202706127-si-0.2337509781682822"
                 params = key2.split("^")
                 spibr = float(params[8])
                 si = float(params[10])
@@ -141,12 +143,12 @@ def fix_risk_params():
                     key3["spibr"] = spibr
                     key3["si"] = si
                     new_json[key1]["key"].append(
-                        {"spibr":spibr,
-                        "si":si,
-                        "dc":key3["dc"],
-                        "lf":key3["lf"],
-                        "md":key3["md"],
-                        "li":key3["li"]})
+                        {"spibr": spibr,
+                         "si": si,
+                         "dc": key3["dc"],
+                         "lf": key3["lf"],
+                         "md": key3["md"],
+                         "li": key3["li"]})
 
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "risk_params.json", "w")
@@ -164,7 +166,7 @@ def create_glp_data(glp_data):
 
 lending_platform_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "data.json"
 assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST", "sGLP"]
-assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "sGLP":"GLP"}
+assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "sGLP": "GLP"}
 
 ETH_PRICE = 1600
 SITE_ID = "2"
@@ -228,7 +230,13 @@ if __name__ == '__main__':
     curveFraxBalance = eval(data["curveFraxBalance"])
     curveVstBalance = eval(data["curveVstBalance"])
 
+    inv_names["USDC"] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
+    names["0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"] = 'USDC'
+    underlying['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
+    decimals['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = 6
     kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
+    vst_price = kp.get_price("USDC", "VST", 100)
+    prices[inv_names["VST"]] = vst_price
 
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
     base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
@@ -256,8 +264,7 @@ if __name__ == '__main__':
     fix_risk_params()
 
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                              collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
-
+                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
     create_glp_data(glp_data)
     utils.update_time_stamps(SITE_ID, last_update_time)

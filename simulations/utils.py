@@ -10,10 +10,11 @@ import os
 import matplotlib.pyplot as plt
 import collections
 from pathlib import Path
+import cv2
+import os
 
 
 def get_gmx_price():
-
     file = open("data\\gmx_price.json")
     gmx_price = json.load(file)
     plt.plot([float(x["aumInUsdg"]) / float(x["glpSupply"]) for x in gmx_price["data"]["glpStats"]])
@@ -217,10 +218,12 @@ def get_total_bad_debt(users, asset, price_factor, prices, collateral_factors, n
 
     return total_bad_debt, assets_total_bad_debt
 
+
 def get_file_time(file_name):
     file = open(file_name)
     liquidityJson = json.load(file)
     return liquidityJson["lastUpdateTime"]
+
 
 def update_time_stamps(SITE_ID, last_update_time):
     path = os.path.sep + "webserver" + os.path.sep + SITE_ID + os.path.sep
@@ -233,6 +236,7 @@ def update_time_stamps(SITE_ID, last_update_time):
         fp = open(file_name, "w")
         json.dump(data, fp)
         fp.close()
+
 
 def create_liquidata_data_from_json(json_file):
     file = open(json_file)
@@ -473,6 +477,57 @@ def create_current_simulation_risk(json_file):
                 pd.DataFrame(result).to_csv("results\\" + base_to_simulation + "_" + quote_to_simulation + ".csv")
 
 
+def print_time_series(base_path, path, ETH_PRICE):
+    all_df = pd.read_csv(base_path + path)
+
+    for index, row in all_df.iterrows():
+        file_name = row["simulation_name"]
+        print("---------------------------------", file_name)
+        df = pd.read_csv(base_path + file_name + ".csv")
+        for i in np.arange(len(df)):
+            df = pd.read_csv(base_path + file_name + ".csv")
+            df = df.loc[0:i]
+            fig, ax1 = plt.subplots()
+            fig.set_size_inches(12.5, 8.5)
+            ax2 = ax1.twinx()
+            ax1.plot(df["ts"], df["price"], 'g-')
+            ax2.plot(df["ts"], df["market_volume"] * ETH_PRICE / 1_000_000, 'r-', label="Market Volume")
+            ax2.plot(df["ts"], df["stability_pool_available_volume"] * ETH_PRICE / 1_000_000, 'm-',
+                     label="Stability Pool Liquidity")
+            ax2.plot(df["ts"], df["open_liquidations"] * ETH_PRICE / 1_000_000, 'y-',
+                     label="open_liquidations")
+            ax2.plot(df["ts"], df["pnl"] / 1_000_000, 'c-', label="PNL")
+            ax2.plot(df["ts"], df["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000, 'b-',
+                     label="30 minutes Liquidation Volume")
+
+            ax1.set_label('Time')
+            ax1.set_ylabel('Price', color='g')
+
+            plt.title("Max Drop:" + str(round(row["max_drop"], 2)))
+            plt.legend()
+            plt.savefig("results\\frame." + str(i).ljust(10, '0') + ".jpg")
+            plt.cla()
+            plt.close()
+
+
+def create_video():
+    image_folder = 'results'
+    video_name = 'video.avi'
+
+    images = [img for img in os.listdir(image_folder)]
+    frame = cv2.imread(os.path.join(image_folder, images[0]))
+    height, width, layers = frame.shape
+
+    video = cv2.VideoWriter(video_name, 0, 1, (width,height))
+
+    for image in images:
+        video.write(cv2.imread(os.path.join(image_folder, image)))
+
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FPS, 1000)
+    cv2.destroyAllWindows()
+    video.release()
+
 def copy_site():
     assets_to_replace = {"auETH": "vETH", "auWBTC": "vrenBTC", "auWNEAR": "vgOHM", "auSTNEAR": "vDPX", "auUSDC": "vGMX",
                          "auUSDT": "vGLP"}
@@ -511,7 +566,6 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
         df1["timestamp_x"] = (start_date + df1.index * 60) * (1000 * 1000)
         df1.to_csv("data\\data_unified_" + i[1] + "_" + i[0] + "_" + pair_name + ".csv", index=False)
         index += 1
-
 
 
 # create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
@@ -554,3 +608,6 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
 
 # copy_site()
 # get_gmx_price()
+# base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
+# print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
+#create_video()
