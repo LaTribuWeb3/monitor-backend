@@ -164,6 +164,19 @@ def create_glp_data(glp_data):
     fp.close()
 
 
+def get_vst_price():
+    inv_names1 = copy.deepcopy(inv_names)
+    underlying1 = copy.deepcopy(underlying)
+    decimals1 = copy.deepcopy(decimals)
+    inv_names1["USDC"] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
+    underlying1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
+    decimals1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = 6
+    kp = kyber_prices.KyberPrices("42161", inv_names1, underlying1, decimals1)
+    vst_price = kp.get_price("USDC", "VST", 100)
+    return vst_price
+
+
+
 lending_platform_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "data.json"
 assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST", "sGLP"]
 assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "sGLP": "GLP"}
@@ -230,13 +243,7 @@ if __name__ == '__main__':
     curveFraxBalance = eval(data["curveFraxBalance"])
     curveVstBalance = eval(data["curveVstBalance"])
 
-    inv_names["USDC"] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
-    names["0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"] = 'USDC'
-    underlying['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
-    decimals['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = 6
-    kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
-    vst_price = kp.get_price("USDC", "VST", 100)
-    prices[inv_names["VST"]] = vst_price
+    prices[inv_names["VST"]] = get_vst_price()
 
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
     base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
