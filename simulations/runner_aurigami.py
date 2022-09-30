@@ -225,9 +225,9 @@ if __name__ == '__main__':
     base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
 
-    #base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
-    #                                            False,
-    #                                            float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]])
+    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
+                                               False,
+                                               float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]])
 
     base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"],
                                                     [("04", "2022"), ("05", "2022"), ("06", "2022")])
