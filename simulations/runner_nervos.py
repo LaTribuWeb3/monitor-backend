@@ -56,6 +56,12 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 new_c["volume_for_slippage_10_percentss"] = [slippage]
                 new_c["json_time"] = now_time
 
+                current_debt = 0
+                current_collateral = 0
+                for index, row in users_data.iterrows():
+                    current_debt += float(row["DEBT_" + base_to_simulation])
+                    current_collateral += float(row["COLLATERAL_" + base_to_simulation])
+                new_c["current_debt"] = current_debt / ETH_PRICE
                 data[key] = new_c
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")

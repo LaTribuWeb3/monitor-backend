@@ -220,8 +220,13 @@ def get_total_bad_debt(users, asset, price_factor, prices, collateral_factors, n
 
 
 def get_file_time(file_name):
+    print(file_name)
+    if not os.path.exists(file_name):
+        return float('inf')
     file = open(file_name)
     liquidityJson = json.load(file)
+    if not "lastUpdateTime" in liquidityJson:
+        return float('inf')
     return liquidityJson["lastUpdateTime"]
 
 

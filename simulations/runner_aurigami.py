@@ -82,7 +82,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
                 if 0 in new_c["collaterals"]:
                     print(new_c)
-
+                new_c["current_debt"] = current_debt / ETH_PRICE
                 data[key] = new_c
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
@@ -142,12 +142,12 @@ def create_dex_information():
     json.dump(data, fp)
 
 
-def fix_usd_volumes_for_slippage():
-    file = open("webserver" + os.sep + SITE_ID + os.sep + "usd_volume_for_slippage.json")
-    data = json.load(file)
-    file.close()
-    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
-    json.dump(data, fp)
+# def fix_usd_volumes_for_slippage():
+#     file = open("webserver" + os.sep + SITE_ID + os.sep + "usd_volume_for_slippage.json")
+#     data = json.load(file)
+#     file.close()
+#     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
+#     json.dump(data, fp)
 
 
 ETH_PRICE = 1600
@@ -228,11 +228,10 @@ if __name__ == '__main__':
     base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
                                                 False,
                                                 float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]])
-    fix_usd_volumes_for_slippage()
     base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"],
                                                     [("04", "2022"), ("05", "2022"), ("06", "2022")])
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
-                             inv_names)
+                              inv_names)
     base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
                                           print_time_series)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
