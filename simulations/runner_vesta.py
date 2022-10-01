@@ -173,6 +173,7 @@ def get_vst_price():
     decimals1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = 6
     kp = kyber_prices.KyberPrices("42161", inv_names1, underlying1, decimals1)
     vst_price = kp.get_price("USDC", "VST", 100)
+    print("vst_price", vst_price)
     return vst_price
 
 
