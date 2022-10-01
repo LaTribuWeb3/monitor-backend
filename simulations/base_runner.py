@@ -291,7 +291,7 @@ def create_assets_std_ratio_information(SITE_ID, assets, dates, only_usdt=False)
 
 def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series):
     output_folder = "simulation_results" + os.path.sep + SITE_ID
-    shutil.rmtree(output_folder)
+    #shutil.rmtree(output_folder)
     os.makedirs(output_folder)
 
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
@@ -362,22 +362,10 @@ def plot_for_html(output_folder, j, print_time_series, ETH_PRICE, li):
     return sr.plot_for_html(output_folder, j, print_time_series, li)
 
 
-def create_cefi_market_data():
-    # download_markets = [("binance-futures", "BTCUSDT"), ("binance-futures", "ETHUSDT"), ("binance-futures", "NEARUSDT")]
-    # download_dates = [("06", "2022"), ("05", "2022"), ("04", "2022"), ("03", "2022"), ("02", "2022"), ("01", "2022")]
-    download_markets = [("binance-futures", "ETHUSDT")]
-    download_dates = [("01", "2020"), ("02", "2020"), ("03", "2020"), ("01", "2021"), ("02", "2021"), ("03", "2021")]
-    dd = download_datasets.CefiDataDownloader()
-    for download_market in download_markets:
-        for download_date in download_dates:
-            dd.create_one_minute_liquidation_data(download_date[0], download_date[1], download_market[0],
-                                                  download_market[1])
-
-
 def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                    collateral_factors, inv_names, liquidation_incentive, total_jobs, only_usdt):
     output_folder = "current_risk_results" + os.path.sep + SITE_ID
-    shutil.rmtree(output_folder)
+    #shutil.rmtree(output_folder)
     os.makedirs(output_folder)
 
     f1 = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json")

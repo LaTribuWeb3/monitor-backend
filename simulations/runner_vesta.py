@@ -204,7 +204,7 @@ c = {
 }
 
 if __name__ == '__main__':
-    # while True:
+    SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
     data["collateralFactors"] = data["collateralFactors"].replace("}",
@@ -277,7 +277,3 @@ if __name__ == '__main__':
     create_glp_data(glp_data)
     utils.update_time_stamps(SITE_ID, last_update_time)
     utils.publish_results(SITE_ID)
-    # if len(sys.argv) > 1:
-    #     exit()
-    # print("------------------------ SLEEPING --------------------------------------")
-    # time.sleep(60)

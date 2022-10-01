@@ -99,7 +99,7 @@ c = {
 l_factors = [0.25, 0.5, 1, 1.5, 2]
 
 if __name__ == '__main__':
-
+    SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
     data["totalBorrows"] = "{}"

@@ -181,7 +181,7 @@ chain_id = "aurora"
 l_factors = [0.25, 0.5, 1, 1.5, 2]
 
 if __name__ == '__main__':
-    # while True:
+    SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
 
@@ -243,7 +243,3 @@ if __name__ == '__main__':
     d1 = min(d1, d2)
     utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
     utils.publish_results(SITE_ID)
-    # if len(sys.argv) > 1:
-    #     exit()
-    # print("------------------------ SLEEPING --------------------------------------")
-    # time.sleep(60)

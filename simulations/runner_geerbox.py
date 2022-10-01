@@ -3,11 +3,13 @@ import base_runner
 import copy
 import kyber_prices
 import json
+import utils
 
 lending_platform_json_file = "C:\dev\monitor-backend\gearbox\data.json"
+SITE_ID = "3"
 
 if __name__ == '__main__':
-    # while True:
+    SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
 

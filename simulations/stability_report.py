@@ -20,8 +20,8 @@ class stability_report:
     ETH_PRICE = 2000
 
     def plot_for_html(self, directory, name, print_time_series, li):
-        if os.path.isdir(directory + os.path.sep + name.replace("|", "-")):
-            shutil.rmtree(directory + os.path.sep + name.replace("|", "-"))
+        # if os.path.isdir(directory + os.path.sep + name.replace("|", "-")):
+        #     shutil.rmtree(directory + os.path.sep + name.replace("|", "-"))
         os.makedirs(directory + os.path.sep + name.replace("|", "-"))
         print(name)
         files = glob.glob(directory + os.path.sep + "*_" + name.replace("|","-") + "_*")

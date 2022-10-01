@@ -530,6 +530,25 @@ def print_time_series(base_path, path, ETH_PRICE):
         anim.save('results\\' + file_name + '.gif', writer='imagemagick', fps=15)
         #plt.show()
 
+def create_cefi_market_data():
+    # download_markets = [("binance-futures", "BTCUSDT"), ("binance-futures", "ETHUSDT"), ("binance-futures", "NEARUSDT")]
+    # download_dates = [("06", "2022"), ("05", "2022"), ("04", "2022"), ("03", "2022"), ("02", "2022"), ("01", "2022")]
+    download_markets = [("binance-futures", "ETHUSDT")]
+    download_dates = [("01", "2020"), ("02", "2020"), ("03", "2020"), ("01", "2021"), ("02", "2021"), ("03", "2021")]
+    dd = download_datasets.CefiDataDownloader()
+    for download_market in download_markets:
+        for download_date in download_dates:
+            dd.create_one_minute_liquidation_data(download_date[0], download_date[1], download_market[0],
+                                                  download_market[1])
+
+def get_site_id(SITE_ID):
+    if str(os.path.sep) in  SITE_ID:
+        SITE_ID = SITE_ID.split(str(os.path.sep))[0]
+    n = datetime.datetime.now()
+    d = str(n.year) + "-" + str(n.month) + "-" + str(n.day) + "-" + str(n.hour) + "-" + str(n.minute)
+    SITE_ID = SITE_ID + os.path.sep + d
+    os.makedirs("webserver" + os.path.sep + SITE_ID)
+    return SITE_ID
 
 def publish_results(SITE_ID):
     dir = "webserver" + os.path.sep + SITE_ID
