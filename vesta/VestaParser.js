@@ -477,7 +477,7 @@ async function test() {
     await vesta.initPrices()
     vesta.getData()
     */
-    await vesta.main(true)
+    await vesta.main(false)
  }
 
  test()
