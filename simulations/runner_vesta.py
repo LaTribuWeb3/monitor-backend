@@ -276,6 +276,7 @@ if __name__ == '__main__':
 
     create_glp_data(glp_data)
     utils.update_time_stamps(SITE_ID, last_update_time)
+    utils.publish_results(SITE_ID)
     # if len(sys.argv) > 1:
     #     exit()
     # print("------------------------ SLEEPING --------------------------------------")

@@ -157,6 +157,7 @@ if __name__ == '__main__':
 
     d = utils.get_file_time(aggregator_path)
     utils.update_time_stamps(SITE_ID, min(d,last_update_time))
+    utils.publish_results(SITE_ID)
     # for x in os.walk("simulation_results\\1\\"):
     #     if "simulation_results" in x[0] and "-" in x[0]:
     #         f = glob.glob(x[0] + "\\*.*")[0]

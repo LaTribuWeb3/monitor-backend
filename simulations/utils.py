@@ -5,12 +5,9 @@ import pandas as pd
 import compound_parser
 import datetime
 import json
-import kyber_prices
-import os
 import matplotlib.pyplot as plt
-import collections
+from matplotlib import animation
 from pathlib import Path
-#import cv2
 import os
 
 
@@ -483,55 +480,59 @@ def create_current_simulation_risk(json_file):
 
 
 def print_time_series(base_path, path, ETH_PRICE):
+    def animate(i):
+        if i <= 50:
+            i = i * 10
+        elif i >= 250:
+            i -= 180
+            i = i * 10
+        else:
+            i = 500 + i - 50
+
+        ax1.cla()  # clear the previous image
+        ax2.cla()
+        #ax1.set_xlim([min_ts, max_ts])  # fix the x axis
+        ax1.set_ylim([min_price, max_price])  # fix the y axis
+        #
+        #ax2.set_xlim([min_ts, max_ts])  # fix the x axis
+        ax2.set_ylim([0, 2])  # fix the y axis
+
+        ax1.plot(df.loc[:i]["ts"], df.loc[:i]["price"], 'g-', label="Price")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["market_volume"] * ETH_PRICE / 1_000_000, 'r-', label="Market Volume")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["stability_pool_available_volume"] * ETH_PRICE / 1_000_000, 'm-',
+                 label="Stability Pool Liquidity")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["open_liquidations"] * ETH_PRICE / 1_000_000, 'y-',
+                 label="open_liquidations")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["pnl"] / 1_000_000, 'c-', label="PNL")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000, 'b-',
+                 label="30 minutes Liquidation Volume")
+
+        ax1.set_label('Time')
+        ax1.set_ylabel('Price', color='g')
+        md = round(df.loc[:i]["max_drop"].max(), 2)
+        plt.title("Max Drop:" + str(md))
+        print(i, md)
+        plt.legend()
+
     all_df = pd.read_csv(base_path + path)
 
     for index, row in all_df.iterrows():
         file_name = row["simulation_name"]
-        print("---------------------------------", file_name)
         df = pd.read_csv(base_path + file_name + ".csv")
-        for i in np.arange(len(df)):
-            df = pd.read_csv(base_path + file_name + ".csv")
-            df = df.loc[0:i]
-            fig, ax1 = plt.subplots()
-            fig.set_size_inches(12.5, 8.5)
-            ax2 = ax1.twinx()
-            ax1.plot(df["ts"], df["price"], 'g-')
-            ax2.plot(df["ts"], df["market_volume"] * ETH_PRICE / 1_000_000, 'r-', label="Market Volume")
-            ax2.plot(df["ts"], df["stability_pool_available_volume"] * ETH_PRICE / 1_000_000, 'm-',
-                     label="Stability Pool Liquidity")
-            ax2.plot(df["ts"], df["open_liquidations"] * ETH_PRICE / 1_000_000, 'y-',
-                     label="open_liquidations")
-            ax2.plot(df["ts"], df["pnl"] / 1_000_000, 'c-', label="PNL")
-            ax2.plot(df["ts"], df["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000, 'b-',
-                     label="30 minutes Liquidation Volume")
+        min_price =  df["price"].min()
+        max_price = df["price"].max()
+        fig, ax1 = plt.subplots()
+        fig.set_size_inches(12.5, 8.5)
+        ax2 = ax1.twinx()
 
-            ax1.set_label('Time')
-            ax1.set_ylabel('Price', color='g')
-
-            plt.title("Max Drop:" + str(round(row["max_drop"], 2)))
-            plt.legend()
-            plt.savefig("results\\frame." + str(i).ljust(10, '0') + ".jpg")
-            plt.cla()
-            plt.close()
+        plt.plot()
+        anim = animation.FuncAnimation(fig, animate, frames=int(len(df) / 10) + 1 + 200, interval=0.1, blit=False)
+        anim.save('results\\' + file_name + '.gif', writer='imagemagick', fps=15)
+        #plt.show()
 
 
-# def create_video():
-#     image_folder = 'results'
-#     video_name = 'video.avi'
-#
-#     images = [img for img in os.listdir(image_folder)]
-#     frame = cv2.imread(os.path.join(image_folder, images[0]))
-#     height, width, layers = frame.shape
-#
-#     video = cv2.VideoWriter(video_name, 0, 1, (width,height))
-#
-#     for image in images:
-#         video.write(cv2.imread(os.path.join(image_folder, image)))
-#
-#     cap = cv2.VideoCapture(0)
-#     cap.set(cv2.CAP_PROP_FPS, 1000)
-#     cv2.destroyAllWindows()
-#     video.release()
+def publish_results(SITE_ID):
+    dir = "webserver" + os.path.sep + SITE_ID
 
 def copy_site():
     assets_to_replace = {"auETH": "vETH", "auWBTC": "vrenBTC", "auWNEAR": "vgOHM", "auSTNEAR": "vDPX", "auUSDC": "vGMX",
@@ -615,4 +616,3 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
 # get_gmx_price()
 # base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
 # print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
-#create_video()

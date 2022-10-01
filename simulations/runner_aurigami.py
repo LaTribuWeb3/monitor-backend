@@ -242,6 +242,7 @@ if __name__ == '__main__':
     d2 = utils.get_file_time(stnear_stash)
     d1 = min(d1, d2)
     utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+    utils.publish_results(SITE_ID)
     # if len(sys.argv) > 1:
     #     exit()
     # print("------------------------ SLEEPING --------------------------------------")
