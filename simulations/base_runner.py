@@ -36,7 +36,7 @@ def create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
     data["top_1_debt"] = str(users_data["user_debt"].max())
     data["top_10_debt"] = str(users_data.sort_values("user_debt", ascending=False).head(10)["user_debt"].sum())
 
-    if "nl_user_collateral" in users_data:
+    if "nl_user_collateral" in users_data.columns:
         data["nl_total_collateral"] = str(users_data["nl_user_collateral"].sum())
         data["nl_median_collateral"] = str(
             np.median(users_data.loc[users_data["nl_user_collateral"] > 0]["nl_user_collateral"]))
@@ -142,7 +142,7 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
             data[asset]["top_10_debt"] = str(
                 users_data1.sort_values("DEBT_VST", ascending=False).head(10)["DEBT_VST"].sum())
 
-        if "nl_total_collateral" in users_data:
+        if "nl_total_collateral" in users_data.columns:
             data[asset]["nl_total_collateral"] = str(users_data["NL_COLLATERAL_" + asset].sum())
             data[asset]["nl_median_collateral"] = str(
                 np.median(users_data.loc[users_data["COLLATERAL_" + asset] > 0]["NL_COLLATERAL_" + asset]))
