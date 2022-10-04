@@ -1,4 +1,5 @@
 import json
+import math
 import time
 import numpy as np
 import os
@@ -230,7 +231,7 @@ def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, o
                 10).iterrows():
             is_whale = 1 if len(big_collateral_users.loc[big_collateral_users["user"] == row["user"]]) > 0 else 0
             size = row["NO_CF_COLLATERAL_" + base_to_simulation]
-            size = size if size else 0
+            size = size if not math.isnan(size) else 0
             data[base_to_simulation]["big_collateral"].append(
                 {"id": row["user"], "size": size, "whale_flag": is_whale})
 
@@ -240,7 +241,7 @@ def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, o
                     10).iterrows():
                 is_whale = 1 if len(big_debt_users.loc[big_debt_users["user"] == row["user"]]) > 0 else 0
                 size = row["DEBT_" + base_to_simulation]
-                size = size if size else 0
+                size = size if not math.isnan(size) else 0
                 data[base_to_simulation]["big_debt"].append(
                     {"id": row["user"], "size": size, "whale_flag": is_whale})
         else:
