@@ -229,16 +229,20 @@ def create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, o
         for index, row in my_user_data.sort_values("NO_CF_COLLATERAL_" + base_to_simulation, ascending=False).head(
                 10).iterrows():
             is_whale = 1 if len(big_collateral_users.loc[big_collateral_users["user"] == row["user"]]) > 0 else 0
+            size = row["NO_CF_COLLATERAL_" + base_to_simulation]
+            size = size if size else 0
             data[base_to_simulation]["big_collateral"].append(
-                {"id": row["user"], "size": row["NO_CF_COLLATERAL_" + base_to_simulation], "whale_flag": is_whale})
+                {"id": row["user"], "size": size, "whale_flag": is_whale})
 
         if not only_usdt:
             big_debt_users = my_user_data.loc[my_user_data["DEBT_" + base_to_simulation] > 0.1 * total_debt]
             for index, row in my_user_data.sort_values("DEBT_" + base_to_simulation, ascending=False).head(
                     10).iterrows():
                 is_whale = 1 if len(big_debt_users.loc[big_debt_users["user"] == row["user"]]) > 0 else 0
+                size = row["DEBT_" + base_to_simulation]
+                size = size if size else 0
                 data[base_to_simulation]["big_debt"].append(
-                    {"id": row["user"], "size": row["DEBT_" + base_to_simulation], "whale_flag": is_whale})
+                    {"id": row["user"], "size": size, "whale_flag": is_whale})
         else:
             my_user_data1 = my_user_data.loc[my_user_data["NO_CF_COLLATERAL_" + base_to_simulation] > 0]
             my_user_data1 = my_user_data1.reset_index(drop=True)
