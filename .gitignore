@@ -91,3 +91,4 @@ gearbox/cvxgusd3CRV-usdc-generated.csv
 gearbox/cvxFRAX3CRVf-usdc-generated.csv
 gearbox/cvx3Crv-usdc-generated.csv
 gearbox/3crv-usdc-generated.csv
+simulations/private_config.py

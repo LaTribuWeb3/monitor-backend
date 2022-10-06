@@ -653,3 +653,4 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
 # get_gmx_price()
 # base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
 # print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
+# publish_results("1000/2022-10-1-12-30")
