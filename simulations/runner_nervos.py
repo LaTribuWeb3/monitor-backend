@@ -79,7 +79,7 @@ ETH_PRICE = 1600
 SITE_ID = "1"
 chain_id = "yokaiswap"
 platform_prefix = ""
-print_time_series = True
+print_time_series = False
 total_jobs = 5
 
 c = {

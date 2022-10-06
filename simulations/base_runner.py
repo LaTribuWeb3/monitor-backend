@@ -78,14 +78,15 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
     # kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
     cp = cex_prices.CCXTClient()
     data = {"json_time": time.time()}
-    cex_ignore_list = ["DPX", "GMX", "OHM", "STNEAR", "GLP"]
+    asset_name_ignore_list = ["STNEAR"]
+    cex_ignore_list = ["DPX", "GMX", "OHM", "GLP"]
     dex_ignore_list = ["sGLP"]
     for asset_id in prices:
         asset_name = names[asset_id]
         cex_name = assets_cex_aliases[asset_name]
         cex_price = 1
         if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
-            cex_price = cp.get_price("binance", cex_name, "USDT") if cex_name not in cex_ignore_list else 'NaN'
+            cex_price = cp.get_price("binance", cex_name, "USDT") if (cex_name not in cex_ignore_list and asset_name not in asset_name_ignore_list) else 'NaN'
 
         dex_price = 1
         if chain_id == "aurora":
