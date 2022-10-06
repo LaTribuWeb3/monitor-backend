@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from pathlib import Path
 import os
+from github import Github
+import private_config
 
 
 def get_gmx_price():
@@ -491,10 +493,10 @@ def print_time_series(base_path, path, ETH_PRICE):
 
         ax1.cla()  # clear the previous image
         ax2.cla()
-        #ax1.set_xlim([min_ts, max_ts])  # fix the x axis
+        # ax1.set_xlim([min_ts, max_ts])  # fix the x axis
         ax1.set_ylim([min_price, max_price])  # fix the y axis
         #
-        #ax2.set_xlim([min_ts, max_ts])  # fix the x axis
+        # ax2.set_xlim([min_ts, max_ts])  # fix the x axis
         ax2.set_ylim([0, 2])  # fix the y axis
 
         ax1.plot(df.loc[:i]["ts"], df.loc[:i]["price"], 'g-', label="Price")
@@ -519,7 +521,7 @@ def print_time_series(base_path, path, ETH_PRICE):
     for index, row in all_df.iterrows():
         file_name = row["simulation_name"]
         df = pd.read_csv(base_path + file_name + ".csv")
-        min_price =  df["price"].min()
+        min_price = df["price"].min()
         max_price = df["price"].max()
         fig, ax1 = plt.subplots()
         fig.set_size_inches(12.5, 8.5)
@@ -528,7 +530,8 @@ def print_time_series(base_path, path, ETH_PRICE):
         plt.plot()
         anim = animation.FuncAnimation(fig, animate, frames=int(len(df) / 10) + 1 + 200, interval=0.1, blit=False)
         anim.save('results\\' + file_name + '.gif', writer='imagemagick', fps=15)
-        #plt.show()
+        # plt.show()
+
 
 def create_cefi_market_data():
     # download_markets = [("binance-futures", "BTCUSDT"), ("binance-futures", "ETHUSDT"), ("binance-futures", "NEARUSDT")]
@@ -541,8 +544,9 @@ def create_cefi_market_data():
             dd.create_one_minute_liquidation_data(download_date[0], download_date[1], download_market[0],
                                                   download_market[1])
 
+
 def get_site_id(SITE_ID):
-    if str(os.path.sep) in  SITE_ID:
+    if str(os.path.sep) in SITE_ID:
         SITE_ID = SITE_ID.split(str(os.path.sep))[0]
     n = datetime.datetime.now()
     d = str(n.year) + "-" + str(n.month) + "-" + str(n.day) + "-" + str(n.hour) + "-" + str(n.minute)
@@ -550,8 +554,20 @@ def get_site_id(SITE_ID):
     os.makedirs("webserver" + os.path.sep + SITE_ID)
     return SITE_ID
 
+
 def publish_results(SITE_ID):
-    dir = "webserver" + os.path.sep + SITE_ID
+    SITE_ID = SITE_ID.replace('\\', '/')
+    gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com')
+    repo_name = "Risk-DAO/simulation-results"
+    repo = gh.get_repo(repo_name)
+    files = glob.glob("webserver" + os.path.sep + SITE_ID + os.path.sep + "*.json")
+    print(files)
+    for f in files:
+        file = open(f)
+        git_file = SITE_ID + "/" + os.path.basename(f)
+        print(git_file)
+        repo.create_file(git_file, "Commit Comments", file.read())
+
 
 def copy_site():
     assets_to_replace = {"auETH": "vETH", "auWBTC": "vrenBTC", "auWNEAR": "vgOHM", "auSTNEAR": "vDPX", "auUSDC": "vGMX",
@@ -591,7 +607,6 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
         df1["timestamp_x"] = (start_date + df1.index * 60) * (1000 * 1000)
         df1.to_csv("data\\data_unified_" + i[1] + "_" + i[0] + "_" + pair_name + ".csv", index=False)
         index += 1
-
 
 # create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
 #                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1, None)
