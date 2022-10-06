@@ -69,7 +69,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
 
 aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
-lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0x1C2b0bC50633EB1cec9157bd702980fD9ED53EC8_data.json"
+lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0xb442CA10eB1BA92332faA70c45A579d080bAeCa5_data.json"
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC"]
 assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC":"USDC"}
 cex_aliases = copy.copy(assets_aliases)
