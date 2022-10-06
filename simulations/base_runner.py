@@ -78,7 +78,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
     # kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
     cp = cex_prices.CCXTClient()
     data = {"json_time": time.time()}
-    asset_name_ignore_list = ["STNEAR"]
+    asset_name_ignore_list = ["auSTNEAR"]
     cex_ignore_list = ["DPX", "GMX", "OHM", "GLP"]
     dex_ignore_list = ["sGLP"]
     for asset_id in prices:
