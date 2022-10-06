@@ -556,6 +556,9 @@ def get_site_id(SITE_ID):
 
 
 def publish_results(SITE_ID):
+    if private_config.git_token == "":
+        print("Git Upload Failed. no Token")
+
     SITE_ID = SITE_ID.replace('\\', '/')
     gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com')
     repo_name = "Risk-DAO/simulation-results"
