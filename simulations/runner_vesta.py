@@ -8,10 +8,13 @@ import base_runner
 import copy
 import kyber_prices
 import utils
+import shutil
 
 
-def create_dex_information():
-    pass
+def create_dex_information(SITE_ID):
+    src = "webserver\\2\\dex_liquidity.json"
+    dst = SITE_ID
+    shutil.copyfile(src, dst)
 
 
 def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
@@ -254,7 +257,7 @@ if __name__ == '__main__':
     fix_lending_platform_current_information(curveFraxBalance, curveVstBalance)
     base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
                                            assets_liquidation_data, True)
-    create_dex_information()
+    create_dex_information(create_dex_information)
     create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance)
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
