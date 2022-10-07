@@ -15,7 +15,7 @@ def create_dex_information(SITE_ID):
     src = 'webserver' + os.path.sep + '2' + os.path.sep + 'dex_liquidity.json'
     dst = SITE_ID
     print(src, dst)
-    shutil.copyfile(src, dst)
+    shutil.copyfile(src, 'webserver' + os.path.sep + dst)
 
 
 def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
