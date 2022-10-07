@@ -295,7 +295,7 @@ def create_assets_std_ratio_information(SITE_ID, assets, dates, only_usdt=False)
     fp.close()
 
 
-def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series):
+def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode):
     output_folder = "simulation_results" + os.path.sep + SITE_ID
     #shutil.rmtree(output_folder)
     os.makedirs(output_folder)
@@ -303,7 +303,7 @@ def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     jj = json.load(file)
     Parallel(n_jobs=total_jobs)(
-        delayed(run_simulation_on_dir)(ETH_PRICE, "data_worst" + os.path.sep + "*ETH*", output_folder,
+        delayed(run_simulation_on_dir)(ETH_PRICE, "data_worst_day" if fast_mode else "data_worst" + os.path.sep + "*ETH*", output_folder,
                                        collateral_factors, inv_names, j, jj[j], print_time_series,
                                        None, False, False)
         for j in jj if j != "json_time")

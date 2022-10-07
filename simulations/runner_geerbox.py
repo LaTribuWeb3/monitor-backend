@@ -4,11 +4,14 @@ import copy
 import kyber_prices
 import json
 import utils
+import sys
 
 lending_platform_json_file = "C:\dev\monitor-backend\gearbox\data.json"
 SITE_ID = "3"
 
 if __name__ == '__main__':
+    fast_mode = len(sys.argv) > 1
+    print("FAST MODE", fast_mode)
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)

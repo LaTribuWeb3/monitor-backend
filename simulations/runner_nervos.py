@@ -99,6 +99,9 @@ c = {
 l_factors = [0.25, 0.5, 1, 1.5, 2]
 
 if __name__ == '__main__':
+    fast_mode = len(sys.argv) > 1
+    print("FAST MODE", fast_mode)
+
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
@@ -147,10 +150,11 @@ if __name__ == '__main__':
     create_dex_information()
     base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
+    if not fast_mode:
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
     base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases,liquidation_incentive, inv_names)
-    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series)
+    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series, fast_mode)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
     base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
