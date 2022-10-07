@@ -233,14 +233,18 @@ def update_time_stamps(SITE_ID, last_update_time):
     path = os.path.sep + "webserver" + os.path.sep + SITE_ID + os.path.sep
     files = glob.glob(path)
     for file_name in files:
-        file = open(file_name)
-        data = json.load(file)
-        file.close()
-        data["json_time"] = last_update_time
-        fp = open(file_name, "w")
-        json.dump(data, fp)
-        fp.close()
-
+        try:
+            file = open(file_name)
+            data = json.load(file)
+            file.close()
+            old_json_time = data["json_time"]
+            data["json_time"] = last_update_time
+            print(file_name, "old time", int(old_json_time), "new time", int(last_update_time), "diff", int((old_json_time - last_update_time) / 60), "Minutes")
+            fp = open(file_name, "w")
+            json.dump(data, fp)
+            fp.close()
+        except Exception as e:
+            print(e)
 
 def create_liquidata_data_from_json(json_file):
     file = open(json_file)
