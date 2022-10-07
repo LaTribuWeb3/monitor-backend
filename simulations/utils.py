@@ -231,8 +231,9 @@ def get_file_time(file_name):
 
 def update_time_stamps(SITE_ID, last_update_time):
     print('update_time_stamps')
-    path = os.path.sep + "webserver" + os.path.sep + SITE_ID + os.path.sep
+    path = "webserver" + os.path.sep + SITE_ID + os.path.sep
     files = glob.glob(path + "*.*")
+    print(files)
     for file_name in files:
         try:
             file = open(file_name)
@@ -561,6 +562,7 @@ def get_site_id(SITE_ID):
 
 
 def publish_results(SITE_ID):
+    print("publish_results")
     if private_config.git_token == "":
         print("Git Upload Failed. no Token")
 
