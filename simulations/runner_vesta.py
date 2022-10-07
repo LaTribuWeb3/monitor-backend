@@ -266,9 +266,8 @@ if __name__ == '__main__':
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
     base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    if not fast_mode:
-        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-        fix_usd_volume_for_slippage()
+    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
+    fix_usd_volume_for_slippage()
     base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
                                                     [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
 
