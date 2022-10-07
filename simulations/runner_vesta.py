@@ -12,7 +12,7 @@ import shutil
 
 
 def create_dex_information(SITE_ID):
-    src = "webserver\\2\\dex_liquidity.json"
+    src = 'webserver' + os.path.sep + '2' + os.path.sep + 'dex_liquidity.json'
     dst = SITE_ID
     print(src, dst)
     shutil.copyfile(src, dst)
