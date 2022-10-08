@@ -273,9 +273,11 @@ class stability_report:
         output_file_name = output_directory + os.path.sep + file_name.replace(os.path.sep,
                                                                               "_") + "_" + name.replace("|",
                                                                                                         "-") + "_" + "stability_report.csv"
+        print(file_name, name)
         if skip and os.path.isfile(output_file_name):
-            print("Skipping", file_name, name)
+            print("Skipping")
             return ""
+
         series_std_ratio = config["series_std_ratio"]
         trade_every = config["trade_every"]
         report = []
