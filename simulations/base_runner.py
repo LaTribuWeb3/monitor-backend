@@ -512,7 +512,7 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
                     print("Exception in Current Simulation Risk", e)
                     traceback.print_exc()
             else:
-                print(data[base], " Is Empty !!!")
+                print(base, " Is Empty !!!")
 
     except Exception as e:
         print("Exception in Current Simulation Risk", e)
