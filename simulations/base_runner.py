@@ -493,23 +493,26 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
             data[base]["summary"]["max_drop"] = 0
             data[base]["summary"]["max_collateral"] = 0
             data[base]["summary"]["pnl"] = 0
+            l = len([x for x in data[base] if x != "summary"])
+            if l > 0:
+                try:
+                    data[base]["summary"]["total_liquidation"] = sum(
+                        [float(data[base][x]["total_liquidation"]) for x in data[base] if x != "summary"])
 
-            try:
-                data[base]["summary"]["total_liquidation"] = sum(
-                    [float(data[base][x]["total_liquidation"]) for x in data[base] if x != "summary"])
+                    data[base]["summary"]["max_drop"] = np.max(
+                        [float(data[base][x]["max_drop"]) for x in data[base] if x != "summary"])
 
-                data[base]["summary"]["max_drop"] = np.max(
-                    [float(data[base][x]["max_drop"]) for x in data[base] if x != "summary"])
+                    data[base]["summary"]["max_collateral"] = np.min(
+                        [float(data[base][x]["max_collateral"]) for x in data[base] if x != "summary"])
 
-                data[base]["summary"]["max_collateral"] = np.min(
-                    [float(data[base][x]["max_collateral"]) for x in data[base] if x != "summary"])
+                    data[base]["summary"]["pnl"] = sum(
+                        [float(data[base][x]["pnl"]) for x in data[base] if x != "summary"])
 
-                data[base]["summary"]["pnl"] = sum(
-                    [float(data[base][x]["pnl"]) for x in data[base] if x != "summary"])
-
-            except Exception as e:
-                print("Exception in Current Simulation Risk", e)
-                traceback.print_exc()
+                except Exception as e:
+                    print("Exception in Current Simulation Risk", e)
+                    traceback.print_exc()
+            else:
+                print(data[base], " Is Empty !!!")
 
     except Exception as e:
         print("Exception in Current Simulation Risk", e)

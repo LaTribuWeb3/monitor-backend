@@ -565,6 +565,7 @@ def publish_results(SITE_ID):
     print("publish_results")
     if private_config.git_token == "":
         print("Git Upload Failed. no Token")
+        exit()
 
     SITE_ID = SITE_ID.replace('\\', '/')
     gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com')
