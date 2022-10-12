@@ -312,9 +312,12 @@ def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors
 def run_simulation_on_dir(ETH_PRICE, source_data, output_folder, collateral_factors, inv_names, name, config,
                           print_time_series, liquidation_df, skip, calc_pnl):
     files = glob.glob(source_data)
+    print(source_data)
+    print("run_simulation_on_dir")
     for file in files:
         try:
-            config["collateral_factor"] = collateral_factors[inv_names[name.split('-')[0]]]
+            n = name.split('-')[0] if len(name.split('-')) == 2 else name.split('-')[0] + "-" + name.split('-')[1]
+            config["collateral_factor"] = collateral_factors[inv_names[n]]
             sr = stability_report.stability_report()
             sr.ETH_PRICE = ETH_PRICE
             sr.run_simulation(output_folder, file, name, config, print_time_series, liquidation_df, skip, calc_pnl)
@@ -433,12 +436,10 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     jj = json.load(file)
     file.close()
-
     Parallel(n_jobs=total_jobs)(
         delayed(plot_for_html)(output_folder, j, True, ETH_PRICE, jj[j]["liquidation_incentives"][0]) for j in jj if j != "json_time")
 
     data = {"json_time": time.time()}
-
     try:
         for base in jj1:
             if base == "json_time": continue

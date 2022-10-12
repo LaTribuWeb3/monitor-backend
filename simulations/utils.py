@@ -542,7 +542,7 @@ def print_time_series(base_path, path, ETH_PRICE):
 def create_cefi_market_data():
     # download_markets = [("binance-futures", "BTCUSDT"), ("binance-futures", "ETHUSDT"), ("binance-futures", "NEARUSDT")]
     # download_dates = [("06", "2022"), ("05", "2022"), ("04", "2022"), ("03", "2022"), ("02", "2022"), ("01", "2022")]
-    download_markets = [("binance-futures", "ETHUSDT")]
+    download_markets = [("binance-spot", "ETHUSDT")]
     download_dates = [("01", "2020"), ("02", "2020"), ("03", "2020"), ("01", "2021"), ("02", "2021"), ("03", "2021")]
     dd = download_datasets.CefiDataDownloader()
     for download_market in download_markets:
@@ -559,6 +559,15 @@ def get_site_id(SITE_ID):
     SITE_ID = SITE_ID + os.path.sep + d
     os.makedirs("webserver" + os.path.sep + SITE_ID)
     return SITE_ID
+
+
+def move_to_prod(name, key):
+    print(private_config.git_version_token)
+    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
+    repo_name = "Risk-DAO/version-control"
+    repo = gh.get_repo(repo_name)
+    contents = repo.get_contents("/" + name)
+    repo.update_file(contents.path, "more tests", key, contents.sha)
 
 
 def publish_results(SITE_ID):
@@ -591,7 +600,6 @@ def copy_site():
             contents = contents.replace(a, assets_to_replace[a])
         with open("webserver\\2\\" + os.path.basename(file), "w") as the_file:
             the_file.write(contents)
-
 
 def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=None):
     total_days = 90
@@ -652,7 +660,7 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
 #     data)
 
 
-#   get_usd_volume_for_slippage(lending_platform_json_file, "ETH", "VST", 1.1, prices)
+#  get_usd_volume_for_slippage(lending_platform_json_file, "ETH", "VST", 1.1, prices)
 # create_current_simulation_risk(lending_platform_json_file)
 # create_liquidata_data_from_json(lending_platform_json_file)
 # print_account_information_graph("webserver\\0\\accounts.json")

@@ -23,8 +23,10 @@ class stability_report:
         # if os.path.isdir(directory + os.path.sep + name.replace("|", "-")):
         #     shutil.rmtree(directory + os.path.sep + name.replace("|", "-"))
         os.makedirs(directory + os.path.sep + name.replace("|", "-"))
-        print(name)
         files = glob.glob(directory + os.path.sep + "*_" + name.replace("|","-") + "_*")
+        print(name)
+        print(directory + os.path.sep + "*_" + name.replace("|","-") + "_*")
+        print(files)
         all_df = pd.DataFrame()
         for file in files:
             if "liquidation_data" not in file:
@@ -273,7 +275,7 @@ class stability_report:
         output_file_name = output_directory + os.path.sep + file_name.replace(os.path.sep,
                                                                               "_") + "_" + name.replace("|",
                                                                                                         "-") + "_" + "stability_report.csv"
-        print(file_name, name)
+        print(file_name, name, output_file_name)
         if skip and os.path.isfile(output_file_name):
             print("Skipping")
             return ""
@@ -370,7 +372,7 @@ class stability_report:
 
                                             if row_liquidation > 0 and liquidation_volume == 0:
                                                 print("row_liquidation", row_liquidation, liquidation_volume,
-                                                      liquidation_ratio, target_volume / file_total_volume)
+                                                      liquidation_ratio, target_volume / file_total_volume, "EXIT1")
                                                 exit()
 
                                             all_liquidations_volume += liquidation_volume
@@ -386,7 +388,7 @@ class stability_report:
                                                 price_liquidation_factor_recovery = missing_price_liquidation_factor - next_missing_price_liquidation_factor
                                                 if price_liquidation_factor_recovery < 0:
                                                     print("price_liquidation_factor_recovery",
-                                                          price_liquidation_factor_recovery)
+                                                          price_liquidation_factor_recovery, "EXIT2")
                                                     exit()
 
                                                 price_liquidation_factor += price_liquidation_factor_recovery
@@ -394,7 +396,7 @@ class stability_report:
                                                                                    price_liquidation_factor)
 
                                                 if price_liquidation_factor > 1:
-                                                    print("Error")
+                                                    print("Error", "EXIT3")
                                                     exit()
 
                                             price = row["adjust_price"] * price_liquidation_factor
