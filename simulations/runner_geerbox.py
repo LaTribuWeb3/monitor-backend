@@ -15,14 +15,14 @@ ETH_PRICE = 1600
 total_jobs = 5
 # data_source_dir = "/app/gearbox/simulation/gearbox-input/"
 # output_dir = "/app/gearbox/simulation/gearbox-output"
-data_source_dir = "C:\\Users\\Emilien\\repositories\\monitor-backend-original\\gearbox-input\\"
-output_dir = "C:\\Users\\Emilien\\repositories\\monitor-backend-original\\gearbox-output"
+data_source_dir = "gearbox-input\\"
+output_dir = "gearbox-output"
 lending_platform_json_file = ""
 # slippage_files_folder = "C:\dev\monitor-backend\gearbox"
 download_dates = [("09", "2022")]
 
 debt = ""
-debts = ["DAI", "WETH", "wstETH", "USDC", "WBTC"] 
+debts = ['WBTC']#["DAI", "WETH", "wstETH", "USDC", "WBTC"] 
 
 c = {
     "series_std_ratio": 0,
