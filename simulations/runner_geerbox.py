@@ -1,3 +1,4 @@
+import string
 import compound_parser
 import base_runner
 import json
@@ -9,20 +10,21 @@ import glob
 import os
 import copy
 import shutil
+import sys
+import argparse
 
 SITE_ID = "3"
 ETH_PRICE = 1600
 total_jobs = 5
-# data_source_dir = "/app/gearbox/simulation/gearbox-input/"
-# output_dir = "/app/gearbox/simulation/gearbox-output"
-data_source_dir = "gearbox-input\\"
-output_dir = "gearbox-output"
+data_source_dir = "/app/gearbox/simulation/gearbox-input-lusd/"
+output_dir = "/app/gearbox/simulation/gearbox-output-lusd"
+# data_source_dir = "gearbox-input\\"
+# output_dir = "gearbox-output"
 lending_platform_json_file = ""
 # slippage_files_folder = "C:\dev\monitor-backend\gearbox"
 download_dates = [("09", "2022")]
 
-debt = ""
-debts = ['WBTC']#["DAI", "WETH", "wstETH", "USDC", "WBTC"] 
+debt = "USDC"
 
 c = {
     "series_std_ratio": 0,
@@ -72,6 +74,7 @@ def create_simulation_config():
 
         key = collateral_to_simulate + "-" + debt
         new_c = copy.deepcopy(c)
+        print("new_c", new_c)
         std_ratio = jj2[collateral_to_simulate][debt]
         slippage = jj1[collateral_to_simulate][debt]["volume"] / ETH_PRICE
         li = float(liquidation_incentive[inv_names[collateral_to_simulate]])
@@ -196,46 +199,81 @@ def create_assets_std_ratio_information():
 assets_to_simulate = {}
 
 if __name__ == '__main__':
+    # Initialize parser
+    parser = argparse.ArgumentParser()
+    
+    # Adding optional argument
+    parser.add_argument("-d", "--debt-token", help = "The debt token", required= True)
+    parser.add_argument("-r", "--recovery-times", help = "The recovery times", nargs='*', type=int)
+    parser.add_argument("-c", "--collaterals", help = "The collaterals", nargs='*', type=float)
+    parser.add_argument("-f", "--fast-mode", help = "Add this option to run the simulation in fast mode",default=False , action=argparse.BooleanOptionalAction)
+    parser.add_argument("-i", "--input-directory", help = "Set the input directory")
+    parser.add_argument("-o", "--output-directory", help = "Set the output directory")
+    
+    # Read arguments from command line
+    args = parser.parse_args()
+    
+    print('debt:', args.debt_token)
+    print('input-directory:', args.input_directory)
+    print('output-directpry:', args.output_directory)
+    print('recovery-times:', args.recovery_times)
+    print('collaterals:', args.collaterals)
+    print('fast-mode:', args.fast_mode)
+
     baseSiteID = utils.get_site_id(SITE_ID)
+    fast_mode = False
 
-    for debtToken in debts:
-        debt = debtToken
-        print("Start run for debt token", debt)
-        SITE_ID = baseSiteID + os.path.sep + debt
-        print("SITEID:", SITE_ID)
-        os.makedirs('webserver' + os.path.sep + SITE_ID)
-        lending_platform_json_file = data_source_dir + os.path.sep + debt + "_data.json"
-        assets_to_simulate = create_csv_files()
-        print("Loading file", lending_platform_json_file)
-        file = open(lending_platform_json_file)
-        data = json.load(file)
+    if args.recovery_times != None:
+        print('Overriding price_recovery_times with', args.recovery_times)
+        c["price_recovery_times"] = args.recovery_times
+    if args.collaterals != None:
+        print('Overriding collaterals with', args.collaterals)
+        c["collaterals"] = args.collaterals
+    if args.input_directory != None:
+        print('Overriding input_directory with', args.input_directory)
+        data_source_dir = args.input_directory
+    if args.output_directory != None:
+        print('Overriding output_directory with', args.output_directory)
+        output_dir = args.output_directory
+    if args.fast_mode:
+        print('Activating fast mode')
         fast_mode = True
-        cp_parser = compound_parser.CompoundParser()
-        users_data, assets_liquidation_data, \
-        last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
-        underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
-            data, False)
 
-        create_usd_volumes_for_slippage()
-        create_assets_std_ratio_information()
-        missed_assets = create_simulation_config()
-        base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, False,
-                                            fast_mode)
-        base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, False)
+    debt = args.debt_token
+    print("Start run for debt token", debt)
+    SITE_ID = baseSiteID + os.path.sep + debt
+    print("SITEID:", SITE_ID)
+    os.makedirs('webserver' + os.path.sep + SITE_ID)
+    lending_platform_json_file = data_source_dir + os.path.sep + debt + "_data.json"
+    assets_to_simulate = create_csv_files()
+    print("Loading file", lending_platform_json_file)
+    file = open(lending_platform_json_file)
+    data = json.load(file)
+    cp_parser = compound_parser.CompoundParser()
+    users_data, assets_liquidation_data, \
+    last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
+    underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
+        data, False)
 
-        valid_assets_to_simulation = copy.deepcopy(assets_to_simulate)
-        print("Missed Simulations", missed_assets)
-        for ma in missed_assets:
-            if ma in valid_assets_to_simulation:
-                valid_assets_to_simulation.remove(ma)
+    create_usd_volumes_for_slippage()
+    create_assets_std_ratio_information()
+    missed_assets = create_simulation_config()
+    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, False,
+                                        fast_mode)
+    base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, False)
 
-        base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, valid_assets_to_simulation,
-                                                {a:a for a in assets_to_simulate},
-                                                collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+    valid_assets_to_simulation = copy.deepcopy(assets_to_simulate)
+    print("Missed Simulations", missed_assets)
+    for ma in missed_assets:
+        if ma in valid_assets_to_simulation:
+            valid_assets_to_simulation.remove(ma)
 
-        # at the end, move the needed file to the output dir
-        shutil.copyfile("webserver" + os.path.sep + SITE_ID + os.path.sep + 'risk_params.json', output_dir + os.path.sep + debt + '_risk_params.json')
-        shutil.copyfile("webserver" + os.path.sep + SITE_ID + os.path.sep + 'current_simulation_risk.json', output_dir + os.path.sep + debt + '_current_simulation_risk.json')
+    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, valid_assets_to_simulation,
+                                            {a:a for a in assets_to_simulate},
+                                            collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
 
+    # at the end, move the needed file to the output dir
+    shutil.copyfile("webserver" + os.path.sep + SITE_ID + os.path.sep + 'risk_params.json', output_dir + os.path.sep + debt + '_risk_params.json')
+    shutil.copyfile("webserver" + os.path.sep + SITE_ID + os.path.sep + 'current_simulation_risk.json', output_dir + os.path.sep + debt + '_current_simulation_risk.json')
 
-    print("Simulation Ended")
+    print("Simulation Ended")    
