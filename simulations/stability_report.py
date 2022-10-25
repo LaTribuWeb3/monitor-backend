@@ -286,7 +286,8 @@ class stability_report:
         print(file_name)
         dai_eth = pd.read_csv(file_name)
         total_days_in_file = len(pd.to_datetime(dai_eth['timestamp_x'] / 1000, unit='ms').dt.normalize().unique())
-        total_days_in_files_factor = total_days_in_file / 30
+        #total_days_in_files_factor = total_days_in_file / 30
+        total_days_in_files_factor = 1
         print(total_days_in_files_factor, total_days_in_file)
         dai_eth = self.adjust_series_price(dai_eth, series_std_ratio)
         x = min(dai_eth["timestamp_x"])
@@ -560,6 +561,7 @@ class stability_report:
                                              "stability_pool_initial_balance_ratio": s_balance,
                                              "stability_pool_initial_balance": stability_pool_initial_balance,
                                              "collateral_liquidation_factor": l_factor,
+                                             "target_volume": target_volume,
                                              "simulation volume": all_liquidations_volume,
                                              "min_multiply_price_liquidation_factor": min_multiply_price_liquidation_factor,
                                              "max_liquidation_volume": max_liquidation_volume,
