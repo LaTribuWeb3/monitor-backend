@@ -206,7 +206,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--debt-token", help = "The debt token", required= True)
     parser.add_argument("-r", "--recovery-times", help = "The recovery times", nargs='*', type=int)
     parser.add_argument("-c", "--collaterals", help = "The collaterals", nargs='*', type=float)
-    parser.add_argument("-f", "--fast-mode", help = "Add this option to run the simulation in fast mode",default=False , action=argparse.BooleanOptionalAction)
+    parser.add_argument("-f", "--fast-mode", help = "Add this option to run the simulation in fast mode",default=False)
     parser.add_argument("-i", "--input-directory", help = "Set the input directory")
     parser.add_argument("-o", "--output-directory", help = "Set the output directory")
     
@@ -239,6 +239,7 @@ if __name__ == '__main__':
         print('Activating fast mode')
         fast_mode = True
 
+    data_source_dir = data_source_dir.rstrip('/') + '/'
     debt = args.debt_token
     print("Start run for debt token", debt)
     SITE_ID = baseSiteID + os.path.sep + debt
