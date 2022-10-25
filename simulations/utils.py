@@ -557,7 +557,7 @@ def get_site_id(SITE_ID):
     n = datetime.datetime.now()
     d = str(n.year) + "-" + str(n.month) + "-" + str(n.day) + "-" + str(n.hour) + "-" + str(n.minute)
     SITE_ID = SITE_ID + os.path.sep + d
-    os.makedirs("webserver" + os.path.sep + SITE_ID)
+    os.makedirs("webserver" + os.path.sep + SITE_ID,exist_ok= True)
     return SITE_ID
 
 
