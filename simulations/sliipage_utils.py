@@ -1,5 +1,11 @@
-def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_price_function, near_to_stnear_volume=0):
+def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_price_function, near_to_stnear_volume=0, stnear_to_near_volume = 0):
     print(base, quote)
+    if quote == "auSTNEAR":
+        if base == "auWNEAR":
+            return stnear_to_near_volume
+        else:
+            near_quantity = get_usd_volume_for_slippage(base, "auWNEAR", slippage, asset_usdc_price, get_price_function, near_to_stnear_volume, stnear_to_near_volume)
+            return min(stnear_to_near_volume, near_quantity)
 
     base_price = get_price_function(base, quote, 1000 / asset_usdc_price[base])
     max_price_volume = 1000
@@ -27,6 +33,7 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
             if quote != "auWNEAR":
                 near_to_quote_price = get_price_function("auWNEAR", quote,
                                                          near_volume_to_kyber_in_usd / asset_usdc_price["auWNEAR"])
+
             quote_volume_in_quote = (near_volume_to_kyber_in_usd / asset_usdc_price["auWNEAR"]) / near_to_quote_price
             price = (avg_volume / asset_usdc_price["auSTNEAR"]) / quote_volume_in_quote
         else:
@@ -43,7 +50,7 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
 
 
 def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get_price_function, only_usdt=False,
-                                 near_to_stnear_volume=0):
+                                 near_to_stnear_volume=0, stnear_to_near_volume = 0):
     base = ""
     asset_usdc_price = {}
 
@@ -87,7 +94,7 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
             print(base, quote)
             llc = lic if lic >= 1 else 1 + lic
             volume = get_usd_volume_for_slippage(base, quote, llc, asset_usdc_price, get_price_function,
-                                            near_to_stnear_volume)
+                                            near_to_stnear_volume, stnear_to_near_volume)
             all_prices[base][quote] = {"volume": volume, "llc": llc}
 
     if chain_id == "arbitrum":

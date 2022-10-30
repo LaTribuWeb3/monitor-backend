@@ -11,6 +11,7 @@ from pathlib import Path
 import os
 from github import Github
 import private_config
+import matplotlib.dates as mdates
 
 
 def get_gmx_price():
@@ -241,12 +242,14 @@ def update_time_stamps(SITE_ID, last_update_time):
             file.close()
             old_json_time = data["json_time"]
             data["json_time"] = last_update_time
-            print(file_name, "old time", int(old_json_time), "new time", int(last_update_time), "diff", int((old_json_time - last_update_time) / 60), "Minutes")
+            print(file_name, "old time", int(old_json_time), "new time", int(last_update_time), "diff",
+                  int((old_json_time - last_update_time) / 60), "Minutes")
             fp = open(file_name, "w")
             json.dump(data, fp)
             fp.close()
         except Exception as e:
             print(e)
+
 
 def create_liquidata_data_from_json(json_file):
     file = open(json_file)
@@ -557,8 +560,27 @@ def get_site_id(SITE_ID):
     n = datetime.datetime.now()
     d = str(n.year) + "-" + str(n.month) + "-" + str(n.day) + "-" + str(n.hour) + "-" + str(n.minute)
     SITE_ID = SITE_ID + os.path.sep + d
-    os.makedirs("webserver" + os.path.sep + SITE_ID,exist_ok= True)
+    os.makedirs("webserver" + os.path.sep + SITE_ID, exist_ok=True)
     return SITE_ID
+
+
+def get_all_sub_folders(path, json_name):
+    print(private_config.git_version_token)
+    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
+    repo_name = "Risk-DAO/simulation-results"
+    repo = gh.get_repo(repo_name)
+    folders = repo.get_contents("./" + path)
+    results = {}
+    for folder in folders:
+        print(folder)
+        try:
+            contents = repo.get_contents("/" + path + "/" + str(folder.name) + "/" + json_name)
+            j = json.loads(contents.decoded_content)
+            results[j["json_time"]] = j
+        except Exception as e:
+            print("Exception in folder", folder.name)
+
+    return results
 
 
 def move_to_prod(name, key):
@@ -601,6 +623,7 @@ def copy_site():
         with open("webserver\\2\\" + os.path.basename(file), "w") as the_file:
             the_file.write(contents)
 
+
 def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=None):
     total_days = 90
     df = pd.read_csv(path)
@@ -626,6 +649,100 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
         df1["timestamp_x"] = (start_date + df1.index * 60) * (1000 * 1000)
         df1.to_csv("data\\data_unified_" + i[1] + "_" + i[0] + "_" + pair_name + ".csv", index=False)
         index += 1
+
+
+def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_base = None):
+    plt.cla()
+    plt.close()
+    json_name = "accounts.json"
+    results = get_all_sub_folders(SITE_ID, json_name)
+    xy = {}
+    for result in results:
+        try:
+            x = result
+            for base in results[result]:
+                if base == "json_time": continue
+                if base not in xy:
+                    xy[base] = {}
+
+                y = results[result][base][field_name]
+                xy[base][x] =y
+        except Exception as e:
+            print("Error")
+
+    for base in xy:
+        if single_base and single_base != base: continue
+        xx = [datetime.datetime.fromtimestamp(float(x)) for x in sorted(xy[base])]
+        yy = [float(xy[base][x]) for x in sorted(xy[base])]
+        y_last = yy[-1]
+
+        if single_base:
+            y_last = 1
+
+        if y_last > 0:
+            yy = [y / y_last for y in yy]
+            plt.scatter(xx, yy, label=base)
+            plt.plot(xx, yy, label=base)
+
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator())
+    plt.gcf().autofmt_xdate()
+
+    fig = plt.gcf()
+    fig.set_size_inches(16.5, 8.5)
+
+    plt.title(lending_name)
+    plt.suptitle(field_name)
+    plt.legend(loc="lower left")
+    report_type = "all" if not single_base else single_base
+    plt.savefig("results\\" + lending_name + "." + report_type + "." + field_name + ".accounts.jpg")
+
+
+def create_production_slippage_graph(SITE_ID, lending_name):
+    plt.cla()
+    plt.close()
+    json_name = "usd_volume_for_slippage.json"
+    results = get_all_sub_folders(SITE_ID, json_name)
+    xy = {}
+    for result in results:
+        print(result)
+        try:
+            x = datetime.datetime.fromtimestamp(float(result))
+            for base in results[result]:
+                if base == "json_time": continue
+                for quote in results[result][base]:
+                    if base not in xy:
+                        xy[base] = {}
+                    if quote not in xy[base]:
+                        xy[base][quote] = {}
+                    y = results[result][base][quote]["volume"]
+                    xy[base][quote][x] = y
+        except Exception as e:
+            print("Error")
+
+    for base in xy:
+        for quote in xy[base]:
+            xx = [x for x in sorted(xy[base][quote])]
+            yy = [float(xy[base][quote][x]) for x in sorted(xy[base][quote])]
+            y_last = yy[-1]
+            if y_last > 0:
+                yy = [y / y_last for y in yy]
+                plt.scatter(xx, yy)
+                plt.plot(xx, yy, label=base + "-" + quote)
+
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator())
+    plt.gcf().autofmt_xdate()
+
+    fig = plt.gcf()
+    fig.set_size_inches(16.5, 8.5)
+
+    plt.title(lending_name)
+    plt.suptitle("Slippage")
+
+    plt.legend(loc="lower left")
+    plt.savefig("results\\" + lending_name + ".slippage.jpg")
+
 
 # create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
 #                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1, None)

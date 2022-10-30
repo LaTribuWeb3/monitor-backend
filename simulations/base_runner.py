@@ -167,12 +167,12 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
     fp.close()
 
 def create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, get_price_function,
-                                    only_usdt=False, near_to_stnear_volume=0):
+                                    only_usdt=False, near_to_stnear_volume=0, stnear_to_near_volume=0,):
 
     try:
         print("create_usd_volumes_for_slippage")
         data = sliipage_utils.get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get_price_function,
-                                                           only_usdt, near_to_stnear_volume)
+                                                           only_usdt, near_to_stnear_volume, stnear_to_near_volume)
         data["json_time"] = time.time()
         fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
         json.dump(data, fp)
