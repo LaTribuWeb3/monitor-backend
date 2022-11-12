@@ -411,8 +411,7 @@ def create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_sim
                                     "key": key,
                                     "user_id": row["user"],
                                     "liquidation_price_change": round(liquidation_price_change, 2),
-                                    "liquidation_amount_usd": min(user_collateral_asset_total_collateral_usd * (
-                                            1 - float(collateral_factors[inv_names[base_to_simulation]])),
+                                    "liquidation_amount_usd": min(user_collateral_asset_total_collateral_usd,
                                                                   user_debt_asset_total_debt_usd)})
 
                         jj[key]["collaterals"] = [0]
