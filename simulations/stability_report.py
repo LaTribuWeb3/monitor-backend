@@ -426,10 +426,6 @@ class stability_report:
                                                 price_at_max_drop = price
                                                 max_drop_open_volume = open_liquidations_volume
 
-                                            if prev_max_drop < 0.25 and max_drop > 0.25:
-                                                x = 1
-
-
                                             market_volume = cycle_trade_volume - sum(historical_cycle_trade_volume)
                                             close_liquidation_volume = 0
                                             trade_volume = 0
@@ -482,7 +478,6 @@ class stability_report:
                                                 "pnl": simulation_pnl
 
                                             })
-
                                             if close_liquidation_volume > 0:
                                                 to_delete = []
                                                 for open_liquidation in open_liquidations:
