@@ -563,6 +563,22 @@ def get_site_id(SITE_ID):
     os.makedirs("webserver" + os.path.sep + SITE_ID, exist_ok=True)
     return SITE_ID
 
+def get_latest_folder_name(SITE_ID):
+    #print(private_config.git_version_token)
+    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
+    repo_name = "Risk-DAO/simulation-results"
+    repo = gh.get_repo(repo_name)
+    folders = repo.get_contents("./" + SITE_ID)
+    max_folder_date = datetime.datetime(2000, 1, 1, 1, 1)
+    max_folder_name = ""
+
+    for folder in folders:
+        fields = folder.name.split("-")
+        folder_date = datetime.datetime(int(fields[0]), int(fields[1]), int(fields[2]), int(fields[3]), int(fields[4]))
+        if max_folder_date < folder_date:
+            max_folder_date = folder_date
+            max_folder_name = folder.name
+    return max_folder_name, max_folder_date
 
 def get_all_sub_folders(path, json_name):
     print(private_config.git_version_token)
@@ -581,6 +597,23 @@ def get_all_sub_folders(path, json_name):
             print("Exception in folder", folder.name)
 
     return results
+
+
+def get_prod_version(name):
+    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
+    repo_name = "Risk-DAO/version-control"
+    repo = gh.get_repo(repo_name)
+    contents = repo.get_contents("/" + name)
+    return str(contents.decoded_content).replace('b', '').replace("'",'')
+
+
+def get_git_json_file(name, key, json_name):
+    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
+    repo_name = "Risk-DAO/simulation-results"
+    repo = gh.get_repo(repo_name)
+    file_path = name + "/" + key + "/" + json_name
+    contents = repo.get_contents(file_path)
+    return contents.decoded_content
 
 
 def move_to_prod(name, key):
