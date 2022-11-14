@@ -86,7 +86,8 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
         cex_name = assets_cex_aliases[asset_name]
         cex_price = 1
         if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
-            cex_price = cp.get_price("binance", cex_name, "USDT") if (cex_name not in cex_ignore_list and asset_name not in asset_name_ignore_list) else 'NaN'
+            exchange = "binance" if cex_name != "FOX" else "coinbasepro"
+            cex_price = cp.get_price(exchange, cex_name, "USDT") if (cex_name not in cex_ignore_list and asset_name not in asset_name_ignore_list) else 'NaN'
 
         dex_price = 1
         if chain_id == "aurora":
@@ -95,9 +96,10 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
         elif chain_id == "arbitrum":
             if asset_name != "VST":
                 dex_price = dex_get_price_function("VST", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
-        elif chain_id == "yokaiswap":
+        elif chain_id == "yokaiswap" or chain_id == "og":
             if asset_name != "USDC":
                 dex_price = dex_get_price_function("USDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
+                print(dex_price)
 
         data[asset_name] = {"oracle": prices[asset_id], "cex_price": cex_price, "dex_price": dex_price}
 

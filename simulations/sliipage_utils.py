@@ -68,7 +68,7 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
             if quote == "VST" or quote == "sGLP":
                 continue
             base = "VST"
-        elif chain_id == "yokaiswap":
+        elif chain_id == "yokaiswap" or chain_id == "og":
             if quote == "USDC":
                 asset_usdc_price[quote] = 1
                 continue

@@ -2,6 +2,8 @@ import glob
 import numpy as np
 import copy
 import pandas as pd
+import requests
+
 import compound_parser
 import datetime
 import json
@@ -542,18 +544,6 @@ def print_time_series(base_path, path, ETH_PRICE):
         # plt.show()
 
 
-def create_cefi_market_data():
-    # download_markets = [("binance-futures", "BTCUSDT"), ("binance-futures", "ETHUSDT"), ("binance-futures", "NEARUSDT")]
-    # download_dates = [("06", "2022"), ("05", "2022"), ("04", "2022"), ("03", "2022"), ("02", "2022"), ("01", "2022")]
-    download_markets = [("binance-spot", "ETHUSDT")]
-    download_dates = [("01", "2020"), ("02", "2020"), ("03", "2020"), ("01", "2021"), ("02", "2021"), ("03", "2021")]
-    dd = download_datasets.CefiDataDownloader()
-    for download_market in download_markets:
-        for download_date in download_dates:
-            dd.create_one_minute_liquidation_data(download_date[0], download_date[1], download_market[0],
-                                                  download_market[1])
-
-
 def get_site_id(SITE_ID):
     if str(os.path.sep) in SITE_ID:
         SITE_ID = SITE_ID.split(str(os.path.sep))[0]
@@ -643,6 +633,10 @@ def publish_results(SITE_ID):
         print(git_file)
         repo.create_file(git_file, "Commit Comments", file.read())
 
+
+def send_telegram_alert(bot_id, chat_id, message):
+    url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
+    requests.get(url)
 
 def copy_site():
     assets_to_replace = {"auETH": "vETH", "auWBTC": "vrenBTC", "auWNEAR": "vgOHM", "auSTNEAR": "vDPX", "auUSDC": "vGMX",
@@ -820,3 +814,4 @@ def create_production_slippage_graph(SITE_ID, lending_name):
 # base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
 # print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
 # publish_results("1000/2022-10-1-12-30")
+

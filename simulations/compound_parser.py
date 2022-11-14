@@ -130,18 +130,22 @@ class CompoundParser:
             for i in reversed(np.arange(0, 5, 0.1)):
                 users_total_bad_debt, users_assets_total_bad_debt = self.get_total_bad_debt(users, asset, i)
                 key = asset_price * i
-                for asset_id in users_assets_total_bad_debt:
-                    asset_name = self.names[asset_id]
+                for asset_name in assets_to_check:
+                    asset_id = self.inv_names[asset_name]
                     if asset_name != asset:
                         if asset_name not in results:
                             results[asset_name] = {}
-                        results[asset_name][key] = users_assets_total_bad_debt[asset_id]
+                        total = 0
+                        if asset_id in users_assets_total_bad_debt:
+                            total = users_assets_total_bad_debt[asset_id]
+                        results[asset_name][key] = total
 
             assets_liquidation_data[self.inv_names[asset]] = results
 
             users_data = pd.DataFrame(users_data)
             orig_user_data = pd.DataFrame(orig_user_data)
 
+        pd.DataFrame(users_data).to_csv("xxx.csv")
         return users_data, assets_liquidation_data, last_update_time, self.names, self.inv_names, self.decimals,\
             self.collateral_factors, self.borrow_caps, self.collateral_caps, self.prices, self.underlying, \
             self.inv_underlying, self.liquidation_incentive, orig_user_data, self.totalAssetCollateral, self.totalAssetBorrow

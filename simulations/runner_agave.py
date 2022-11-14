@@ -124,7 +124,7 @@ c = {
 }
 
 print_time_series = False
-total_jobs = 5
+total_jobs = 8
 platform_prefix = ""
 SITE_ID = "4"
 chain_id = "og"
@@ -196,4 +196,5 @@ if __name__ == '__main__':
                                                collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
     d1 = utils.get_file_time(oracle_json_file)
     utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+
     utils.publish_results(SITE_ID)
