@@ -69,6 +69,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
 
 aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
+oracle_json_file = ""
 lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0xb442CA10eB1BA92332faA70c45A579d080bAeCa5_data.json"
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC"]
 assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC":"USDC"}
@@ -112,6 +113,13 @@ if __name__ == '__main__':
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
+
+    if os.path.exists(oracle_json_file):
+        file = open(oracle_json_file)
+        oracle = json.load(file)
+        data["prices"] = copy.deepcopy(oracle["prices"])
+
+
     data["totalBorrows"] = "{}"
     data["totalCollateral"] = "{}"
 
@@ -169,16 +177,9 @@ if __name__ == '__main__':
         base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                    collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
 
-    d = utils.get_file_time(aggregator_path)
-    utils.update_time_stamps(SITE_ID, min(d,last_update_time))
-    utils.publish_results(SITE_ID)
-    # for x in os.walk("simulation_results\\1\\"):
-    #     if "simulation_results" in x[0] and "-" in x[0]:
-    #         f = glob.glob(x[0] + "\\*.*")[0]
-    #         d = x[0].split("\\")[2]
-    #         f1 = os.path.basename(f)
-    #         shutil.move(f,"C:\\dev\\nervous\\" + d + f1)
-
+        d1 = utils.get_file_time(oracle_json_file)
+        utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+        utils.publish_results(SITE_ID)
 
 
 

@@ -183,6 +183,7 @@ def get_vst_price():
 
 
 lending_platform_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "data.json"
+oracle_json_file = ""
 assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST", "sGLP"]
 assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "sGLP": "GLP"}
 
@@ -223,6 +224,14 @@ if __name__ == '__main__':
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
+
+    if os.path.exists(oracle_json_file):
+        file = open(oracle_json_file)
+        oracle = json.load(file)
+        data["prices"] = copy.deepcopy(oracle["prices"])
+
+
+
     data["collateralFactors"] = data["collateralFactors"].replace("}",
                                                                   ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':0}")
 
@@ -294,6 +303,6 @@ if __name__ == '__main__':
         base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                    collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
-        create_glp_data(glp_data)
-        utils.update_time_stamps(SITE_ID, last_update_time)
+        d1 = utils.get_file_time(oracle_json_file)
+        utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
         utils.publish_results(SITE_ID)

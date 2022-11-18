@@ -206,7 +206,7 @@ if __name__ == '__main__':
         base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
         base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                    collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+
         d1 = utils.get_file_time(oracle_json_file)
         utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
-
         utils.publish_results(SITE_ID)
