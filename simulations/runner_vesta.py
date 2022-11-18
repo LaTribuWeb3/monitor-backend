@@ -195,6 +195,11 @@ print_time_series = False
 total_jobs = 10
 l_factors = [0.25, 0.5, 1, 1.5, 2]
 
+alert_mode = True
+bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
+chat_id = "-1001804080202"
+send_alerts = True
+
 c = {
     "series_std_ratio": 0,
     'volume_for_slippage_10_percentss': [],
@@ -211,6 +216,10 @@ c = {
 if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
     print("FAST MODE", fast_mode)
+    alert_mode = len(sys.argv) > 2
+    send_alerts = len(sys.argv) > 2
+    print("ALERT MODE", alert_mode)
+
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
     data = json.load(file)
@@ -268,19 +277,23 @@ if __name__ == '__main__':
     base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
     base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
     fix_usd_volume_for_slippage()
-    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
-                                                    [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
 
-    create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
-                             inv_names)
-    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
-                                          print_time_series, fast_mode)
-    base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    fix_risk_params()
+    if alert_mode:
+        utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, send_alerts)
+    else:
+        base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
+                                                        [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
 
-    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
+        create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
+                                 inv_names)
+        base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
+                                              print_time_series, fast_mode)
+        base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+        fix_risk_params()
 
-    create_glp_data(glp_data)
-    utils.update_time_stamps(SITE_ID, last_update_time)
-    utils.publish_results(SITE_ID)
+        base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+                                                   collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
+
+        create_glp_data(glp_data)
+        utils.update_time_stamps(SITE_ID, last_update_time)
+        utils.publish_results(SITE_ID)

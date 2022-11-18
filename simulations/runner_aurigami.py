@@ -179,10 +179,17 @@ platform_prefix = "au"
 SITE_ID = "0"
 chain_id = "aurora"
 l_factors = [0.25, 0.5, 1, 1.5, 2]
+alert_mode = False
+bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
+chat_id = "-1001804080202"
+send_alerts = False
 
 if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
     print("FAST MODE", fast_mode)
+    alert_mode = len(sys.argv) > 2
+    send_alerts = len(sys.argv) > 2
+    print("ALERT MODE", alert_mode)
 
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
@@ -232,18 +239,21 @@ if __name__ == '__main__':
                                             False,
                                             float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]],
                                             float(data1["stNEARBalance"]) * prices[inv_names["auSTNEAR"]])
+    if alert_mode:
+        utils.compare_to_prod_and_send_alerts("aurigmai", "0", SITE_ID, bot_id, chat_id, 5, send_alerts)
+    else:
+        base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"],
+                                                        [("04", "2022"), ("05", "2022"), ("06", "2022")])
 
-    base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"],
-                                                    [("04", "2022"), ("05", "2022"), ("06", "2022")])
-    create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
-                              inv_names)
-    base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
-                                          print_time_series, fast_mode)
-    base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                               collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
-    d1 = utils.get_file_time(oracle_json_file)
-    d2 = utils.get_file_time(stnear_stash)
-    d1 = min(d1, d2)
-    utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
-    utils.publish_results(SITE_ID)
+        create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
+                                  inv_names)
+        base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
+                                              print_time_series, fast_mode)
+        base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+        base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+                                                   collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+        d1 = utils.get_file_time(oracle_json_file)
+        d2 = utils.get_file_time(stnear_stash)
+        d1 = min(d1, d2)
+        utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+        utils.publish_results(SITE_ID)

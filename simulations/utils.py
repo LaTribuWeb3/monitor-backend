@@ -553,8 +553,9 @@ def get_site_id(SITE_ID):
     os.makedirs("webserver" + os.path.sep + SITE_ID, exist_ok=True)
     return SITE_ID
 
+
 def get_latest_folder_name(SITE_ID):
-    #print(private_config.git_version_token)
+    # print(private_config.git_version_token)
     gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
     repo_name = "Risk-DAO/simulation-results"
     repo = gh.get_repo(repo_name)
@@ -569,6 +570,7 @@ def get_latest_folder_name(SITE_ID):
             max_folder_date = folder_date
             max_folder_name = folder.name
     return max_folder_name, max_folder_date
+
 
 def get_all_sub_folders(path, json_name):
     print(private_config.git_version_token)
@@ -589,12 +591,37 @@ def get_all_sub_folders(path, json_name):
     return results
 
 
+def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id, chat_id, slippage_threshold=5,
+                                    send_alerts=False):
+    print("comparing to prod")
+    prod_version = get_prod_version(name)
+    prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
+    file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
+    last_file = json.load(file)
+    for key1 in prod_file:
+        if key1 == "json_time": continue
+        for key2 in prod_file[key1]:
+            print(key1, key2)
+            last_volume = last_file[key1][key2]["volume"]
+            prod_volume = prod_file[key1][key2]["volume"]
+            change = 100 * (round((last_volume /prod_volume ) - 1, 2))
+            if abs(change) > slippage_threshold:
+                last_volume = '{:,}'.format(round(last_volume,0))
+                prod_volume = '{:,}'.format(round(prod_volume,0))
+                message = f"{name}.{key1}.{key2}  Liquidity Change (%) {round(change, 2)} " \
+                          f"Current Volume: {last_volume}  Paper Volume: {prod_volume}"
+                print(message)
+                if send_alerts:
+                    print("Sending To TG")
+                    send_telegram_alert(bot_id, chat_id, message)
+
+
 def get_prod_version(name):
     gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
     repo_name = "Risk-DAO/version-control"
     repo = gh.get_repo(repo_name)
     contents = repo.get_contents("/" + name)
-    return str(contents.decoded_content).replace('b', '').replace("'",'')
+    return str(contents.decoded_content).replace('b', '').replace("'", '')
 
 
 def get_git_json_file(name, key, json_name):
@@ -638,6 +665,7 @@ def send_telegram_alert(bot_id, chat_id, message):
     url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
     requests.get(url)
 
+
 def copy_site():
     assets_to_replace = {"auETH": "vETH", "auWBTC": "vrenBTC", "auWNEAR": "vgOHM", "auSTNEAR": "vDPX", "auUSDC": "vGMX",
                          "auUSDT": "vGLP"}
@@ -678,7 +706,7 @@ def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=N
         index += 1
 
 
-def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_base = None):
+def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_base=None):
     plt.cla()
     plt.close()
     json_name = "accounts.json"
@@ -693,7 +721,7 @@ def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_b
                     xy[base] = {}
 
                 y = results[result][base][field_name]
-                xy[base][x] =y
+                xy[base][x] = y
         except Exception as e:
             print("Error")
 
@@ -771,6 +799,12 @@ def create_production_slippage_graph(SITE_ID, lending_name):
     plt.savefig("results\\" + lending_name + ".slippage.jpg")
 
 
+# bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
+# chat_id = "-1001804080202"
+#
+#
+# compare_to_prod_and_send_alerts("vesta", "2", "2\\2022-11-17-15-30", bot_id, chat_id, 5, True)
+
 # create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
 #                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1, None)
 #
@@ -814,4 +848,3 @@ def create_production_slippage_graph(SITE_ID, lending_name):
 # base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
 # print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
 # publish_results("1000/2022-10-1-12-30")
-
