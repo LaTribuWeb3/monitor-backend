@@ -68,13 +68,13 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
-aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
-oracle_json_file = ""
 lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0xb442CA10eB1BA92332faA70c45A579d080bAeCa5_data.json"
+oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0xb442CA10eB1BA92332faA70c45A579d080bAeCa5_oracle.json"
+aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
+
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC"]
 assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC":"USDC"}
 cex_aliases = copy.copy(assets_aliases)
-
 
 ETH_PRICE = 1600
 SITE_ID = "1"
@@ -82,6 +82,7 @@ chain_id = "yokaiswap"
 platform_prefix = ""
 print_time_series = False
 total_jobs = 5
+
 alert_mode = False
 bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
 chat_id = "-1001804080202"
@@ -107,8 +108,9 @@ if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
     print("FAST MODE", fast_mode)
     alert_mode = len(sys.argv) > 2
-    send_alerts = len(sys.argv) > 2
     print("ALERT MODE", alert_mode)
+    send_alerts = len(sys.argv) > 3
+    print("SEND ALERTS", send_alerts)
 
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
@@ -118,7 +120,7 @@ if __name__ == '__main__':
         file = open(oracle_json_file)
         oracle = json.load(file)
         data["prices"] = copy.deepcopy(oracle["prices"])
-
+        print("FAST ORACLE")
 
     data["totalBorrows"] = "{}"
     data["totalCollateral"] = "{}"
@@ -180,7 +182,7 @@ if __name__ == '__main__':
         d1 = utils.get_file_time(oracle_json_file)
         utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
         utils.publish_results(SITE_ID)
-
+        utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, False)
 
 
 

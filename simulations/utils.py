@@ -144,83 +144,6 @@ def copy_day_to_worst_day(date1, date2):
     df = df.loc[(df["index"].dt.day == date1.day) | (df["index"].dt.day == date2.day)]
     df.to_csv(file_name.replace("data\\", "data_worst_day\\"))
 
-
-def check_json_file(path):
-    file = open(path)
-    data = json.load(file)
-    decimals = eval(data["decimals"])
-    names = eval(data["names"])
-    collateral_factors = eval(data["collateralFactors"])
-    users = data["users"]
-    users = users.replace("true", "True")
-    users = users.replace("false", "False")
-    users = eval(users)
-    prices = eval(data["prices"])
-
-    for i_d in prices:
-        prices[i_d] = int(prices[i_d], 16) / 10 ** (36 - decimals[i_d])
-
-    for user in users:
-        if user == '0x211d417B596b4FEA2a5019f7e0CE4E63dE8d149e':
-            collateral_balances = users[user]["collateralBalances"]
-            total_c = 0
-            total_b = 0
-            for asset_id in collateral_balances:
-                total_c += float(prices[asset_id]) * float(collateral_factors[asset_id]) * int(
-                    collateral_balances[asset_id], 16) / 10 ** decimals[asset_id]
-                print("collateralBalances", names[asset_id],
-                      float(prices[asset_id]) * float(collateral_factors[asset_id]) * int(collateral_balances[asset_id],
-                                                                                          16) / 10 ** decimals[
-                          asset_id])
-
-            borrow_balances = users[user]["borrowBalances"]
-            for asset_id in borrow_balances:
-                total_b += float(prices[asset_id]) * int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id]
-                print("borrowBalances", names[asset_id],
-                      float(prices[asset_id]) * int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id])
-
-            print()
-            print(total_b)
-            print(total_c)
-
-
-def get_total_bad_debt(users, asset, price_factor, prices, collateral_factors, names):
-    total_bad_debt = 0
-    assets_total_bad_debt = {}
-    for user in users:
-        user_collateral = 0
-        user_debt = 0
-        user_assets_debt = {}
-
-        collateral_balances = users[user]["collateralBalances"]
-
-        for asset_id in collateral_balances:
-            c = int(collateral_balances[asset_id] * prices[asset_id]
-                    * float(collateral_factors[asset_id]))
-            if asset == names[asset_id]:
-                c *= price_factor
-            user_collateral += c
-            x1 = c
-
-        borrow_balances = users[user]["borrowBalances"]
-        for asset_id in borrow_balances:
-            c = int(borrow_balances[asset_id] * prices[asset_id])
-            if asset == names[asset_id]:
-                c *= price_factor
-            user_debt += c
-
-            user_assets_debt[asset_id] = c
-
-        if user_debt > user_collateral:
-            total_bad_debt += user_debt
-            for asset_id in user_assets_debt:
-                if asset_id not in assets_total_bad_debt:
-                    assets_total_bad_debt[asset_id] = 0
-                assets_total_bad_debt[asset_id] += user_assets_debt[asset_id]
-
-    return total_bad_debt, assets_total_bad_debt
-
-
 def get_file_time(file_name):
     print(file_name)
     if not os.path.exists(file_name):
@@ -253,110 +176,6 @@ def update_time_stamps(SITE_ID, last_update_time):
             print(e)
 
 
-def create_liquidata_data_from_json(json_file):
-    file = open(json_file)
-    data = json.load(file)
-    last_update_time = data["lastUpdateTime"]
-    names = eval(data["names"])
-    inv_names = {v: k for k, v in names.items()}
-    decimals = eval(data["decimals"])
-    for x in decimals:
-        decimals[x] = int(decimals[x])
-    collateral_factors = eval(data["collateralFactors"])
-    borrow_caps = eval(data["borrowCaps"])
-    collateral_caps = eval(data["collateralCaps"])
-    prices = eval(data["prices"])
-    underlying = eval(data["underlying"])
-    inv_underlying = {v: k for k, v in underlying.items()}
-
-    liquidation_incentive = data["liquidationIncentive"]
-    totalAssetBorrow = eval(data["totalBorrows"])
-    totalAssetCollateral = eval(data["totalCollateral"])
-
-    for i_d in prices:
-        prices[i_d] = int(prices[i_d], 16) / 10 ** (36 - decimals[i_d])
-
-    for i_d in collateral_caps:
-        collateral_caps[i_d] = int(collateral_caps[i_d], 16) / 10 ** (decimals[i_d])
-
-    for i_d in borrow_caps:
-        borrow_caps[i_d] = int(borrow_caps[i_d], 16) / 10 ** (decimals[i_d])
-
-    for i_d in totalAssetCollateral:
-        totalAssetCollateral[i_d] = prices[i_d] * int(totalAssetCollateral[i_d], 16) / 10 ** (
-            decimals[i_d])
-
-    for i_d in totalAssetBorrow:
-        totalAssetBorrow[i_d] = prices[i_d] * int(totalAssetBorrow[i_d], 16) / 10 ** (decimals[i_d])
-
-    users = data["users"]
-    users = users.replace("true", "True")
-    users = users.replace("false", "False")
-    users = eval(users)
-    users_data = []
-    orig_user_data = []
-    for user in users:
-        user_collateral = 0
-        uset_no_cf_collateral = 0
-        user_debt = 0
-        user_data = {"user": user}
-        collateral_balances = users[user]["collateralBalances"]
-        for asset_id in collateral_balances:
-            collateral_balances[asset_id] = int(collateral_balances[asset_id], 16) / 10 ** decimals[asset_id]
-            user_collateral += collateral_balances[asset_id] * prices[asset_id] * float(
-                collateral_factors[asset_id])
-
-            uset_no_cf_collateral += collateral_balances[asset_id] * prices[asset_id]
-            user_data["COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
-                asset_id] * float(collateral_factors[asset_id])
-            user_data["NO_CF_COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
-                asset_id]
-
-        user_data["user_collateral"] = user_collateral
-        user_data["user_no_cf_collateral"] = uset_no_cf_collateral
-
-        borrow_balances = users[user]["borrowBalances"]
-        for asset_id in borrow_balances:
-            borrow_balances[asset_id] = int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id]
-            debt = borrow_balances[asset_id] * prices[asset_id]
-            user_data["DEBT_" + names[asset_id]] = debt
-            user_debt += debt
-
-        user_data["user_debt"] = user_debt
-
-        users_data.append(user_data)
-    assets_liquidation_data = {}
-    assets_to_check = names.values()
-    for asset in assets_to_check:
-        results = {}
-        asset_price = prices[inv_names[asset]]
-        for i in reversed(np.arange(0, 5, 0.1)):
-            users_total_bad_debt, users_assets_total_bad_debt = get_total_bad_debt(users, asset, i, prices,
-                                                                                   collateral_factors, names)
-            key = asset_price * i
-            for asset_id in users_assets_total_bad_debt:
-                asset_name = names[asset_id]
-                if asset_name != asset:
-                    if asset_name not in results:
-                        results[asset_name] = {}
-                    results[asset_name][i] = users_assets_total_bad_debt[asset_id]
-
-        assets_liquidation_data[inv_names[asset]] = results
-
-        users_data = pd.DataFrame(users_data)
-        orig_user_data = pd.DataFrame(orig_user_data)
-
-    for k1 in assets_liquidation_data.keys():
-        plt.cla()
-        plt.suptitle(names[k1])
-        for k2 in assets_liquidation_data[k1].keys():
-            plt.plot(assets_liquidation_data[k1][k2].keys(), assets_liquidation_data[k1][k2].values(),
-                     label=names[k1] + "/" + k2)
-        plt.legend()
-        plt.plot()
-        plt.show()
-
-
 def print_account_information_graph(json_file):
     file = open(json_file)
     data = json.load(file)
@@ -371,178 +190,6 @@ def print_account_information_graph(json_file):
             new_xy = sorted(new_xy.items())
             plt.plot([x[0] for x in new_xy], [x[1] for x in new_xy], label=asset + "/" + quote)
         plt.show()
-
-
-def create_current_simulation_risk(json_file):
-    assets_to_simulate = ["auETH", "auWBTC", "auWNEAR", "auSTNEAR", "auUSDC", "auUSDT"]
-    assets_aliases = {"auETH": "ETH", "auWBTC": "BTC", "auWNEAR": "NEAR", "auSTNEAR": "NEAR", "auUSDT": "USDT",
-                      "auUSDC": "USDT"}
-
-    file = open(json_file)
-    data = json.load(file)
-    last_update_time = data["lastUpdateTime"]
-    names = eval(data["names"])
-    inv_names = {v: k for k, v in names.items()}
-    decimals = eval(data["decimals"])
-    for x in decimals:
-        decimals[x] = int(decimals[x])
-    collateral_factors = eval(data["collateralFactors"])
-    borrow_caps = eval(data["borrowCaps"])
-    collateral_caps = eval(data["collateralCaps"])
-    prices = eval(data["prices"])
-    underlying = eval(data["underlying"])
-    inv_underlying = {v: k for k, v in underlying.items()}
-
-    liquidation_incentive = data["liquidationIncentive"]
-    totalAssetBorrow = eval(data["totalBorrows"])
-    totalAssetCollateral = eval(data["totalCollateral"])
-
-    for i_d in prices:
-        prices[i_d] = int(prices[i_d], 16) / 10 ** (36 - decimals[i_d])
-
-    for i_d in collateral_caps:
-        collateral_caps[i_d] = int(collateral_caps[i_d], 16) / 10 ** (decimals[i_d])
-
-    for i_d in borrow_caps:
-        borrow_caps[i_d] = int(borrow_caps[i_d], 16) / 10 ** (decimals[i_d])
-
-    for i_d in totalAssetCollateral:
-        totalAssetCollateral[i_d] = prices[i_d] * int(totalAssetCollateral[i_d], 16) / 10 ** (
-            decimals[i_d])
-
-    for i_d in totalAssetBorrow:
-        totalAssetBorrow[i_d] = prices[i_d] * int(totalAssetBorrow[i_d], 16) / 10 ** (decimals[i_d])
-
-    f1 = open("webserver" + os.path.sep + "0" + os.path.sep + "usd_volume_for_slippage.json")
-    jj1 = json.load(f1)
-
-    file = open("webserver" + os.path.sep + "0" + os.path.sep + "simulation_configs.json", "r")
-    jj = json.load(file)
-
-    users = data["users"]
-    users = users.replace("true", "True")
-    users = users.replace("false", "False")
-    users = eval(users)
-    users_data = []
-    orig_user_data = []
-    for user in users:
-        user_collateral = 0
-        uset_no_cf_collateral = 0
-        user_debt = 0
-        user_data = {"user": user}
-        collateral_balances = users[user]["collateralBalances"]
-        for asset_id in collateral_balances:
-            collateral_balances[asset_id] = int(collateral_balances[asset_id], 16) / 10 ** decimals[asset_id]
-            user_collateral += collateral_balances[asset_id] * prices[asset_id] * float(
-                collateral_factors[asset_id])
-
-            uset_no_cf_collateral += collateral_balances[asset_id] * prices[asset_id]
-            user_data["COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
-                asset_id] * float(collateral_factors[asset_id])
-            user_data["NO_CF_COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
-                asset_id]
-
-        user_data["user_collateral"] = user_collateral
-        user_data["user_no_cf_collateral"] = uset_no_cf_collateral
-
-        borrow_balances = users[user]["borrowBalances"]
-        for asset_id in borrow_balances:
-            borrow_balances[asset_id] = int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id]
-            user_debt += borrow_balances[asset_id] * prices[asset_id]
-            user_data["DEBT_" + names[asset_id]] = borrow_balances[asset_id] * prices[asset_id]
-
-        user_data["user_debt"] = user_debt
-
-        users_data.append(user_data)
-
-    my_user_data = copy.deepcopy(pd.DataFrame(users_data))
-
-    for base_to_simulation in assets_to_simulate:
-        my_user_data["MIN_" + base_to_simulation] = my_user_data[
-            ["COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
-        my_user_data["COLLATERAL_" + base_to_simulation] -= my_user_data["MIN_" + base_to_simulation]
-        my_user_data["DEBT_" + base_to_simulation] -= my_user_data["MIN_" + base_to_simulation]
-
-    for base_to_simulation in assets_to_simulate:
-        for quote_to_simulation in jj1[base_to_simulation]:
-            if assets_aliases[base_to_simulation] != assets_aliases[quote_to_simulation]:
-                key = base_to_simulation + "-" + quote_to_simulation
-                result = []
-                for index, row in my_user_data.iterrows():
-                    user_collateral_asset_total_collateral_usd = row["COLLATERAL_" + base_to_simulation]
-                    user_debt_asset_total_debt_usd = row["DEBT_" + quote_to_simulation]
-
-                    user_collateral_total_usd = row["user_collateral"]
-                    user_debt_total_usd = row["user_debt"]
-                    over_collateral = user_collateral_total_usd - user_debt_total_usd
-                    if user_collateral_asset_total_collateral_usd > 0:
-                        liquidation_price_change = 1 - over_collateral / user_collateral_asset_total_collateral_usd
-                        result.append({
-                            "key": key,
-                            "user_id": row["user"],
-                            "liquidation_price_change": round(liquidation_price_change, 2),
-                            "user_collateral_total_usd": user_collateral_total_usd,
-                            "user_debt_total_usd": user_debt_total_usd,
-                            "over_collateral": over_collateral,
-                            "user_collateral_asset_total_collateral_usd": user_collateral_asset_total_collateral_usd,
-                            "liquidation_amount_usd": min(user_collateral_asset_total_collateral_usd / float(
-                                collateral_factors[inv_names[base_to_simulation]]),
-                                                          user_debt_asset_total_debt_usd)})
-
-                pd.DataFrame(result).to_csv("results\\" + base_to_simulation + "_" + quote_to_simulation + ".csv")
-
-
-def print_time_series(base_path, path, ETH_PRICE):
-    def animate(i):
-        if i <= 50:
-            i = i * 10
-        elif i >= 250:
-            i -= 180
-            i = i * 10
-        else:
-            i = 500 + i - 50
-
-        ax1.cla()  # clear the previous image
-        ax2.cla()
-        # ax1.set_xlim([min_ts, max_ts])  # fix the x axis
-        ax1.set_ylim([min_price, max_price])  # fix the y axis
-        #
-        # ax2.set_xlim([min_ts, max_ts])  # fix the x axis
-        ax2.set_ylim([0, 2])  # fix the y axis
-
-        ax1.plot(df.loc[:i]["ts"], df.loc[:i]["price"], 'g-', label="Price")
-        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["market_volume"] * ETH_PRICE / 1_000_000, 'r-', label="Market Volume")
-        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["stability_pool_available_volume"] * ETH_PRICE / 1_000_000, 'm-',
-                 label="Stability Pool Liquidity")
-        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["open_liquidations"] * ETH_PRICE / 1_000_000, 'y-',
-                 label="open_liquidations")
-        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["pnl"] / 1_000_000, 'c-', label="PNL")
-        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000, 'b-',
-                 label="30 minutes Liquidation Volume")
-
-        ax1.set_label('Time')
-        ax1.set_ylabel('Price', color='g')
-        md = round(df.loc[:i]["max_drop"].max(), 2)
-        plt.title("Max Drop:" + str(md))
-        print(i, md)
-        plt.legend()
-
-    all_df = pd.read_csv(base_path + path)
-
-    for index, row in all_df.iterrows():
-        file_name = row["simulation_name"]
-        df = pd.read_csv(base_path + file_name + ".csv")
-        min_price = df["price"].min()
-        max_price = df["price"].max()
-        fig, ax1 = plt.subplots()
-        fig.set_size_inches(12.5, 8.5)
-        ax2 = ax1.twinx()
-
-        plt.plot()
-        anim = animation.FuncAnimation(fig, animate, frames=int(len(df) / 10) + 1 + 200, interval=0.1, blit=False)
-        anim.save('results\\' + file_name + '.gif', writer='imagemagick', fps=15)
-        # plt.show()
-
 
 def get_site_id(SITE_ID):
     if str(os.path.sep) in SITE_ID:
@@ -593,11 +240,13 @@ def get_all_sub_folders(path, json_name):
 
 def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id, chat_id, slippage_threshold=5,
                                     send_alerts=False):
-    print("comparing to prod")
+    print("comparing to prod", name)
     prod_version = get_prod_version(name)
+    print(prod_version)
     prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
+    alert_sent = False
     for key1 in prod_file:
         if key1 == "json_time": continue
         for key2 in prod_file[key1]:
@@ -611,9 +260,41 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
                 message = f"{name}.{key1}.{key2}  Liquidity Change (%) {round(change, 2)} " \
                           f"Current Volume: {last_volume}  Paper Volume: {prod_volume}"
                 print(message)
+                alert_sent = True
                 if send_alerts:
                     print("Sending To TG")
                     send_telegram_alert(bot_id, chat_id, message)
+
+    if not alert_sent:
+        message = f'{name} Slippage is fine'
+        print(message)
+        if send_alerts:
+            print("Sending To TG")
+            send_telegram_alert(bot_id, chat_id, message)
+
+    alert_sent = False
+    oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "oracles.json")
+    oracle_file = json.load(oracle_file)
+    for market in oracle_file:
+        if market == "json_time": continue
+        cex = float(oracle_file[market]["cex_price"])
+        oracle = float(oracle_file[market]["oracle"])
+        dex = float(oracle_file[market]["dex_price"])
+        diff = (100 * ((oracle / dex) - 1))
+        if abs(diff) > 3:
+            message = f'{name}.{market}.oracle.dex Price is off by: {round(diff, 2)} Oracle Price: {oracle} Dex Price: {dex}'
+            print(message)
+            alert_sent = True
+            if send_alerts:
+                print("Sending To TG")
+                send_telegram_alert(bot_id, chat_id, message)
+
+    if not alert_sent:
+        message = f'{name} Oracle is fine'
+        print(message)
+        if send_alerts:
+            print("Sending To TG")
+            send_telegram_alert(bot_id, chat_id, message)
 
 
 def get_prod_version(name):
@@ -798,13 +479,6 @@ def create_production_slippage_graph(SITE_ID, lending_name):
     plt.legend(loc="lower left")
     plt.savefig("results\\" + lending_name + ".slippage.jpg")
 
-
-# bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
-# chat_id = "-1001804080202"
-#
-#
-# compare_to_prod_and_send_alerts("vesta", "2", "2\\2022-11-17-15-30", bot_id, chat_id, 5, True)
-
 # create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
 #                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1, None)
 #
@@ -824,27 +498,4 @@ def create_production_slippage_graph(SITE_ID, lending_name):
 # chain_id = "arbitrum"
 # kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
 # print(kp.get_price("VST", "renBTC", 1000))
-
-# lending_platform_json_file = "c:\\dev\\monitor-backend\\vesta\\data.json"
-# file = open(lending_platform_json_file)
-# data = json.load(file)
-# data["collateralFactors"] = data["collateralFactors"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':0}")
-# data["totalCollateral"] = data["totalCollateral"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
-# data["totalBorrows"] = data["totalBorrows"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
-# cp_parser = compound_parser.CompoundParser()
-# users_data, assets_liquidation_data, \
-# last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
-# underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
-#     data)
-
-
-#  get_usd_volume_for_slippage(lending_platform_json_file, "ETH", "VST", 1.1, prices)
-# create_current_simulation_risk(lending_platform_json_file)
-# create_liquidata_data_from_json(lending_platform_json_file)
-# print_account_information_graph("webserver\\0\\accounts.json")
-
-# copy_site()
-# get_gmx_price()
-# base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
-# print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
-# publish_results("1000/2022-10-1-12-30")
+# compare_to_prod_and_send_alerts("aurigami","0","0\\2022-11-18-20-28", "", "")

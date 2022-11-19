@@ -181,9 +181,9 @@ def get_vst_price():
     return vst_price
 
 
-
 lending_platform_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "data.json"
-oracle_json_file = ""
+oracle_json_file = ".." + os.path.sep + "vesta" + os.path.sep + "oracle.json"
+
 assets_to_simulate = ["ETH", "renBTC", "gOHM", "DPX", "GMX", "VST", "sGLP"]
 assets_aliases = {"ETH": "ETH", "renBTC": "BTC", "gOHM": "OHM", "DPX": "DPX", "GMX": "GMX", "VST": "VST", "sGLP": "GLP"}
 
@@ -199,7 +199,7 @@ l_factors = [0.25, 0.5, 1, 1.5, 2]
 alert_mode = True
 bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
 chat_id = "-1001804080202"
-send_alerts = True
+send_alerts = False
 
 c = {
     "series_std_ratio": 0,
@@ -218,8 +218,9 @@ if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
     print("FAST MODE", fast_mode)
     alert_mode = len(sys.argv) > 2
-    send_alerts = len(sys.argv) > 2
     print("ALERT MODE", alert_mode)
+    send_alerts = len(sys.argv) > 3
+    print("SEND ALERTS", send_alerts)
 
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
@@ -229,6 +230,7 @@ if __name__ == '__main__':
         file = open(oracle_json_file)
         oracle = json.load(file)
         data["prices"] = copy.deepcopy(oracle["prices"])
+        print("FAST ORACLE")
 
 
 
@@ -306,3 +308,4 @@ if __name__ == '__main__':
         d1 = utils.get_file_time(oracle_json_file)
         utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
         utils.publish_results(SITE_ID)
+        utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, False)

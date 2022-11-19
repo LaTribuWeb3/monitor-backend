@@ -145,7 +145,6 @@ class CompoundParser:
             users_data = pd.DataFrame(users_data)
             orig_user_data = pd.DataFrame(orig_user_data)
 
-        pd.DataFrame(users_data).to_csv("xxx.csv")
         return users_data, assets_liquidation_data, last_update_time, self.names, self.inv_names, self.decimals,\
             self.collateral_factors, self.borrow_caps, self.collateral_caps, self.prices, self.underlying, \
             self.inv_underlying, self.liquidation_incentive, orig_user_data, self.totalAssetCollateral, self.totalAssetBorrow

@@ -105,13 +105,25 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
-ETH_PRICE = 1600
-
 lending_platform_json_file = ".." + os.path.sep + "agave" + os.path.sep + "0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c_data.json"
-oracle_json_file = ""
+oracle_json_file = ".." + os.path.sep + "agave" + os.path.sep + "0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c_oracle.json"
+
 assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX']
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
                   'FOX': 'FOX'}
+
+ETH_PRICE = 1600
+print_time_series = False
+total_jobs = 8
+platform_prefix = ""
+SITE_ID = "4"
+chain_id = "og"
+l_factors = [0.25, 0.5, 1, 1.5, 2]
+
+alert_mode = False
+bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
+chat_id = "-1001804080202"
+send_alerts = False
 
 c = {
     "series_std_ratio": 0,
@@ -126,23 +138,13 @@ c = {
     "l_factors": [0.25, 0.5, 1, 1.5, 2]
 }
 
-print_time_series = False
-total_jobs = 8
-platform_prefix = ""
-SITE_ID = "4"
-chain_id = "og"
-l_factors = [0.25, 0.5, 1, 1.5, 2]
-alert_mode = False
-bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
-chat_id = "-1001804080202"
-send_alerts = False
-
 if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
     print("FAST MODE", fast_mode)
     alert_mode = len(sys.argv) > 2
-    send_alerts = len(sys.argv) > 2
     print("ALERT MODE", alert_mode)
+    send_alerts = len(sys.argv) > 3
+    print("SEND ALERTS", send_alerts)
 
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
@@ -152,6 +154,7 @@ if __name__ == '__main__':
         file = open(oracle_json_file)
         oracle = json.load(file)
         data["prices"] = copy.deepcopy(oracle["prices"])
+        print("FAST ORACLE")
 
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \
@@ -189,10 +192,6 @@ if __name__ == '__main__':
     base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
                                                 False)
 
-    # src = "webserver" + os.path.sep + "4\\2022-11-13-1-48" + os.path.sep + "usd_volume_for_slippage.json"
-    # dst = "webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json"
-    # shutil.copyfile(src, dst)
-
     if alert_mode:
         utils.compare_to_prod_and_send_alerts("agave", "4", SITE_ID, bot_id, chat_id, 5, send_alerts)
     else:
@@ -210,3 +209,4 @@ if __name__ == '__main__':
         d1 = utils.get_file_time(oracle_json_file)
         utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
         utils.publish_results(SITE_ID)
+        utils.compare_to_prod_and_send_alerts("agave", "4", SITE_ID, bot_id, chat_id, 5, False)

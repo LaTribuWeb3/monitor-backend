@@ -150,16 +150,27 @@ def create_dex_information():
 #     json.dump(data, fp)
 
 
-ETH_PRICE = 1600
-
 lending_platform_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "data.json"
+oracle_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "oracle.json"
 dex_paths = [".." + os.path.sep + "trisolaris" + os.path.sep]
 stnear_stash = ".." + os.path.sep + "aurigami" + os.path.sep + "stNEARLiquidity.json"
-oracle_json_file = ".." + os.path.sep + "aurigami" + os.path.sep + "oracle.json"
 
 assets_to_simulate = ["auETH", "auWBTC", "auWNEAR", "auSTNEAR", "auUSDC", "auUSDT"]
 assets_aliases = {"auETH": "ETH", "auWBTC": "BTC", "auWNEAR": "NEAR", "auSTNEAR": "NEAR", "auUSDT": "USDT",
                   "auUSDC": "USDT"}
+ETH_PRICE = 1600
+print_time_series = False
+total_jobs = 5
+platform_prefix = "au"
+SITE_ID = "0"
+chain_id = "aurora"
+l_factors = [0.25, 0.5, 1, 1.5, 2]
+
+alert_mode = False
+bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
+chat_id = "-1001804080202"
+send_alerts = False
+
 c = {
     "series_std_ratio": 0,
     'volume_for_slippage_10_percentss': [],
@@ -173,23 +184,13 @@ c = {
     "l_factors": [0.25, 0.5, 1, 1.5, 2]
 }
 
-print_time_series = False
-total_jobs = 5
-platform_prefix = "au"
-SITE_ID = "0"
-chain_id = "aurora"
-l_factors = [0.25, 0.5, 1, 1.5, 2]
-alert_mode = False
-bot_id = "5789083655:AAH25Cl4ZZ5aGL3PEq0LJlNOvDR8k4a1cK4"
-chat_id = "-1001804080202"
-send_alerts = False
-
 if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
     print("FAST MODE", fast_mode)
     alert_mode = len(sys.argv) > 2
-    send_alerts = len(sys.argv) > 2
     print("ALERT MODE", alert_mode)
+    send_alerts = len(sys.argv) > 3
+    print("SEND ALERTS", send_alerts)
 
     SITE_ID = utils.get_site_id(SITE_ID)
     file = open(lending_platform_json_file)
@@ -199,6 +200,7 @@ if __name__ == '__main__':
         file = open(oracle_json_file)
         oracle = json.load(file)
         data["prices"] = copy.deepcopy(oracle["prices"])
+        print("FAST ORACLE")
 
     file = open(stnear_stash)
     data1 = json.load(file)
@@ -240,7 +242,7 @@ if __name__ == '__main__':
                                             float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]],
                                             float(data1["stNEARBalance"]) * prices[inv_names["auSTNEAR"]])
     if alert_mode:
-        utils.compare_to_prod_and_send_alerts("aurigmai", "0", SITE_ID, bot_id, chat_id, 5, send_alerts)
+        utils.compare_to_prod_and_send_alerts("aurigami", "0", SITE_ID, bot_id, chat_id, 5, send_alerts)
     else:
         base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "NEAR", "USDT"],
                                                         [("04", "2022"), ("05", "2022"), ("06", "2022")])
@@ -257,3 +259,4 @@ if __name__ == '__main__':
         d1 = min(d1, d2)
         utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
         utils.publish_results(SITE_ID)
+        utils.compare_to_prod_and_send_alerts("aurigami", "0", SITE_ID, bot_id, chat_id, 5, False)
