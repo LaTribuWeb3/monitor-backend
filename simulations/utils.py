@@ -247,6 +247,8 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
     alert_sent = False
+    if send_alerts:
+        send_telegram_alert(bot_id, chat_id, "-------------------------------------------------")
     for key1 in prod_file:
         if key1 == "json_time": continue
         for key2 in prod_file[key1]:
