@@ -245,10 +245,11 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     print(prod_version)
     prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
-    time_from_prod = prod_file["json_time"] - file["json_time"]
+    last_file = json.load(file)
+    time_from_prod = prod_file["json_time"] - last_file["json_time"]
     time_from_prod /= (60 * 24)
     time_from_prod = str(round(time_from_prod, 2)) + " H"
-    last_file = json.load(file)
+
     alert_sent = False
     if send_alerts:
         send_telegram_alert(bot_id, chat_id, "-------------------------------------------------")
