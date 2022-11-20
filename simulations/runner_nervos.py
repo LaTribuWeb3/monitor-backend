@@ -112,79 +112,82 @@ if __name__ == '__main__':
     send_alerts = len(sys.argv) > 3
     print("SEND ALERTS", send_alerts)
 
-    SITE_ID = utils.get_site_id(SITE_ID)
-    file = open(lending_platform_json_file)
-    data = json.load(file)
+    while True:
+        if os.path.sep in SITE_ID:
+            SITE_ID = SITE_ID.split(os.path.sep)[0]
 
-    if os.path.exists(oracle_json_file):
-        file = open(oracle_json_file)
-        oracle = json.load(file)
-        data["prices"] = copy.deepcopy(oracle["prices"])
-        print("FAST ORACLE")
+        SITE_ID = utils.get_site_id(SITE_ID)
+        file = open(lending_platform_json_file)
+        data = json.load(file)
 
-    data["totalBorrows"] = "{}"
-    data["totalCollateral"] = "{}"
+        if os.path.exists(oracle_json_file):
+            file = open(oracle_json_file)
+            oracle = json.load(file)
+            data["prices"] = copy.deepcopy(oracle["prices"])
+            print("FAST ORACLE")
 
-    cp_parser = compound_parser.CompoundParser()
-    users_data, assets_liquidation_data, \
-    last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
-    underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
-        data, False)
+        data["totalBorrows"] = "{}"
+        data["totalCollateral"] = "{}"
 
-    del prices[inv_names["USDT"]]
-    del names[inv_names["USDT"]]
-    del decimals[inv_names["USDT"]]
-    del collateral_factors[inv_names["USDT"]]
-    del borrow_caps[inv_names["USDT"]]
-    del underlying[inv_names["USDT"]]
-    del collateral_caps[inv_names["USDT"]]
+        cp_parser = compound_parser.CompoundParser()
+        users_data, assets_liquidation_data, \
+        last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
+        underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
+            data, False)
 
-    del inv_names["USDT"]
+        del prices[inv_names["USDT"]]
+        del names[inv_names["USDT"]]
+        del decimals[inv_names["USDT"]]
+        del collateral_factors[inv_names["USDT"]]
+        del borrow_caps[inv_names["USDT"]]
+        del underlying[inv_names["USDT"]]
+        del collateral_caps[inv_names["USDT"]]
 
-    for x in liquidation_incentive:
-        liquidation_incentive[x] = 1.1
+        del inv_names["USDT"]
 
-    users_data["nl_user_collateral"] = 0
-    users_data["nl_user_debt"] = 0
+        for x in liquidation_incentive:
+            liquidation_incentive[x] = 1.1
 
-    for base_to_simulation in assets_to_simulate:
-        users_data["NL_COLLATERAL_" + base_to_simulation] = users_data["NO_CF_COLLATERAL_" + base_to_simulation]
-        users_data["NL_DEBT_" + base_to_simulation] = users_data["DEBT_" + base_to_simulation]
-        users_data["MIN_" + base_to_simulation] = users_data[
-            ["NO_CF_COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
+        users_data["nl_user_collateral"] = 0
+        users_data["nl_user_debt"] = 0
 
-        users_data["NL_COLLATERAL_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
-        users_data["NL_DEBT_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
+        for base_to_simulation in assets_to_simulate:
+            users_data["NL_COLLATERAL_" + base_to_simulation] = users_data["NO_CF_COLLATERAL_" + base_to_simulation]
+            users_data["NL_DEBT_" + base_to_simulation] = users_data["DEBT_" + base_to_simulation]
+            users_data["MIN_" + base_to_simulation] = users_data[
+                ["NO_CF_COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
 
-        users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
-        users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
+            users_data["NL_COLLATERAL_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
+            users_data["NL_DEBT_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
 
-    ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals)
-    base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
-    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,prices, collateral_factors, collateral_caps,borrow_caps, underlying)
-    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,assets_liquidation_data)
-    base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, cex_aliases, ap.get_price)
-    create_dex_information()
-    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
+            users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
+            users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
 
-    if alert_mode:
-        utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, send_alerts)
-    else:
-        base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
-        create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases,liquidation_incentive, inv_names)
-        base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series, fast_mode)
-        base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-        base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                                   collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+        ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals)
+        base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
+        base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,prices, collateral_factors, collateral_caps,borrow_caps, underlying)
+        base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,assets_liquidation_data)
+        base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, cex_aliases, ap.get_price)
+        create_dex_information()
+        base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
+        base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
 
-        d1 = utils.get_file_time(oracle_json_file)
-        utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
-        utils.publish_results(SITE_ID)
-        utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, False)
+        if alert_mode:
+            utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, send_alerts)
+            print("Alert Mode.Sleeping For 30 Minutes")
+            time.sleep(30)
+        else:
+            base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
+            create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases,liquidation_incentive, inv_names)
+            base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,print_time_series, fast_mode)
+            base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+            base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+                                                       collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
 
-
-
-
-
+            d1 = utils.get_file_time(oracle_json_file)
+            utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+            utils.publish_results(SITE_ID)
+            utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, False)
+            print("Simulation Ended")
+            exit()

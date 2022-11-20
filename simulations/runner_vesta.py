@@ -221,91 +221,93 @@ if __name__ == '__main__':
     print("ALERT MODE", alert_mode)
     send_alerts = len(sys.argv) > 3
     print("SEND ALERTS", send_alerts)
+    while True:
+        if os.path.sep in SITE_ID:
+            SITE_ID = SITE_ID.split(os.path.sep)[0]
 
-    SITE_ID = utils.get_site_id(SITE_ID)
-    file = open(lending_platform_json_file)
-    data = json.load(file)
+        SITE_ID = utils.get_site_id(SITE_ID)
+        file = open(lending_platform_json_file)
+        data = json.load(file)
 
-    if os.path.exists(oracle_json_file):
-        file = open(oracle_json_file)
-        oracle = json.load(file)
-        data["prices"] = copy.deepcopy(oracle["prices"])
-        print("FAST ORACLE")
+        if os.path.exists(oracle_json_file):
+            file = open(oracle_json_file)
+            oracle = json.load(file)
+            data["prices"] = copy.deepcopy(oracle["prices"])
+            print("FAST ORACLE")
 
+        data["collateralFactors"] = data["collateralFactors"].replace("}",",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':0}")
+        data["totalCollateral"] = data["totalCollateral"].replace("}",",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
+        data["totalBorrows"] = data["totalBorrows"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
 
+        cp_parser = compound_parser.CompoundParser()
+        users_data, assets_liquidation_data, \
+        last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
+        underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
+            data, True)
 
-    data["collateralFactors"] = data["collateralFactors"].replace("}",
-                                                                  ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':0}")
+        stabilityPoolVstBalance = eval(data["stabilityPoolVstBalance"])
+        stabilityPoolGemBalance = eval(data["stabilityPoolGemBalance"])
+        bprotocolVstBalance = eval(data["bprotocolVstBalance"])
+        bprotocolGemBalance = eval(data["bprotocolGemBalance"])
+        glp_data = eval(data["glpData"])
 
-    data["totalCollateral"] = data["totalCollateral"].replace("}",
-                                                              ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
-    data["totalBorrows"] = data["totalBorrows"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
+        for i_d in stabilityPoolVstBalance:
+            stabilityPoolVstBalance[i_d] = prices[inv_names["VST"]] * int(stabilityPoolVstBalance[i_d], 16) / 10 ** (
+                decimals[inv_names["VST"]])
 
-    cp_parser = compound_parser.CompoundParser()
-    users_data, assets_liquidation_data, \
-    last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
-    underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
-        data, True)
+        for i_d in stabilityPoolGemBalance:
+            stabilityPoolGemBalance[i_d] = prices[i_d] * int(stabilityPoolGemBalance[i_d], 16) / 10 ** (decimals[i_d])
 
-    stabilityPoolVstBalance = eval(data["stabilityPoolVstBalance"])
-    stabilityPoolGemBalance = eval(data["stabilityPoolGemBalance"])
-    bprotocolVstBalance = eval(data["bprotocolVstBalance"])
-    bprotocolGemBalance = eval(data["bprotocolGemBalance"])
-    glp_data = eval(data["glpData"])
+        for i_d in bprotocolVstBalance:
+            bprotocolVstBalance[i_d] = prices[inv_names["VST"]] * int(bprotocolVstBalance[i_d], 16) / 10 ** (
+                decimals[inv_names["VST"]])
 
-    for i_d in stabilityPoolVstBalance:
-        stabilityPoolVstBalance[i_d] = prices[inv_names["VST"]] * int(stabilityPoolVstBalance[i_d], 16) / 10 ** (
-            decimals[inv_names["VST"]])
+        for i_d in bprotocolGemBalance:
+            bprotocolGemBalance[i_d] = int(bprotocolGemBalance[i_d], 16) / 10 ** (decimals[inv_names["VST"]])
 
-    for i_d in stabilityPoolGemBalance:
-        stabilityPoolGemBalance[i_d] = prices[i_d] * int(stabilityPoolGemBalance[i_d], 16) / 10 ** (decimals[i_d])
+        curveFraxBalance = eval(data["curveFraxBalance"])
+        curveVstBalance = eval(data["curveVstBalance"])
 
-    for i_d in bprotocolVstBalance:
-        bprotocolVstBalance[i_d] = prices[inv_names["VST"]] * int(bprotocolVstBalance[i_d], 16) / 10 ** (
-            decimals[inv_names["VST"]])
+        prices[inv_names["VST"]] = get_vst_price()
+        kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
 
-    for i_d in bprotocolGemBalance:
-        bprotocolGemBalance[i_d] = int(bprotocolGemBalance[i_d], 16) / 10 ** (decimals[inv_names["VST"]])
+        base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
+        base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
+                                                                prices, collateral_factors, collateral_caps, borrow_caps,
+                                                                underlying)
+        fix_lending_platform_current_information(curveFraxBalance, curveVstBalance)
+        base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
+                                               assets_liquidation_data, True)
+        create_dex_information(SITE_ID)
+        create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
+                                          bprotocolGemBalance)
+        base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
+        base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
+        base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
+        fix_usd_volume_for_slippage()
 
-    curveFraxBalance = eval(data["curveFraxBalance"])
-    curveVstBalance = eval(data["curveVstBalance"])
+        if alert_mode:
+            utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, send_alerts)
+            print("Alert Mode.Sleeping For 30 Minutes")
+            time.sleep(30)
+        else:
+            base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
+                                                            [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
 
-    prices[inv_names["VST"]] = get_vst_price()
-    kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
+            create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
+                                     inv_names)
+            base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
+                                                  print_time_series, fast_mode)
+            base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+            fix_risk_params()
 
-    base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
-    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
-                                                            prices, collateral_factors, collateral_caps, borrow_caps,
-                                                            underlying)
-    fix_lending_platform_current_information(curveFraxBalance, curveVstBalance)
-    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
-                                           assets_liquidation_data, True)
-    create_dex_information(SITE_ID)
-    create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
-                                      bprotocolGemBalance)
-    base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
-    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
-    base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-    base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-    fix_usd_volume_for_slippage()
+            base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+                                                       collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
-    if alert_mode:
-        utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, send_alerts)
-    else:
-        base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
-                                                        [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
-
-        create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
-                                 inv_names)
-        base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
-                                              print_time_series, fast_mode)
-        base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-        fix_risk_params()
-
-        base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                                   collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
-
-        d1 = utils.get_file_time(oracle_json_file)
-        utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
-        utils.publish_results(SITE_ID)
-        utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, False)
+            d1 = utils.get_file_time(oracle_json_file)
+            utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+            utils.publish_results(SITE_ID)
+            utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, False)
+            print("Simulation Ended")
+            exit()
