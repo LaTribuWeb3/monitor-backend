@@ -291,6 +291,16 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
                 print("Sending To TG")
                 send_telegram_alert(bot_id, chat_id, message)
 
+        if cex:
+            diff = (100 * ((oracle / cex) - 1))
+            if abs(diff) > 3:
+                message = f'{name}.{market}.oracle.cex Price is off by: {round(diff, 2)} Oracle Price: {oracle} Cex Price: {cex}'
+                print(message)
+                alert_sent = True
+                if send_alerts:
+                    print("Sending To TG")
+                    send_telegram_alert(bot_id, chat_id, message)
+
     if not alert_sent:
         message = f'{name} Oracle is fine'
         print(message)
