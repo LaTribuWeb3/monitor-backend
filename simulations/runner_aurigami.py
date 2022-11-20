@@ -89,7 +89,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
-def create_dex_information():
+def create_dex_information1():
     print("create_dex_information")
     data = {"json_time": time.time()}
     for market in assets_to_simulate:
@@ -101,7 +101,7 @@ def create_dex_information():
     json.dump(data, fp)
 
 
-def create_dex_information1():
+def create_dex_information():
     print("create_dex_information")
     data = {"json_time": time.time()}
     for path in dex_paths:
