@@ -196,9 +196,8 @@ if __name__ == '__main__':
 
         if alert_mode:
             utils.compare_to_prod_and_send_alerts("agave", "4", SITE_ID, bot_id, chat_id, 5, send_alerts)
-            time.sleep(30)
             print("Alert Mode.Sleeping For 30 Minutes")
-            time.sleep(30)
+            time.sleep(30 * 60)
 
         else:
             base_runner.create_assets_std_ratio_information(SITE_ID, ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX'],

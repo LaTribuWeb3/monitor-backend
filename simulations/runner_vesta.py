@@ -290,7 +290,7 @@ if __name__ == '__main__':
         if alert_mode:
             utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 5, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
-            time.sleep(30)
+            time.sleep(30 * 60)
         else:
             base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
                                                             [("04", "2022"), ("05", "2022"), ("06", "2022")], True)

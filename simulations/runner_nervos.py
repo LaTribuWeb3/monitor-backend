@@ -176,7 +176,7 @@ if __name__ == '__main__':
         if alert_mode:
             utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
-            time.sleep(30)
+            time.sleep(30 * 60)
         else:
             base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"], [("04", "2022"), ("05", "2022"), ("06", "2022")])
             create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases,liquidation_incentive, inv_names)
