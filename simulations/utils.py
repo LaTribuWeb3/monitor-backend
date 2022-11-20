@@ -248,7 +248,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     last_file = json.load(file)
     time_from_prod = last_file["json_time"] - prod_file["json_time"]
     time_from_prod /= (60 * 60)
-    time_from_prod = str(round(time_from_prod, 2)) + " Hours (From Paper)"
+    time_from_prod = str(round(time_from_prod, 2)) + " Hours (from publication)"
 
     alert_sent = False
     if send_alerts:
