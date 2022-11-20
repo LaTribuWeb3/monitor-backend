@@ -246,8 +246,8 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
-    time_from_prod = prod_file["json_time"] - last_file["json_time"]
-    time_from_prod /= (60 * 24)
+    time_from_prod = last_file["json_time"] - prod_file["json_time"]
+    time_from_prod /= (60 * 60 * 24)
     time_from_prod = str(round(time_from_prod, 2)) + " H"
 
     alert_sent = False
