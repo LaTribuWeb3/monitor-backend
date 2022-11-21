@@ -132,6 +132,7 @@ def fix_usd_volume_for_slippage():
 
 
 def fix_risk_params():
+    print("fix_risk_params")
     file = open("webserver" + os.sep + SITE_ID + os.sep + "risk_params.json")
     data = json.load(file)
     new_json = {"json_time": data["json_time"]}
@@ -292,19 +293,23 @@ if __name__ == '__main__':
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
+            print("AAAAAAAAAAAAAAAAAAAAAa")
             base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
                                                             [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
-
+            print("BBBBBBBBBBBBBBBBBBBBb")
             create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                                      inv_names)
+            print("YYYYYYYYY")
             base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
                                                   print_time_series, fast_mode)
+            print("XXXXXXXXXXXXXXXXX")
             base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
             fix_risk_params()
 
             base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                        collateral_factors, inv_names, liquidation_incentive, total_jobs, True)
 
+            print("")
             create_glp_data(glp_data)
             d1 = utils.get_file_time(oracle_json_file)
             utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
