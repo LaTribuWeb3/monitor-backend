@@ -17,6 +17,11 @@ def create_dex_information(SITE_ID):
     print(src, dst)
     shutil.copyfile(src, 'webserver' + os.path.sep + dst + os.path.sep + 'dex_liquidity.json')
 
+def create_usd_volumes_for_slippage(SITE_ID):
+    src = 'webserver' + os.path.sep + '2' + os.path.sep + 'usd_volume_for_slippage.json'
+    dst = SITE_ID
+    print(src, dst)
+    shutil.copyfile(src, 'webserver' + os.path.sep + dst + os.path.sep + 'usd_volume_for_slippage.json')
 
 def create_stability_pool_information(SITE_ID, stabilityPoolVstBalance, stabilityPoolGemBalance, bprotocolVstBalance,
                                       bprotocolGemBalance):
@@ -286,7 +291,8 @@ if __name__ == '__main__':
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-        fix_usd_volume_for_slippage()
+        create_usd_volumes_for_slippage(SITE_ID)
+        #fix_usd_volume_for_slippage()
 
         if alert_mode:
             utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 10, send_alerts)
