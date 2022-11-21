@@ -264,7 +264,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
                 last_volume = '{:,}'.format(round(last_volume,0))
                 prod_volume = '{:,}'.format(round(prod_volume,0))
                 message = f"{name} {time_from_prod}" \
-                          f"\n{name}.{key1}.{key2}" \
+                          f"\n{key1}.{key2}" \
                           f"\nLiquidity Change by {round(change, 2)}% " \
                           f"\nCurrent Volume: {last_volume}" \
                           f"\nLast Simulation Volume: {prod_volume}"
@@ -292,7 +292,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
         diff = (100 * ((oracle / dex) - 1))
         if abs(diff) > 3:
             message = f'{name} {time_from_prod}' \
-                      f'\n{name}.{market}' \
+                      f'\n{market}' \
                       f'\nOracle<>Dex Price is off by: {round(diff, 2)}' \
                       f'\nOracle Price: {oracle} Dex Price: {dex}'
             print(message)
@@ -305,7 +305,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
             diff = (100 * ((oracle / cex) - 1))
             if abs(diff) > 3:
                 message = f'{name} {time_from_prod}' \
-                          f'\n{name}.{market} ' \
+                          f'\n{market} ' \
                           f'\nOracle<>Cex Price is off by: {round(diff, 2)} ' \
                           f'\nOracle Price: {oracle} ' \
                           f'\nCex Price: {cex}'
