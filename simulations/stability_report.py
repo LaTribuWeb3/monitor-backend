@@ -374,8 +374,11 @@ class stability_report:
                                                 daily_volume += liquidation_volume
 
                                                 if row_liquidation > 0 and liquidation_volume == 0:
-                                                    print("row_liquidation", row_liquidation, liquidation_volume,
-                                                          liquidation_ratio, target_volume / file_total_volume, "EXIT1")
+                                                    print("row_liquidation", row_liquidation,
+                                                          "liquidation_volume", liquidation_volume,
+                                                          'liquidation_ratio',liquidation_ratio,
+                                                          "file_total_volume", file_total_volume,
+                                                          "target_volume",target_volume , "EXIT1")
                                                     exit()
 
                                                 all_liquidations_volume += liquidation_volume
@@ -569,10 +572,10 @@ class stability_report:
                                                  "max_drop_volume": max_drop_open_volume,
                                                  "pnl": simulation_pnl,
                                                  "open_volume": open_volume})
-
-                                    df = pd.DataFrame(report)
-                                    df.to_csv(output_file_name)
-
+                                    # print("Saving")
+                                    # df = pd.DataFrame(report)
+                                    # df.to_csv(output_file_name)
+                                    # print("Saved")
                                 df = pd.DataFrame(report)
                                 df.to_csv(output_file_name)
         except Exception as e:

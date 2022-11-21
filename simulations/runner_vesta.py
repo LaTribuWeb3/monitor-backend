@@ -84,6 +84,9 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
             step_size = (max_debt - current_debt) / 30
             new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
             new_c["collaterals"].append(borrow_caps[base_id_to_simulation] / ETH_PRICE)
+            if 0 in new_c["collaterals"]:
+                new_c["collaterals"].remove(0)
+                print("REMOVED")
             # new_c["collaterals"] = [6_000_000 / ETH_PRICE, 8_000_000 / ETH_PRICE, 10_000_000 / ETH_PRICE, 12_000_000 / ETH_PRICE]
             new_c["current_debt"] = current_debt / ETH_PRICE
             data[key] = new_c
@@ -199,7 +202,7 @@ chain_id = "arbitrum"
 platform_prefix = ""
 VST = "0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17"
 print_time_series = False
-total_jobs = 10
+total_jobs = 8
 l_factors = [0.25, 0.5, 1, 1.5, 2]
 
 alert_mode = True
@@ -299,16 +302,12 @@ if __name__ == '__main__':
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
-            print("AAAAAAAAAAAAAAAAAAAAAa")
             base_runner.create_assets_std_ratio_information(SITE_ID, ["BTC", "ETH", "OHM", "DPX", "GMX", "USDT", "GLP"],
                                                             [("04", "2022"), ("05", "2022"), ("06", "2022")], True)
-            print("BBBBBBBBBBBBBBBBBBBBb")
             create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                                      inv_names)
-            print("YYYYYYYYY")
             base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
                                                   print_time_series, fast_mode)
-            print("XXXXXXXXXXXXXXXXX")
             base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
             fix_risk_params()
 
