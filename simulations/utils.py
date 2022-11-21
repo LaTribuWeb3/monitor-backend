@@ -267,7 +267,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
                           f"\n{name}.{key1}.{key2}" \
                           f"\nLiquidity Change by {round(change, 2)}% " \
                           f"\nCurrent Volume: {last_volume}" \
-                          f"\nPaper Volume: {prod_volume}"
+                          f"\nLast Simulation volume: {prod_volume}"
                 print(message)
                 alert_sent = True
                 if send_alerts:
