@@ -304,11 +304,16 @@ def create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors
 
     file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "r")
     jj = json.load(file)
-    Parallel(n_jobs=total_jobs)(
-        delayed(run_simulation_on_dir)(ETH_PRICE, ("data_worst_day" if fast_mode else "data_worst") + os.path.sep + "*ETH*", output_folder,
-                                       collateral_factors, inv_names, j, jj[j], print_time_series,
-                                       None, False, False)
-        for j in jj if j != "json_time")
+    try:
+        Parallel(n_jobs=total_jobs)(
+            delayed(run_simulation_on_dir)(ETH_PRICE, ("data_worst_day" if fast_mode else "data_worst") + os.path.sep + "*ETH*", output_folder,
+                                           collateral_factors, inv_names, j, jj[j], print_time_series,
+                                           None, False, False)
+            for j in jj if j != "json_time")
+
+    except Exception as e:
+        print("Exception !!!!!!!!!!!!!!!", str(e))
+        traceback.print_exc()
 
 
 def run_simulation_on_dir(ETH_PRICE, source_data, output_folder, collateral_factors, inv_names, name, config,
