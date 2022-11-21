@@ -174,7 +174,7 @@ if __name__ == '__main__':
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
 
         if alert_mode:
-            utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, send_alerts)
+            utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
@@ -188,6 +188,6 @@ if __name__ == '__main__':
             d1 = utils.get_file_time(oracle_json_file)
             utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 5, False)
+            utils.compare_to_prod_and_send_alerts("nervos", "1", SITE_ID, bot_id, chat_id, 10, False)
             print("Simulation Ended")
             exit()
