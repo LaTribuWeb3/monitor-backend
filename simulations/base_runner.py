@@ -118,19 +118,15 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
         data[asset]["total_collateral"] = 0
         if inv_names[asset] in totalAssetCollateral:
             data[asset]["total_collateral"] = totalAssetCollateral[inv_names[asset]]
-        if data[asset]["total_collateral"] == 0 and "NO_CF_COLLATERAL_" + asset in users_data:
+        if data[asset]["total_collateral"] == 0:
             data[asset]["total_collateral"] = str(users_data["NO_CF_COLLATERAL_" + asset].sum())
 
-        data[asset]["median_collateral"] = 0
-        data[asset]["top_1_collateral"] = 0
-        data[asset]["top_10_collateral"] = 0
-        if "NO_CF_COLLס;ATERAL_" + asset in users_data:
-            data[asset]["median_collateral"] = str(
-                np.median(users_data.loc[users_data["NO_CF_COLLATERAL_" + asset] > 0]["NO_CF_COLLATERAL_" + asset]))
-            data[asset]["top_1_collateral"] = str(users_data["NO_CF_COLLATERAL_" + asset].max())
-            data[asset]["top_10_collateral"] = str(
-                users_data.sort_values("NO_CF_COLLATERAL_" + asset, ascending=False).head(10)[
-                    "NO_CF_COLLATERAL_" + asset].sum())
+        data[asset]["median_collateral"] = str(
+            np.median(users_data.loc[users_data["NO_CF_COLLATERAL_" + asset] > 0]["NO_CF_COLLATERAL_" + asset]))
+        data[asset]["top_1_collateral"] = str(users_data["NO_CF_COLLATERAL_" + asset].max())
+        data[asset]["top_10_collateral"] = str(
+            users_data.sort_values("NO_CF_COLLATERAL_" + asset, ascending=False).head(10)[
+                "NO_CF_COLLATERAL_" + asset].sum())
 
         data[asset]["total_debt"] = 0
         if not only_usdt:
@@ -144,17 +140,12 @@ def create_account_information(SITE_ID, users_data, totalAssetCollateral, totalA
             data[asset]["top_10_debt"] = str(
                 users_data.sort_values("DEBT_" + asset, ascending=False).head(10)["DEBT_" + asset].sum())
         else:
-            data[asset]["total_debt"] = 0
-            data[asset]["median_debt"] = 0
-            data[asset]["top_1_debt"] = 0
-            data[asset]["top_10_debt"] = 0
-            if "NO_CF_COLLATERAL_" + asset in users_data:
-                users_data1 = users_data.loc[users_data["NO_CF_COLLATERAL_" + asset] > 0]
-                data[asset]["total_debt"] = str(users_data1["DEBT_VST"].sum())
-                data[asset]["median_debt"] = str(np.median(users_data1.loc[users_data["DEBT_VST"] > 0]["DEBT_VST"]))
-                data[asset]["top_1_debt"] = str(users_data1["DEBT_VST"].max())
-                data[asset]["top_10_debt"] = str(
-                    users_data1.sort_values("DEBT_VST", ascending=False).head(10)["DEBT_VST"].sum())
+            users_data1 = users_data.loc[users_data["NO_CF_COLLATERAL_" + asset] > 0]
+            data[asset]["total_debt"] = str(users_data1["DEBT_VST"].sum())
+            data[asset]["median_debt"] = str(np.median(users_data1.loc[users_data["DEBT_VST"] > 0]["DEBT_VST"]))
+            data[asset]["top_1_debt"] = str(users_data1["DEBT_VST"].max())
+            data[asset]["top_10_debt"] = str(
+                users_data1.sort_values("DEBT_VST", ascending=False).head(10)["DEBT_VST"].sum())
 
         if "nl_user_collateral" in users_data.columns:
             data[asset]["nl_total_collateral"] = str(users_data["NL_COLLATERAL_" + asset].sum())

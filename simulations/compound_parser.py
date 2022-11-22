@@ -143,6 +143,20 @@ class CompoundParser:
             assets_liquidation_data[self.inv_names[asset]] = results
 
             users_data = pd.DataFrame(users_data)
+            user_data_columns = users_data.columns
+            for asset in assets_to_check:
+                if "COLLATERAL_" + asset not in user_data_columns:
+                    users_data["COLLATERAL_" + asset] = 0
+                    print("COLLATERAL_" + asset, "Added")
+
+                if "NO_CF_COLLATERAL_" + asset not in user_data_columns:
+                    users_data["NO_CF_COLLATERAL_" + asset] = 0
+                    print("NO_CF_COLLATERAL_" + asset, "Added")
+
+                if "DEBT_" + asset not in user_data_columns:
+                    users_data["DEBT_" + asset] = 0
+                    print("DEBT_" + asset, "Added")
+
             orig_user_data = pd.DataFrame(orig_user_data)
 
         return users_data, assets_liquidation_data, last_update_time, self.names, self.inv_names, self.decimals,\
