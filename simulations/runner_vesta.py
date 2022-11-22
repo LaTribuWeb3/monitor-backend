@@ -80,6 +80,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                     if not math.isnan(cc):
                         current_debt += cc
 
+
             max_debt = borrow_caps[base_id_to_simulation] * 5
             step_size = (max_debt - current_debt) / 30
             new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
@@ -92,11 +93,12 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
             data[key] = new_c
 
             stability_pool_initial_balance = stabilityPoolVstBalance[base_id_to_simulation]
-            new_c["stability_pool_initial_balances"] = [
-                (1 * stability_pool_initial_balance) / current_debt,
-                (0.5 * stability_pool_initial_balance) / current_debt,
-                (2 * stability_pool_initial_balance) / current_debt]
-            # new_c["stability_pool_initial_balances"] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+            if current_debt > 0:
+                new_c["stability_pool_initial_balances"] = [
+                    (1 * stability_pool_initial_balance) / current_debt,
+                    (0.5 * stability_pool_initial_balance) / current_debt,
+                    (2 * stability_pool_initial_balance) / current_debt]
+                # new_c["stability_pool_initial_balances"] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
             share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
                 base_id_to_simulation]) / stability_pool_initial_balance
