@@ -177,16 +177,22 @@ def create_glp_data(glp_data):
     fp.close()
 
 
-def get_vst_price():
+def get_frax_price():
     inv_names1 = copy.deepcopy(inv_names)
     underlying1 = copy.deepcopy(underlying)
     decimals1 = copy.deepcopy(decimals)
     inv_names1["USDC"] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
     underlying1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
     decimals1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = 6
+
+
+    inv_names1["FRAX"] = '0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'
+    underlying1['0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'] = '0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'
+    decimals1['0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'] = 18
+
     kp = kyber_prices.KyberPrices("42161", inv_names1, underlying1, decimals1)
-    vst_price = kp.get_price("USDC", "VST", 100)
-    print("vst_price", vst_price)
+    vst_price = kp.get_price("USDC","FRAX", 10)
+    print("frax price", vst_price)
     return vst_price
 
 
@@ -277,7 +283,7 @@ if __name__ == '__main__':
         curveFraxBalance = eval(data["curveFraxBalance"])
         curveVstBalance = eval(data["curveVstBalance"])
 
-        prices[inv_names["VST"]] = get_vst_price()
+        prices[inv_names["VST"]] = prices[inv_names["VST"]] * get_frax_price()
         kp = kyber_prices.KyberPrices("42161", inv_names, underlying, decimals)
 
         base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)

@@ -293,8 +293,9 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
         if abs(diff) > 3:
             message = f'{name} {time_from_prod}' \
                       f'\n{market}' \
-                      f'\nOracle<>Dex Price is off by: {round(diff, 2)}' \
-                      f'\nOracle Price: {oracle} Dex Price: {dex}'
+                      f'\nOracle<>Dex Price is off by: {round(diff, 2)}%' \
+                      f'\nOracle Price: {oracle} ' \
+                      f'\nDex Price: {dex}'
             print(message)
             alert_sent = True
             if send_alerts:
@@ -306,7 +307,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
             if abs(diff) > 3:
                 message = f'{name} {time_from_prod}' \
                           f'\n{market} ' \
-                          f'\nOracle<>Cex Price is off by: {round(diff, 2)} ' \
+                          f'\nOracle<>Cex Price is off by: {round(diff, 2)}%' \
                           f'\nOracle Price: {oracle} ' \
                           f'\nCex Price: {cex}'
                 print(message)
@@ -491,6 +492,8 @@ def create_production_slippage_graph(SITE_ID, lending_name):
                 yy = [y / y_last for y in yy]
                 plt.scatter(xx, yy)
                 plt.plot(xx, yy, label=base + "-" + quote)
+            else:
+                print(base, quote, "is out!!!")
 
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
     plt.gca().xaxis.set_major_locator(mdates.DayLocator())
