@@ -104,6 +104,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
         data[asset_name] = {"oracle": prices[asset_id], "cex_price": cex_price, "dex_price": dex_price}
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "oracles.json", "w")
+    print(data)
     json.dump(data, fp)
     fp.close()
 
