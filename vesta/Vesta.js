@@ -262,7 +262,7 @@ class Vesta {
         for(let i = 0 ; i < priceResults.length ; i++) {
             const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)            
 
-            this.prices[markets[i]] = toBN(price)
+            this.prices[markets[i]] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(this.decimals[markets[i]]))))
         }
 
         this.prices[Addresses.vstAddress] = 
