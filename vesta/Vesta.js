@@ -42,6 +42,7 @@ class Vesta {
       this.frax = new web3.eth.Contract(Addresses.erc20Abi, Addresses.fraxAddress)      
       this.gelatoKeeper = new web3.eth.Contract(Addresses.gelatoKeeperAbi, Addresses.gelatoKeeperAddress)
       this.glpVault = new web3.eth.Contract(Addresses.glpVaultAbi, Addresses.glpAddress)
+      this.curvefiRouter = new web3.eth.Contract(Addresses.curvfiRouterAbi, Addresses.curvefiRouterAddress)
 
       this.blockStepInInit = 3000
       this.multicallSize = 100
@@ -172,7 +173,14 @@ class Vesta {
         this.decimals[Addresses.vstAddress] = 18
         this.underlying[Addresses.vstAddress] = Addresses.vstAddress
         this.names[Addresses.vstAddress] = "VST"
-        this.prices[Addresses.vstAddress] = toBN(toWei("1"))
+        this.prices[Addresses.vstAddress] = 
+            toBN(
+                (await this.curvefiRouter.methods.get_best_rate(
+                    Addresses.vstAddress,
+                    Addresses.fraxAddress,
+                    toWei("1")
+                ).call())["1"]
+            )
 
         for(const market of this.assets) {
             console.log({market})
@@ -256,6 +264,15 @@ class Vesta {
 
             this.prices[markets[i]] = toBN(price)
         }
+
+        this.prices[Addresses.vstAddress] = 
+            toBN(
+                (await this.curvefiRouter.methods.get_best_rate(
+                    Addresses.vstAddress,
+                    Addresses.fraxAddress,
+                    toWei("1")
+                ).call())["1"]
+            )
 
         this.lastUpdateTime = Math.floor(+new Date() / 1000)        
     }
