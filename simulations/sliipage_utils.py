@@ -83,14 +83,11 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
     all_prices = {}
     for base in inv_names:
         for quote in inv_names:
-            if base == quote or quote == "VST" or quote == "sGLP" or (only_usdt and base != "VST"):
+            if base == quote or base == "VST" or quote == "sGLP":
                 continue
             if base not in all_prices:
                 all_prices[base] = {}
-            if not only_usdt:
-                lic = float(liquidation_incentive[inv_names[base]])
-            else:
-                lic = float(liquidation_incentive[inv_names[quote]])
+            lic = float(liquidation_incentive[inv_names[base]])
             print(base, quote)
             llc = lic if lic >= 1 else 1 + lic
             volume = get_usd_volume_for_slippage(base, quote, llc, asset_usdc_price, get_price_function,
