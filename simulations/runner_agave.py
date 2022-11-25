@@ -190,30 +190,26 @@ if __name__ == '__main__':
         create_dex_information()
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-
-        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
-                                                    False)
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
 
         if alert_mode:
-            utils.compare_to_prod_and_send_alerts("agave", "4", SITE_ID, bot_id, chat_id, 10, send_alerts)
+            d1 = utils.get_file_time(oracle_json_file)
+            d1 = min(last_update_time, d1)
+            utils.compare_to_prod_and_send_alerts(d1, "agave", "4", SITE_ID, bot_id, chat_id, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
-
         else:
-            base_runner.create_assets_std_ratio_information(SITE_ID, ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX'],
-                                                            [("04", "2022"), ("05", "2022"), ("06", "2022")])
-
-            create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
-                                      inv_names)
-            base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
-                                                  print_time_series, fast_mode)
+            base_runner.create_assets_std_ratio_information(SITE_ID, ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX'],[("04", "2022"), ("05", "2022"), ("06", "2022")])
+            create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
+            base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
             base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
             base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                        collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
 
             d1 = utils.get_file_time(oracle_json_file)
-            utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+            d1 = min(last_update_time, d1)
+            utils.update_time_stamps(SITE_ID, d1)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts("agave", "4", SITE_ID, bot_id, chat_id, 10, False)
+            utils.compare_to_prod_and_send_alerts(d1, "agave", "4", SITE_ID, bot_id, chat_id, 10, False)
             print("Simulation Ended")
             exit()

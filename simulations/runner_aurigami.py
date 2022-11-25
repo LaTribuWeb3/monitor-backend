@@ -257,7 +257,11 @@ if __name__ == '__main__':
                                                 float(data1["wNEARBalance"]) * prices[inv_names["auWNEAR"]],
                                                 float(data1["stNEARBalance"]) * prices[inv_names["auSTNEAR"]])
         if alert_mode:
-            utils.compare_to_prod_and_send_alerts("aurigami", "0", SITE_ID, bot_id, chat_id, 10, send_alerts)
+            d1 = utils.get_file_time(oracle_json_file)
+            d2 = utils.get_file_time(stnear_stash)
+            d1 = min(d1, d2)
+            d1 = min(last_update_time, d1)
+            utils.compare_to_prod_and_send_alerts(d1, "aurigami", "0", SITE_ID, bot_id, chat_id, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
@@ -274,8 +278,9 @@ if __name__ == '__main__':
             d1 = utils.get_file_time(oracle_json_file)
             d2 = utils.get_file_time(stnear_stash)
             d1 = min(d1, d2)
-            utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+            d1 = min(last_update_time, d1)
+            utils.update_time_stamps(SITE_ID, d1)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts("aurigami", "0", SITE_ID, bot_id, chat_id, 10, False)
+            utils.compare_to_prod_and_send_alerts(d1, "aurigami", "0", SITE_ID, bot_id, chat_id, 10, False)
             print("Simulation Ended")
             exit()

@@ -238,7 +238,7 @@ def get_all_sub_folders(path, json_name):
     return results
 
 
-def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id, chat_id, slippage_threshold=5,
+def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_ID, bot_id, chat_id, slippage_threshold=5,
                                     send_alerts=False):
     print("comparing to prod", name)
     prod_version = get_prod_version(name)
@@ -247,7 +247,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
 
-    time_from_now = datetime.datetime.now().timestamp() - last_file["json_time"]
+    time_from_now = datetime.datetime.now().timestamp() - data_time
     time_from_now /= 60
     time_from_now = str(round(time_from_now, 2)) + " Minutes (from last update)"
 

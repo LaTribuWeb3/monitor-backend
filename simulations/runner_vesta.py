@@ -306,7 +306,9 @@ if __name__ == '__main__':
         fix_usd_volume_for_slippage()
 
         if alert_mode:
-            utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 10, send_alerts)
+            d1 = utils.get_file_time(oracle_json_file)
+            d1 = min(last_update_time, d1)
+            utils.compare_to_prod_and_send_alerts(d1, "vesta", "2", SITE_ID, bot_id, chat_id, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
@@ -325,8 +327,9 @@ if __name__ == '__main__':
             print("")
             create_glp_data(glp_data)
             d1 = utils.get_file_time(oracle_json_file)
-            utils.update_time_stamps(SITE_ID, min(last_update_time, d1))
+            d1 = min(last_update_time, d1)
+            utils.update_time_stamps(SITE_ID, d1)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 10, False)
+            utils.compare_to_prod_and_send_alerts(d1, "vesta", "2", SITE_ID, bot_id, chat_id, 10, False)
             print("Simulation Ended")
             exit()
