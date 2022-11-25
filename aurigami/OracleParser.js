@@ -6,6 +6,8 @@ let iter = 0
 let comp
 async function updateOracle() {
     try {
+        comp.lastUpdateTime = Math.floor(+new Date() / 1000)  
+
         if(iter++ % 50 == 0) await comp.initPrices()
         else await comp.initPricesQuickly()
 

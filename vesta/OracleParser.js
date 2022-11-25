@@ -6,6 +6,8 @@ let iter = 0
 let vesta
 async function updateOracle() {
     try {
+        vesta.lastUpdateTime = Math.floor(+new Date() / 1000)        
+
         if(iter++ % 50 == 0) await vesta.initPrices()
         else await vesta.initPricesQuickly()
 
