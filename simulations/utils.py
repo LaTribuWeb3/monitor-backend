@@ -246,9 +246,16 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
+
+    time_from_now = datetime.datetime.now() - last_file["json_time"]
+    time_from_now /= (60 * 60)
+    time_from_now = str(round(time_from_now, 2)) + " Hours (from now)"
+
     time_from_prod = last_file["json_time"] - prod_file["json_time"]
     time_from_prod /= (60 * 60)
     time_from_prod = str(round(time_from_prod, 2)) + " Hours (from publication)"
+
+    time_alert = time_from_now + "\n" + time_from_prod
 
     alert_sent = False
     if send_alerts:
@@ -263,7 +270,8 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
             if abs(change) > slippage_threshold:
                 last_volume = '{:,}'.format(round(last_volume,0))
                 prod_volume = '{:,}'.format(round(prod_volume,0))
-                message = f"{name} {time_from_prod}" \
+                message = f"{name} " \
+                          f"\n{time_alert}" \
                           f"\n{key1}.{key2}" \
                           f"\nLiquidity Change by {round(change, 2)}% " \
                           f"\nCurrent Volume: {last_volume}" \
@@ -275,7 +283,9 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
                     send_telegram_alert(bot_id, chat_id, message)
 
     if not alert_sent:
-        message = f'{name} {time_from_prod} Slippage is fine.'
+        message = f'{name}' \
+                  f'\n{time_alert}' \
+                  f'\n Slippage is fine.'
         print(message)
         if send_alerts:
             print("Sending To TG")
@@ -291,7 +301,8 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
         dex = float(oracle_file[market]["dex_price"])
         diff = (100 * ((oracle / dex) - 1))
         if abs(diff) > 3:
-            message = f'{name} {time_from_prod}' \
+            message = f'{name}' \
+                      f'\n{time_alert}' \
                       f'\n{market}' \
                       f'\nOracle<>Dex Price is off by: {round(diff, 2)}%' \
                       f'\nOracle Price: {oracle} ' \
@@ -305,7 +316,8 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
         if cex:
             diff = (100 * ((oracle / cex) - 1))
             if abs(diff) > 3:
-                message = f'{name} {time_from_prod}' \
+                message = f'{name}' \
+                          f'\n{time_alert}' \
                           f'\n{market} ' \
                           f'\nOracle<>Cex Price is off by: {round(diff, 2)}%' \
                           f'\nOracle Price: {oracle} ' \
@@ -317,7 +329,9 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
                     send_telegram_alert(bot_id, chat_id, message)
 
     if not alert_sent:
-        message = f'{name} {time_from_prod} Oracle is fine.'
+        message = f'{name}' \
+                  f'\n{time_alert}' \
+                  f'\n Oracle is fine.'
         print(message)
         if send_alerts:
             print("Sending To TG")
