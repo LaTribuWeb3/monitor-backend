@@ -183,10 +183,10 @@ def get_frax_price():
     inv_names1 = copy.deepcopy(inv_names)
     underlying1 = copy.deepcopy(underlying)
     decimals1 = copy.deepcopy(decimals)
+
     inv_names1["USDC"] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
     underlying1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
     decimals1['0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'] = 6
-
 
     inv_names1["FRAX"] = '0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'
     underlying1['0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'] = '0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F'
@@ -301,8 +301,10 @@ if __name__ == '__main__':
         base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, kp.get_price)
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate, True)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, True)
-        
+        fix_usd_volume_for_slippage()
+
         if alert_mode:
             utils.compare_to_prod_and_send_alerts("vesta", "2", SITE_ID, bot_id, chat_id, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")

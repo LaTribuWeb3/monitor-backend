@@ -38,7 +38,6 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
             price = (avg_volume / asset_usdc_price["auSTNEAR"]) / quote_volume_in_quote
         else:
             price = get_price_function(base, quote, avg_volume / asset_usdc_price[base])
-
         avg_slippage = price / base_price
         print("min_price_volume", round(min_price_volume), "max_price_volume", round(max_price_volume),
               "Volume", round(avg_volume), "Slippage", round(avg_slippage, 3), "Target", slippage, "Price", price)
@@ -83,11 +82,14 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
     all_prices = {}
     for base in inv_names:
         for quote in inv_names:
-            if base == quote or base == "VST" or quote == "sGLP":
+            if base == quote or (chain_id == "arbitrum" and (base != "VST" or quote == "sGLP")):
                 continue
             if base not in all_prices:
                 all_prices[base] = {}
-            lic = float(liquidation_incentive[inv_names[base]])
+            if base == "VST":
+                lic = float(liquidation_incentive[inv_names[quote]])
+            else:
+                lic = float(liquidation_incentive[inv_names[base]])
             print(base, quote)
             llc = lic if lic >= 1 else 1 + lic
             volume = get_usd_volume_for_slippage(base, quote, llc, asset_usdc_price, get_price_function,
