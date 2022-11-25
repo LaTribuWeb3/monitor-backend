@@ -247,7 +247,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
 
-    time_from_now = datetime.datetime.now() - last_file["json_time"]
+    time_from_now = datetime.datetime.now().timestamp() - last_file["json_time"]
     time_from_now /= (60 * 60)
     time_from_now = str(round(time_from_now, 2)) + " Hours (from now)"
 
