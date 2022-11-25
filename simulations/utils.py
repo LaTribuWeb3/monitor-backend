@@ -248,8 +248,8 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     last_file = json.load(file)
 
     time_from_now = datetime.datetime.now().timestamp() - last_file["json_time"]
-    time_from_now /= (60 * 60)
-    time_from_now = str(round(time_from_now, 2)) + " Hours (from now)"
+    time_from_now /= 60
+    time_from_now = str(round(time_from_now, 2)) + " Minutes (from last update)"
 
     time_from_prod = last_file["json_time"] - prod_file["json_time"]
     time_from_prod /= (60 * 60)
@@ -285,7 +285,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     if not alert_sent:
         message = f'{name}' \
                   f'\n{time_alert}' \
-                  f'\n Slippage is fine.'
+                  f'\nSlippage is fine.'
         print(message)
         if send_alerts:
             print("Sending To TG")
@@ -331,7 +331,7 @@ def compare_to_prod_and_send_alerts(name, base_SITE_ID, current_SITE_ID, bot_id,
     if not alert_sent:
         message = f'{name}' \
                   f'\n{time_alert}' \
-                  f'\n Oracle is fine.'
+                  f'\nOracle is fine.'
         print(message)
         if send_alerts:
             print("Sending To TG")
