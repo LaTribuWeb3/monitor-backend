@@ -29,9 +29,10 @@ async function retry(fn, params, retries = 0) {
 }
 
 class Aave {
-    constructor(aaveInfo, network, web3, heavyUpdateInterval = 24) {
+    constructor(aaveInfo, network, web3, fileName, heavyUpdateInterval = 24) {
       this.web3 = web3
       this.network = network
+      this.fileName = fileName
       this.lendingPoolAddressesProvider = new web3.eth.Contract(Addresses.lendingPoolAddressesProviderAbi, aaveInfo[network].lendingPoolAddressesProviderAddress)
       this.aaveUserInfo = new web3.eth.Contract(Addresses.aaveUserInfoAbi, Addresses.aaveUserInfoAddress[network])
 
@@ -87,7 +88,7 @@ class Aave {
             "users" : JSON.stringify(this.users)
         }   
         try {
-            fs.writeFileSync(this.lendingPool.options.address + "_data.json", JSON.stringify(result));
+            fs.writeFileSync(this.fileName, JSON.stringify(result));
         } catch (err) {
             console.error(err);
         } 
@@ -156,6 +157,36 @@ class Aave {
 
         }        
     }
+
+    async initPricesQuickly() {
+        console.log("get markets")
+        const markets = this.markets
+        
+        console.log("get oracle")
+        const oracleAddress = this.oracle.options.address
+        const oracleContract = this.oracle
+
+        const calls = []
+        for(const market of markets) {
+            const call = {}
+            call["target"] = oracleAddress
+            call["callData"] = oracleContract.methods.getAssetPrice(market).encodeABI()
+
+            calls.push(call)
+        }
+
+        const priceResults = await this.multicall.methods.tryAggregate(true, calls).call()  
+        //console.log({priceResults})      
+        for(let i = 0 ; i < priceResults.length ; i++) {
+            const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)
+            const tokenDecimals = this.decimals[markets[i]]         
+
+            this.prices[markets[i]] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(tokenDecimals))))            
+        }
+
+        this.lastUpdateTime = Math.floor(+new Date() / 1000)
+    }
+
 
     async heavyUpdate() {
         if(this.userList.length == 0) await this.collectAllUsers()
@@ -393,10 +424,4 @@ class Aave {
 
 module.exports = Aave
 
-async function test() {
-    const web3 = new Web3("https://rpc.gnosischain.com")    
-    const aave = new Aave(Addresses.agaveAddress, "GNOSIS", web3)
-    await aave.main(false)
- }
 
- test()
