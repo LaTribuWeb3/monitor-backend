@@ -144,6 +144,7 @@ def copy_day_to_worst_day(date1, date2):
     df = df.loc[(df["index"].dt.day == date1.day) | (df["index"].dt.day == date2.day)]
     df.to_csv(file_name.replace("data\\", "data_worst_day\\"))
 
+
 def get_file_time(file_name):
     print(file_name)
     if not os.path.exists(file_name):
@@ -190,6 +191,7 @@ def print_account_information_graph(json_file):
             new_xy = sorted(new_xy.items())
             plt.plot([x[0] for x in new_xy], [x[1] for x in new_xy], label=asset + "/" + quote)
         plt.show()
+
 
 def get_site_id(SITE_ID):
     if str(os.path.sep) in SITE_ID:
@@ -238,13 +240,40 @@ def get_all_sub_folders(path, json_name):
     return results
 
 
-def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_ID, bot_id, chat_id, slippage_threshold=5,
-                                    send_alerts=False):
+def convert_liquitiy_json_to_slippage(file):
+    new_file = {}
+    for j in file:
+        for x in j["slippage"]:
+            new_file[x] = j["slippage"][x]
+    return new_file
+
+
+def convert_tokens_json_to_oracle(file):
+    new_file = {}
+    for j in file:
+        d = float(j["decimals"])
+        symbol = j["symbol"]
+        new_file[symbol] = {}
+        new_file[symbol]["oracle"] = float(j["priceUSD18Decimals"]) / pow(10, d)
+        new_file[symbol]["cex_price"] = float(j["cexPriceUSD18Decimals"]) / pow(10, d)
+        new_file[symbol]["dex_price"] = float(j["dexPriceUSD18Decimals"]) / pow(10, d)
+    return new_file
+
+
+def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_ID, bot_id, chat_id,
+                                    slippage_threshold=5,
+                                    send_alerts=False, new_json=False):
     print("comparing to prod", name)
     prod_version = get_prod_version(name)
     print(prod_version)
-    prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
-    file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
+    if new_json:
+        prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json"))
+        prod_file = convert_liquitiy_json_to_slippage(prod_file)
+        file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "liquidity.json")
+        file = convert_liquitiy_json_to_slippage(file)
+    else:
+        prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
+        file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
     last_file = json.load(file)
 
     time_from_now = datetime.datetime.now().timestamp() - data_time
@@ -266,10 +295,10 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
             print(key1, key2)
             last_volume = last_file[key1][key2]["volume"]
             prod_volume = prod_file[key1][key2]["volume"]
-            change = 100 * (round((last_volume /prod_volume ) - 1, 2))
+            change = 100 * (round((last_volume / prod_volume) - 1, 2))
             if abs(change) > slippage_threshold:
-                last_volume = '{:,}'.format(round(last_volume,0))
-                prod_volume = '{:,}'.format(round(prod_volume,0))
+                last_volume = "{:,}".format(round(last_volume, 0))
+                prod_volume = "{:,}".format(round(prod_volume, 0))
                 message = f"{name} " \
                           f"\n{time_alert}" \
                           f"\n{key1}.{key2}" \
@@ -283,17 +312,23 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                     send_telegram_alert(bot_id, chat_id, message)
 
     if not alert_sent:
-        message = f'{name}' \
-                  f'\n{time_alert}' \
-                  f'\nSlippage is fine.'
+        message = f"{name}" \
+                  f"\n{time_alert}" \
+                  f"\nSlippage is fine."
         print(message)
         if send_alerts:
             print("Sending To TG")
             send_telegram_alert(bot_id, chat_id, message)
 
     alert_sent = False
-    oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "oracles.json")
-    oracle_file = json.load(oracle_file)
+    if new_json:
+        oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "token.json")
+        oracle_file = json.load(oracle_file)
+        oracle_file = convert_tokens_json_to_oracle(oracle_file)
+    else:
+        oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "oracles.json")
+        oracle_file = json.load(oracle_file)
+
     for market in oracle_file:
         if market == "json_time": continue
         cex = float(oracle_file[market]["cex_price"])
@@ -301,12 +336,12 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
         dex = float(oracle_file[market]["dex_price"])
         diff = (100 * ((oracle / dex) - 1))
         if abs(diff) > 3:
-            message = f'{name}' \
-                      f'\n{time_alert}' \
-                      f'\n{market}' \
-                      f'\nOracle<>Dex Price is off by: {round(diff, 2)}%' \
-                      f'\nOracle Price: {oracle} ' \
-                      f'\nDex Price: {dex}'
+            message = f"{name}" \
+                      f"\n{time_alert}" \
+                      f"\n{market}" \
+                      f"\nOracle<>Dex Price is off by: {round(diff, 2)}%" \
+                      f"\nOracle Price: {oracle} " \
+                      f"\nDex Price: {dex}"
             print(message)
             alert_sent = True
             if send_alerts:
@@ -316,12 +351,12 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
         if cex:
             diff = (100 * ((oracle / cex) - 1))
             if abs(diff) > 3:
-                message = f'{name}' \
-                          f'\n{time_alert}' \
-                          f'\n{market} ' \
-                          f'\nOracle<>Cex Price is off by: {round(diff, 2)}%' \
-                          f'\nOracle Price: {oracle} ' \
-                          f'\nCex Price: {cex}'
+                message = f"{name}" \
+                          f"\n{time_alert}" \
+                          f"\n{market} " \
+                          f"\nOracle<>Cex Price is off by: {round(diff, 2)}%" \
+                          f"\nOracle Price: {oracle} " \
+                          f"\nCex Price: {cex}"
                 print(message)
                 alert_sent = True
                 if send_alerts:
@@ -329,9 +364,9 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                     send_telegram_alert(bot_id, chat_id, message)
 
     if not alert_sent:
-        message = f'{name}' \
-                  f'\n{time_alert}' \
-                  f'\nOracle is fine.'
+        message = f"{name}" \
+                  f"\n{time_alert}" \
+                  f"\nOracle is fine."
         print(message)
         if send_alerts:
             print("Sending To TG")
