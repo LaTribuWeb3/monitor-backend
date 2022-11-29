@@ -83,7 +83,6 @@ def create_simulation_config():
         new_c["current_debt"] = current_debt / ETH_PRICE
         data[key] = copy.deepcopy(new_c)
         print(key, "Added")
-        print(key, "Added")
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
     json.dump(data, fp)
