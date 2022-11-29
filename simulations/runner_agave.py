@@ -105,8 +105,23 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
-lending_platform_json_file = ".." + os.path.sep + "agave" + os.path.sep + "0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c_data.json"
-oracle_json_file = ".." + os.path.sep + "agave" + os.path.sep + "0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c_oracle.json"
+def fix_usd_volume_for_slippage():
+    file = open("webserver" + os.sep + '4\\2022-11-27-17-29' + os.sep + "usd_volume_for_slippage.json")
+    data = json.load(file)
+    for d in data:
+        if d == 'json_time': continue
+        for a in data[d]:
+            if d == "WXDAI" or a == "WXDAI":
+                print("----------------------------------------")
+                data[d][a]["volume"] *= 2
+    file.close()
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
+    json.dump(data, fp)
+    fp.close()
+
+
+lending_platform_json_file = ".." + os.path.sep + "agave" + os.path.sep + "data.json"
+oracle_json_file = ".." + os.path.sep + "agave" + os.path.sep + "oracle.json"
 
 assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX']
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
@@ -191,7 +206,7 @@ if __name__ == '__main__':
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
-
+        #fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
