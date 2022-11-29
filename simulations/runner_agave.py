@@ -120,8 +120,8 @@ def fix_usd_volume_for_slippage():
     fp.close()
 
 
-lending_platform_json_file = ".." + os.path.sep + "agave" + os.path.sep + "data.json"
-oracle_json_file = ".." + os.path.sep + "agave" + os.path.sep + "oracle.json"
+lending_platform_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "data.json"
+oracle_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "oracle.json"
 
 assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX']
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
