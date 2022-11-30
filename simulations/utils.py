@@ -520,21 +520,6 @@ def publish_results(SITE_ID):
         print(git_file)
         repo.create_file(git_file, "Commit Comments", file.read())
 
-
-def send_telegram_alert_markdown(bot_id, chat_id, message):
-    obj = {
-        "chat_id": chat_id,
-        "text": message,
-        "parse_mode": 'MarkdownV2'
-    }
-
-    objJson = json.dumps(obj)
-    url = f'https://api.telegram.org/bot{bot_id}/sendMessage'
-    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-    tgResponse = requests.post(url, data= objJson, headers=headers)
-    print(tgResponse)
-
-
 lastTGCallDate = None
 def send_telegram_alert(bot_id, chat_id, message, is_markdown=False):
     callData = {
