@@ -3,7 +3,7 @@ import numpy as np
 import copy
 import pandas as pd
 import requests
-
+import time
 import compound_parser
 import datetime
 import json
@@ -14,7 +14,8 @@ import os
 from github import Github
 import private_config
 import matplotlib.dates as mdates
-
+import prettytable as pt
+import math
 
 def get_gmx_price():
     file = open("data\\gmx_price.json")
@@ -244,37 +245,57 @@ def convert_liquitiy_json_to_slippage(file):
     new_file = {}
     for j in file:
         for x in j["slippage"]:
-            new_file[x] = j["slippage"][x]
+            if x == 'json_time':
+                 new_file[x] = j["slippage"][x]
+            else:
+                if x in new_file:
+                    for y in j["slippage"][x]:
+                        new_file[x][y] = j["slippage"][x][y]
+                else:
+                    new_file[x] = j["slippage"][x]
     return new_file
 
+def get_formatted_number_clean(volume):
+    if volume >= 1e9:
+        return str(round(volume/1e9,2)) + 'B'
+    elif volume >= 1e6:
+        return str(round(volume/1e6,2)) + 'M'
+    elif volume >= 1e3:
+        return str(round(volume/1e3,2)) + 'K'
 
 def convert_tokens_json_to_oracle(file):
     new_file = {}
     for j in file:
-        d = float(j["decimals"])
         symbol = j["symbol"]
         new_file[symbol] = {}
-        new_file[symbol]["oracle"] = float(j["priceUSD18Decimals"]) / pow(10, d)
-        new_file[symbol]["cex_price"] = float(j["cexPriceUSD18Decimals"]) / pow(10, d)
-        new_file[symbol]["dex_price"] = float(j["dexPriceUSD18Decimals"]) / pow(10, d)
+        new_file[symbol]["oracle"] = float(j["priceUSD18Decimals"]) / pow(10, 18)
+        new_file[symbol]["cex_price"] = float(j["cexPriceUSD18Decimals"]) / pow(10, 18)
+        new_file[symbol]["dex_price"] = float(j["dexPriceUSD18Decimals"]) / pow(10, 18)
     return new_file
 
+def send_telegram_table(bot_id, chat_id, headers, rows):
+    table = pt.PrettyTable(headers)
+
+    for row in rows:
+        table.add_row(row)
+    
+    # send the message as markdown
+    send_telegram_alert(bot_id, chat_id, f'```{table}```', is_markdown=True)
 
 def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_ID, bot_id, chat_id,
                                     slippage_threshold=5,
-                                    send_alerts=False, new_json=False):
+                                    send_alerts=False, new_json=False, send_table=False, ignore_gb_redundant_tokens=False):
     print("comparing to prod", name)
     prod_version = get_prod_version(name)
     print(prod_version)
     if new_json:
-        prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json"))
-        prod_file = convert_liquitiy_json_to_slippage(prod_file)
-        file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "liquidity.json")
-        file = convert_liquitiy_json_to_slippage(file)
+        prod_file =  convert_liquitiy_json_to_slippage(json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json")))
+        file = json.load(open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "liquidity.json"))
+        last_file = convert_liquitiy_json_to_slippage(file)
     else:
         prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
         file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
-    last_file = json.load(file)
+        last_file = json.load(file)
 
     time_from_now = datetime.datetime.now().timestamp() - data_time
     time_from_now /= 60
@@ -286,19 +307,34 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
 
     time_alert = time_from_now + "\n" + time_from_prod
 
+    liquidityAlerts = []
+
     alert_sent = False
     if send_alerts:
-        send_telegram_alert(bot_id, chat_id, "-------------------------------------------------")
+        msg = "-------------------------------------------------"
+        if send_table:
+            msg += "\n"
+            msg += f'Liquidity check for {name}\n'
+            msg += time_alert
+        send_telegram_alert(bot_id, chat_id, msg)
     for key1 in prod_file:
         if key1 == "json_time": continue
+        
+        if ignore_gb_redundant_tokens:
+            if len(key1) > 3: # this is checked to avoid ignoring CVX token but only the ones like 'cvxcrvFRAX'
+                # ignore stk... cvx... yv... tokens from gearbox as they share the same liquidity as their underlying
+                if str(key1).startswith('stk') or str(key1).startswith('cvx') or str(key1).startswith('yv'):
+                    print('Ignoring', key1)
+                    continue
         for key2 in prod_file[key1]:
             print(key1, key2)
+
             last_volume = last_file[key1][key2]["volume"]
             prod_volume = prod_file[key1][key2]["volume"]
             change = 100 * (round((last_volume / prod_volume) - 1, 2))
             if abs(change) > slippage_threshold:
-                last_volume = "{:,}".format(round(last_volume, 0))
-                prod_volume = "{:,}".format(round(prod_volume, 0))
+                # last_volume = "{:,}".format(round(last_volume, 0))
+                # prod_volume = "{:,}".format(round(prod_volume, 0))
                 message = f"{name} " \
                           f"\n{time_alert}" \
                           f"\n{key1}.{key2}" \
@@ -308,8 +344,37 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                 print(message)
                 alert_sent = True
                 if send_alerts:
-                    print("Sending To TG")
-                    send_telegram_alert(bot_id, chat_id, message)
+                    if send_table:
+                        alert = {'market': key1, 'debt': key2, 'change': round(change, 2), 'last': last_volume, 'prod': prod_volume}
+                        liquidityAlerts.append(alert)
+                    else:
+                        print("Sending To TG")
+                        send_telegram_alert(bot_id, chat_id, message)
+
+    ############ SEND LIQUIDITY MESSAGE AS TABLE #############
+    maxRowPerMsg = 40
+    if send_alerts and send_table and len(liquidityAlerts) > 0: 
+        liquidityAlerts.sort(key=lambda x: abs(x['change']), reverse=True)
+        alreadyAddedTokens = []
+        rows = []
+        for alert in liquidityAlerts:
+            if alert['market'] not in alreadyAddedTokens:
+                alreadyAddedTokens.append(alert['market'])
+                change = alert['change']
+                lastVolumeClean = get_formatted_number_clean(alert['last'])
+                prodVolumeClean = get_formatted_number_clean(alert['prod'])
+                rows.append([alert['market'], f'{change}%', lastVolumeClean, prodVolumeClean])
+        if len(rows) > maxRowPerMsg:
+            callCount = math.ceil(len(rows) / maxRowPerMsg)
+            for cpt in range(callCount):
+                start = cpt * maxRowPerMsg
+                stop = (cpt + 1) * maxRowPerMsg
+                send_telegram_table(bot_id, chat_id, ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows[start:stop])
+
+            # split
+        else:
+            send_telegram_table(bot_id, chat_id, ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows)
+    ############ END SEND LIQUIDITY MESSAGE AS TABLE #############
 
     if not alert_sent:
         message = f"{name}" \
@@ -319,8 +384,13 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
         if send_alerts:
             print("Sending To TG")
             send_telegram_alert(bot_id, chat_id, message)
+    elif ignore_gb_redundant_tokens: 
+        send_telegram_alert(bot_id, chat_id, 'Please note that stkcvx*, cvx* and yearn-vault tokens have been ignored as they share the same liquidity as their underlying')
 
     alert_sent = False
+    dexAlerts = []
+    cexAlerts = []
+
     if new_json:
         oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "token.json")
         oracle_file = json.load(oracle_file)
@@ -335,7 +405,7 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
         oracle = float(oracle_file[market]["oracle"])
         dex = float(oracle_file[market]["dex_price"])
         diff = (100 * ((oracle / dex) - 1))
-        if abs(diff) > 3:
+        if abs(diff) > 3 and oracle > 0:
             message = f"{name}" \
                       f"\n{time_alert}" \
                       f"\n{market}" \
@@ -345,10 +415,14 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
             print(message)
             alert_sent = True
             if send_alerts:
-                print("Sending To TG")
-                send_telegram_alert(bot_id, chat_id, message)
+                if send_table:
+                    newDexAlert = {'market': market, 'oracle': oracle, 'dex': dex, 'diff': round(diff, 2)}
+                    dexAlerts.append(newDexAlert)
+                else:
+                    print("Sending To TG")
+                    send_telegram_alert(bot_id, chat_id, message)
 
-        if cex:
+        if cex > 0 and oracle > 0:
             diff = (100 * ((oracle / cex) - 1))
             if abs(diff) > 3:
                 message = f"{name}" \
@@ -360,8 +434,37 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                 print(message)
                 alert_sent = True
                 if send_alerts:
-                    print("Sending To TG")
-                    send_telegram_alert(bot_id, chat_id, message)
+                    if send_table:
+                        newCexAlert = {'market': market, 'oracle': oracle, 'cex': cex, 'diff': round(diff, 2)}
+                        cexAlerts.append(newCexAlert)
+                    else:
+                        print("Sending To TG")
+                        send_telegram_alert(bot_id, chat_id, message)
+    
+    if send_alerts and send_table and len(dexAlerts) > 0:
+            msg = "-------------------------------------------------"
+            msg += "\n"
+            msg += f'Oracle check for {name}\n'
+            msg += time_alert
+            send_telegram_alert(bot_id, chat_id, msg)
+
+    if send_alerts and send_table and len(dexAlerts) > 0:
+        dexAlerts.sort(key=lambda x: abs(x['diff']))
+        rowsDex = []
+        for alert in dexAlerts:
+            diff = alert['diff']
+            rowsDex.append([alert['market'], alert['oracle'], alert['dex'],  f'{diff}%'])
+
+        send_telegram_table(bot_id, chat_id, ['Market', 'Oracle', 'Dex', 'Diff'], rowsDex)
+
+    if send_alerts and send_table and len(cexAlerts) > 0:
+        cexAlerts.sort(key=lambda x: abs(x['diff']), reverse=True)
+        rowsCex = []
+        for alert in cexAlerts:
+            diff = alert['diff']
+            rowsCex.append([alert['market'], alert['oracle'], alert['cex'],  f'{diff}%'])
+            
+        send_telegram_table(bot_id, chat_id, ['Market', 'Oracle', 'Cex', 'Diff'], rowsCex)
 
     if not alert_sent:
         message = f"{name}" \
@@ -418,9 +521,61 @@ def publish_results(SITE_ID):
         repo.create_file(git_file, "Commit Comments", file.read())
 
 
-def send_telegram_alert(bot_id, chat_id, message):
-    url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
-    requests.get(url)
+def send_telegram_alert_markdown(bot_id, chat_id, message):
+    obj = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": 'MarkdownV2'
+    }
+
+    objJson = json.dumps(obj)
+    url = f'https://api.telegram.org/bot{bot_id}/sendMessage'
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    tgResponse = requests.post(url, data= objJson, headers=headers)
+    print(tgResponse)
+
+
+lastTGCallDate = None
+def send_telegram_alert(bot_id, chat_id, message, is_markdown=False):
+    callData = {
+        "chat_id": chat_id,
+        "text": message,
+    }
+
+    if is_markdown:
+        callData['parse_mode'] = 'MarkdownV2'
+    callDataJson = json.dumps(callData)
+
+    global lastTGCallDate
+    if lastTGCallDate == None:
+        lastTGCallDate = datetime.datetime.now()
+    
+    # print('lastTGCallDate', lastTGCallDate)
+    url = f'https://api.telegram.org/bot{bot_id}/sendMessage'
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+
+    now = datetime.datetime.now()
+    secToWait = 3 - (now-lastTGCallDate).total_seconds() # wait 3 seconds between each calls
+    if secToWait > 0:
+        print('Sleeping', secToWait, 'seconds before calling telegram')
+        time.sleep(secToWait)
+
+    mustResend = True
+    cptSleep = 1
+    while mustResend:
+        mustResend = False
+        lastTGCallDate = datetime.datetime.now()
+        # print('new lastTGCallDate', lastTGCallDate)
+        tgResponse = requests.post(url, data= callDataJson, headers=headers)
+        if tgResponse.status_code < 400:
+            mustResend = False
+        elif tgResponse.status_code == 429:
+            mustResend = True
+            print('Sleeping', cptSleep, 'seconds before re calling tg')
+            time.sleep(cptSleep)
+            cptSleep += cptSleep # exponential backoff
+        else:
+            print('error when sending tg alert', tgResponse.status_code, tgResponse.reason)
 
 
 def copy_site():
