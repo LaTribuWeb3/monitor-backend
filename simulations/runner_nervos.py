@@ -10,6 +10,7 @@ import copy
 import aggregator
 import shutil
 
+import private_config
 import utils
 
 
@@ -103,6 +104,7 @@ c = {
     "l_factors": [0.25, 0.5, 1, 1.5, 2]
 }
 l_factors = [0.25, 0.5, 1, 1.5, 2]
+old_alerts = {}
 
 if __name__ == '__main__':
     fast_mode = len(sys.argv) > 1
@@ -176,7 +178,7 @@ if __name__ == '__main__':
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
-            utils.compare_to_prod_and_send_alerts(d1, "nervos", "1", SITE_ID, bot_id, chat_id, 10, send_alerts)
+            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "nervos", "1", SITE_ID, private_config.nervos_channel, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
@@ -191,6 +193,6 @@ if __name__ == '__main__':
             d1 = min(last_update_time, d1)
             utils.update_time_stamps(SITE_ID, d1)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts(d1, "nervos", "1", SITE_ID, bot_id, chat_id, 10, False)
+            utils.compare_to_prod_and_send_alerts(d1, "nervos", "1", SITE_ID, "", 10, False)
             print("Simulation Ended")
             exit()

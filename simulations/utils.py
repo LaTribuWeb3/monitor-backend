@@ -12,10 +12,11 @@ from matplotlib import animation
 from pathlib import Path
 import os
 from github import Github
-import private_config
 import matplotlib.dates as mdates
 import prettytable as pt
 import math
+import private_config
+
 
 def get_gmx_price():
     file = open("data\\gmx_price.json")
@@ -246,7 +247,7 @@ def convert_liquitiy_json_to_slippage(file):
     for j in file:
         for x in j["slippage"]:
             if x == 'json_time':
-                 new_file[x] = j["slippage"][x]
+                new_file[x] = j["slippage"][x]
             else:
                 if x in new_file:
                     for y in j["slippage"][x]:
@@ -255,13 +256,15 @@ def convert_liquitiy_json_to_slippage(file):
                     new_file[x] = j["slippage"][x]
     return new_file
 
+
 def get_formatted_number_clean(volume):
     if volume >= 1e9:
-        return str(round(volume/1e9,2)) + 'B'
+        return str(round(volume / 1e9, 2)) + 'B'
     elif volume >= 1e6:
-        return str(round(volume/1e6,2)) + 'M'
+        return str(round(volume / 1e6, 2)) + 'M'
     elif volume >= 1e3:
-        return str(round(volume/1e3,2)) + 'K'
+        return str(round(volume / 1e3, 2)) + 'K'
+
 
 def convert_tokens_json_to_oracle(file):
     new_file = {}
@@ -273,23 +276,27 @@ def convert_tokens_json_to_oracle(file):
         new_file[symbol]["dex_price"] = float(j["dexPriceUSD18Decimals"]) / pow(10, 18)
     return new_file
 
+
 def send_telegram_table(bot_id, chat_id, headers, rows):
     table = pt.PrettyTable(headers)
 
     for row in rows:
         table.add_row(row)
-    
+
     # send the message as markdown
     send_telegram_alert(bot_id, chat_id, f'```{table}```', is_markdown=True)
 
-def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_ID, bot_id, chat_id,
+
+def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, current_SITE_ID, client_chat_id,
                                     slippage_threshold=5,
-                                    send_alerts=False, new_json=False, send_table=False, ignore_gb_redundant_tokens=False):
+                                    send_alerts=False, new_json=False, send_table=False,
+                                    ignore_gb_redundant_tokens=False):
     print("comparing to prod", name)
     prod_version = get_prod_version(name)
     print(prod_version)
     if new_json:
-        prod_file =  convert_liquitiy_json_to_slippage(json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json")))
+        prod_file = convert_liquitiy_json_to_slippage(
+            json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json")))
         file = json.load(open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "liquidity.json"))
         last_file = convert_liquitiy_json_to_slippage(file)
     else:
@@ -316,12 +323,12 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
             msg += "\n"
             msg += f'Liquidity check for {name}\n'
             msg += time_alert
-        send_telegram_alert(bot_id, chat_id, msg)
+        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
     for key1 in prod_file:
         if key1 == "json_time": continue
-        
+
         if ignore_gb_redundant_tokens:
-            if len(key1) > 3: # this is checked to avoid ignoring CVX token but only the ones like 'cvxcrvFRAX'
+            if len(key1) > 3:  # this is checked to avoid ignoring CVX token but only the ones like 'cvxcrvFRAX'
                 # ignore stk... cvx... yv... tokens from gearbox as they share the same liquidity as their underlying
                 if str(key1).startswith('stk') or str(key1).startswith('cvx') or str(key1).startswith('yv'):
                     print('Ignoring', key1)
@@ -345,15 +352,26 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                 alert_sent = True
                 if send_alerts:
                     if send_table:
-                        alert = {'market': key1, 'debt': key2, 'change': round(change, 2), 'last': last_volume, 'prod': prod_volume}
+                        alert = {'market': key1, 'debt': key2, 'change': round(change, 2), 'last': last_volume,
+                                 'prod': prod_volume}
                         liquidityAlerts.append(alert)
                     else:
                         print("Sending To TG")
-                        send_telegram_alert(bot_id, chat_id, message)
+                        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
+
+                    if client_chat_id != "" and change < 0:
+                        message_key = f'{name}.slippage.{key1}.{key2}'
+                        if message_key not in old_alerts or abs(old_alerts[message_key]) < abs(change) * 1.1 \
+                                or np.sign(old_alerts[message_key]) != np.sign(change):
+                            print("Sensing To TG to client", message_key)
+                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id, message)
+                            if message_key not in old_alerts:
+                                old_alerts[message_key] = 0
+                            old_alerts[message_key] = change
 
     ############ SEND LIQUIDITY MESSAGE AS TABLE #############
     maxRowPerMsg = 40
-    if send_alerts and send_table and len(liquidityAlerts) > 0: 
+    if send_alerts and send_table and len(liquidityAlerts) > 0:
         liquidityAlerts.sort(key=lambda x: abs(x['change']), reverse=True)
         alreadyAddedTokens = []
         rows = []
@@ -369,11 +387,13 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
             for cpt in range(callCount):
                 start = cpt * maxRowPerMsg
                 stop = (cpt + 1) * maxRowPerMsg
-                send_telegram_table(bot_id, chat_id, ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows[start:stop])
+                send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
+                                    ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows[start:stop])
 
             # split
         else:
-            send_telegram_table(bot_id, chat_id, ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows)
+            send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
+                                ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows)
     ############ END SEND LIQUIDITY MESSAGE AS TABLE #############
 
     if not alert_sent:
@@ -383,9 +403,10 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
         print(message)
         if send_alerts:
             print("Sending To TG")
-            send_telegram_alert(bot_id, chat_id, message)
-    elif ignore_gb_redundant_tokens: 
-        send_telegram_alert(bot_id, chat_id, 'Please note that stkcvx*, cvx* and yearn-vault tokens have been ignored as they share the same liquidity as their underlying')
+            send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
+    elif ignore_gb_redundant_tokens:
+        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel,
+                            'Please note that stkcvx*, cvx* and yearn-vault tokens have been ignored as they share the same liquidity as their underlying')
 
     alert_sent = False
     dexAlerts = []
@@ -420,7 +441,16 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                     dexAlerts.append(newDexAlert)
                 else:
                     print("Sending To TG")
-                    send_telegram_alert(bot_id, chat_id, message)
+                    send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
+                if client_chat_id != "":
+                    message_key = f'{name}.oracle.dex.diff.{market}'
+                    if message_key not in old_alerts or abs(old_alerts[message_key]) < abs(diff) * 1.1 \
+                            or np.sign(old_alerts[message_key]) != np.sign(diff):
+                        print("Sensing To TG to client", message_key)
+                        send_telegram_alert(private_config.risk_dao_bot, client_chat_id, message)
+                        if message_key not in old_alerts:
+                            old_alerts[message_key] = 0
+                        old_alerts[message_key] = diff
 
         if cex > 0 and oracle > 0:
             diff = (100 * ((oracle / cex) - 1))
@@ -439,32 +469,45 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
                         cexAlerts.append(newCexAlert)
                     else:
                         print("Sending To TG")
-                        send_telegram_alert(bot_id, chat_id, message)
-    
+                        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
+
+                    if client_chat_id != "":
+                        message_key = f'{name}.oracle.cex.diff.{market}'
+                        if message_key not in old_alerts or abs(old_alerts[message_key]) < abs(diff) * 1.1 \
+                                or np.sign(old_alerts[message_key]) != np.sign(diff):
+                            print("Sensing To TG to client", message_key)
+                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id, message)
+                            if message_key not in old_alerts:
+                                old_alerts[message_key] = 0
+                            old_alerts[message_key] = diff
+
+
     if send_alerts and send_table and len(dexAlerts) > 0:
-            msg = "-------------------------------------------------"
-            msg += "\n"
-            msg += f'Oracle check for {name}\n'
-            msg += time_alert
-            send_telegram_alert(bot_id, chat_id, msg)
+        msg = "-------------------------------------------------"
+        msg += "\n"
+        msg += f'Oracle check for {name}\n'
+        msg += time_alert
+        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
 
     if send_alerts and send_table and len(dexAlerts) > 0:
         dexAlerts.sort(key=lambda x: abs(x['diff']))
         rowsDex = []
         for alert in dexAlerts:
             diff = alert['diff']
-            rowsDex.append([alert['market'], alert['oracle'], alert['dex'],  f'{diff}%'])
+            rowsDex.append([alert['market'], alert['oracle'], alert['dex'], f'{diff}%'])
 
-        send_telegram_table(bot_id, chat_id, ['Market', 'Oracle', 'Dex', 'Diff'], rowsDex)
+        send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
+                            ['Market', 'Oracle', 'Dex', 'Diff'], rowsDex)
 
     if send_alerts and send_table and len(cexAlerts) > 0:
         cexAlerts.sort(key=lambda x: abs(x['diff']), reverse=True)
         rowsCex = []
         for alert in cexAlerts:
             diff = alert['diff']
-            rowsCex.append([alert['market'], alert['oracle'], alert['cex'],  f'{diff}%'])
-            
-        send_telegram_table(bot_id, chat_id, ['Market', 'Oracle', 'Cex', 'Diff'], rowsCex)
+            rowsCex.append([alert['market'], alert['oracle'], alert['cex'], f'{diff}%'])
+
+        send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
+                            ['Market', 'Oracle', 'Cex', 'Diff'], rowsCex)
 
     if not alert_sent:
         message = f"{name}" \
@@ -473,7 +516,9 @@ def compare_to_prod_and_send_alerts(data_time, name, base_SITE_ID, current_SITE_
         print(message)
         if send_alerts:
             print("Sending To TG")
-            send_telegram_alert(bot_id, chat_id, message)
+            send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
+
+    return old_alerts
 
 
 def get_prod_version(name):
@@ -520,8 +565,16 @@ def publish_results(SITE_ID):
         print(git_file)
         repo.create_file(git_file, "Commit Comments", file.read())
 
+
 lastTGCallDate = None
-def send_telegram_alert(bot_id, chat_id, message, is_markdown=False):
+
+
+def send_telegram_alert(bot_id, chat_id, message):
+    url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
+    print(url)
+    requests.get(url)
+
+def send_telegram_alert1(bot_id, chat_id, message, is_markdown=False):
     callData = {
         "chat_id": chat_id,
         "text": message,
@@ -534,13 +587,13 @@ def send_telegram_alert(bot_id, chat_id, message, is_markdown=False):
     global lastTGCallDate
     if lastTGCallDate == None:
         lastTGCallDate = datetime.datetime.now()
-    
+
     # print('lastTGCallDate', lastTGCallDate)
     url = f'https://api.telegram.org/bot{bot_id}/sendMessage'
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 
     now = datetime.datetime.now()
-    secToWait = 3 - (now-lastTGCallDate).total_seconds() # wait 3 seconds between each calls
+    secToWait = 3 - (now - lastTGCallDate).total_seconds()  # wait 3 seconds between each calls
     if secToWait > 0:
         print('Sleeping', secToWait, 'seconds before calling telegram')
         time.sleep(secToWait)
@@ -551,14 +604,14 @@ def send_telegram_alert(bot_id, chat_id, message, is_markdown=False):
         mustResend = False
         lastTGCallDate = datetime.datetime.now()
         # print('new lastTGCallDate', lastTGCallDate)
-        tgResponse = requests.post(url, data= callDataJson, headers=headers)
+        tgResponse = requests.post(url, data=callDataJson, headers=headers)
         if tgResponse.status_code < 400:
             mustResend = False
         elif tgResponse.status_code == 429:
             mustResend = True
             print('Sleeping', cptSleep, 'seconds before re calling tg')
             time.sleep(cptSleep)
-            cptSleep += cptSleep # exponential backoff
+            cptSleep += cptSleep  # exponential backoff
         else:
             print('error when sending tg alert', tgResponse.status_code, tgResponse.reason)
 
@@ -717,3 +770,4 @@ def create_production_slippage_graph(SITE_ID, lending_name):
 # kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
 # print(kp.get_price("VST", "renBTC", 1000))
 # compare_to_prod_and_send_alerts("aurigami","0","0\\2022-11-18-20-28", "", "")
+# send_telegram_alert(private_config.risk_dao_bot, private_config.vesta_channel, "Test")
