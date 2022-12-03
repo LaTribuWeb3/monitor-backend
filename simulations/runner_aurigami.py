@@ -281,6 +281,6 @@ if __name__ == '__main__':
             d1 = min(last_update_time, d1)
             utils.update_time_stamps(SITE_ID, d1)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts(d1, "aurigami", "0", SITE_ID, "", 10, False)
+            utils.compare_to_prod_and_send_alerts(old_alerts, d1, "aurigami", "0", SITE_ID, "", 10, False)
             print("Simulation Ended")
             exit()
