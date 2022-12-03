@@ -30,8 +30,8 @@ const multicallAddress = { "ETH" : "0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696",
 
 const hadoukenAddress =
 { "GW":
-    { "lendingPoolAddressesProviderAddress" : "0x773E3fAAD7b17147eDD78eE796Ac127e5ad23855",
-      "deployBlock" : 72540,
+    { "lendingPoolAddressesProviderAddress" : "0x7Cf4311f11b3cA5EFd53A85df03A442Da9A9A57d",
+      "deployBlock" : 244713,
       "blockStepInInit" : 100000,
       "multicallSize" : 200 }
 }
