@@ -364,7 +364,8 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                         if message_key not in old_alerts or abs(old_alerts[message_key]) < abs(change) * 1.1 \
                                 or np.sign(old_alerts[message_key]) != np.sign(change):
                             print("Sensing To TG to client", message_key)
-                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id, message)
+                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
+                                                message + "\n Last value:" + str(round(change, 2)))
                             if message_key not in old_alerts:
                                 old_alerts[message_key] = 0
                             old_alerts[message_key] = change
@@ -447,7 +448,8 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                     if message_key not in old_alerts or abs(old_alerts[message_key]) < abs(diff) * 1.1 \
                             or np.sign(old_alerts[message_key]) != np.sign(diff):
                         print("Sensing To TG to client", message_key)
-                        send_telegram_alert(private_config.risk_dao_bot, client_chat_id, message)
+                        send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
+                                            message + "\n Last value:" + str(round(diff, 2)))
                         if message_key not in old_alerts:
                             old_alerts[message_key] = 0
                         old_alerts[message_key] = diff
@@ -476,11 +478,11 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                         if message_key not in old_alerts or abs(old_alerts[message_key]) < abs(diff) * 1.1 \
                                 or np.sign(old_alerts[message_key]) != np.sign(diff):
                             print("Sensing To TG to client", message_key)
-                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id, message)
+                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
+                                                message + "\n Last value:" + str(round(diff, 2)))
                             if message_key not in old_alerts:
                                 old_alerts[message_key] = 0
                             old_alerts[message_key] = diff
-
 
     if send_alerts and send_table and len(dexAlerts) > 0:
         msg = "-------------------------------------------------"
@@ -573,6 +575,7 @@ def send_telegram_alert(bot_id, chat_id, message):
     url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
     print(url)
     requests.get(url)
+
 
 def send_telegram_alert1(bot_id, chat_id, message, is_markdown=False):
     callData = {
