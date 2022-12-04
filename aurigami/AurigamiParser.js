@@ -3,8 +3,6 @@ const Compound = require("./CompoundParser.js")
 const Addresses = require("./Addresses.js")
 
 async function test() {
-
-
     const fs = require('fs');
 
     const filePath = './key.json';
