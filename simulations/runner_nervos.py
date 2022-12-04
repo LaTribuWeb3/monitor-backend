@@ -68,8 +68,8 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
-lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0xb442CA10eB1BA92332faA70c45A579d080bAeCa5_data.json"
-oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "0xb442CA10eB1BA92332faA70c45A579d080bAeCa5_oracle.json"
+lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "data.json"
+oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "oracle.json"
 aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
 
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC", "USDT"]
