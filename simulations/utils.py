@@ -366,7 +366,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                                 or np.sign(old_alerts[message_key]) != np.sign(change):
                             print("Sensing To TG to client", message_key)
                             send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                                message + "\n Last value:" + str(round(last_value, 2)))
+                                                message + "\nLast value:" + str(round(last_value, 2)))
                             if message_key not in old_alerts:
                                 old_alerts[message_key] = 0
                             old_alerts[message_key] = change
@@ -451,7 +451,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                             or np.sign(old_alerts[message_key]) != np.sign(diff):
                         print("Sensing To TG to client", message_key)
                         send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                            message + "\n Last value:" + str(round(last_value, 2)))
+                                            message + "\nLast value:" + str(round(last_value, 2)))
                         if message_key not in old_alerts:
                             old_alerts[message_key] = 0
                         old_alerts[message_key] = diff
@@ -482,7 +482,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                                 or np.sign(old_alerts[message_key]) != np.sign(diff):
                             print("Sensing To TG to client", message_key)
                             send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                                message + "\n Last value:" + str(round(last_value, 2)))
+                                                message + "\nLast value:" + str(round(last_value, 2)))
                             if message_key not in old_alerts:
                                 old_alerts[message_key] = 0
                             old_alerts[message_key] = diff
