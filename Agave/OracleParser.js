@@ -18,7 +18,7 @@ async function updateOracle() {
     }
 
     console.log("sleeping for 10 minute")
-    setTimeout(updateOracle, 1000 * 60 /** 10*/)
+    setTimeout(updateOracle, 1000 * 60 * 10)
 }
 
 async function test() {
