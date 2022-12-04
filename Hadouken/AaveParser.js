@@ -87,7 +87,7 @@ class Aave {
             "users" : JSON.stringify(this.users)
         }   
         try {
-            fs.writeFileSync(this.lendingPool.options.address + "_data.json", JSON.stringify(result));
+            fs.writeFileSync("data.json", JSON.stringify(result));
         } catch (err) {
             console.error(err);
         } 
