@@ -23,8 +23,8 @@ async function updateOracle() {
 
 async function test() {
     let iter = 0
-    const web3 = new Web3("https://mainnet.aurora.dev")
-    comp = new Compound(Addresses.aurigamiAddress, "NEAR", web3, "oracle.json")
+    //const web3 = new Web3("https://mainnet.aurora.dev")
+    comp = new Compound(Addresses.aurigamiAddress, "NEAR", "https://mainnet.aurora.dev", "oracle.json")
 
     await updateOracle(comp)
  }
