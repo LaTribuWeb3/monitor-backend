@@ -3,6 +3,8 @@ const Compound = require("./CompoundParser.js")
 const Addresses = require("./Addresses.js")
 
 async function test() {
+
+
     const fs = require('fs');
 
     const filePath = './key.json';
@@ -20,13 +22,11 @@ async function test() {
 
     console.log({url})
 
-    const web3 = new Web3(url)
+    //const web3 = new Web3(url)
 
 
-    const comp = new Compound(Addresses.aurigamiAddress, "NEAR", web3, "data.json")
+    const comp = new Compound(Addresses.aurigamiAddress, "NEAR", url, "data.json")
     await comp.main()
  }
 
  test()
-
-
