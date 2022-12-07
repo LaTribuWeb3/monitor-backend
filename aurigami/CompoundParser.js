@@ -23,6 +23,7 @@ async function retry(fn, params, retries = 0) {
     } catch (e) {
         console.error(e)
         retries++
+        if(retries > 10) throw new Error('retry failed')
         console.log(`retry #${retries}`)
         await new Promise(resolve => setTimeout(resolve, 1000 * 5 * retries))
         return retry(fn, params, retries)
@@ -388,7 +389,7 @@ class Compound {
 
     async updateUsers(userAddresses) {
         // need to get: 1) user in market 2) user collateral in all markets 3) user borrow balance in all markets
-        
+        await this.initWeb3()
         // market in
         const assetInCalls = []
         console.log("preparing asset in calls")
@@ -420,9 +421,9 @@ class Compound {
             }
         }
 
-        console.log("getting collateral balances")
+        console.log("getting collateral balances", collateralBalanceCalls.length)
         const collateralBalaceResults = await this.multicall.methods.tryAggregate(false, collateralBalanceCalls).call()
-        console.log("getting borrow balances")        
+        console.log("getting borrow balances", borrowBalanceCalls.length)       
         const borrowBalanceResults = await this.multicall.methods.tryAggregate(false, borrowBalanceCalls).call()
 
         // init class for all users
