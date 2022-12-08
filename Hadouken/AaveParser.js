@@ -29,9 +29,10 @@ async function retry(fn, params, retries = 0) {
 }
 
 class Aave {
-    constructor(aaveInfo, network, web3, heavyUpdateInterval = 24) {
+    constructor(aaveInfo, network, web3, fileName, heavyUpdateInterval = 24) {
       this.web3 = web3
       this.network = network
+      this.fileName = fileName
       this.lendingPoolAddressesProvider = new web3.eth.Contract(Addresses.lendingPoolAddressesProviderAbi, aaveInfo[network].lendingPoolAddressesProviderAddress)
       this.aaveUserInfo = new web3.eth.Contract(Addresses.aaveUserInfoAbi, Addresses.aaveUserInfoAddress[network])
 
@@ -87,7 +88,7 @@ class Aave {
             "users" : JSON.stringify(this.users)
         }   
         try {
-            fs.writeFileSync(this.lendingPool.options.address + "_data.json", JSON.stringify(result));
+            fs.writeFileSync(this.fileName, JSON.stringify(result));
         } catch (err) {
             console.error(err);
         } 
@@ -156,6 +157,36 @@ class Aave {
 
         }        
     }
+
+    async initPricesQuickly() {
+        console.log("get markets")
+        const markets = this.markets
+        
+        console.log("get oracle")
+        const oracleAddress = this.oracle.options.address
+        const oracleContract = this.oracle
+
+        const calls = []
+        for(const market of markets) {
+            const call = {}
+            call["target"] = oracleAddress
+            call["callData"] = oracleContract.methods.getAssetPrice(market).encodeABI()
+
+            calls.push(call)
+        }
+
+        const priceResults = await this.multicall.methods.tryAggregate(true, calls).call()  
+        //console.log({priceResults})      
+        for(let i = 0 ; i < priceResults.length ; i++) {
+            const price = this.web3.eth.abi.decodeParameter("uint256", priceResults[i].returnData)
+            const tokenDecimals = this.decimals[markets[i]]         
+
+            this.prices[markets[i]] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(tokenDecimals))))            
+        }
+
+        this.lastUpdateTime = Math.floor(+new Date() / 1000)
+    }
+
 
     async heavyUpdate() {
         if(this.userList.length == 0) await this.collectAllUsers()
@@ -310,13 +341,16 @@ class Aave {
         for(const user of userAddresses) {
             const call = {}
             call["target"] = this.aaveUserInfo.options.address
-            call["callData"] = this.aaveUserInfo.methods.getUserInfo(this.lendingPool.options.address, user).encodeABI()
+            call["callData"] = this.aaveUserInfo.methods.getUserInfoFlat(this.lendingPool.options.address, user).encodeABI()
             getUserAccountCalls.push(call)
             //console.log({call})
         
+            /*
             console.log("doing a single call")
             const result = await this.aaveUserInfo.methods.getUserInfo(this.lendingPool.options.address, user).call()
             //console.log({result})
+
+
 
             const collaterals = {}
             const debts = {}
@@ -335,12 +369,13 @@ class Aave {
                                 "succ" : true}
 
             //this.users[user] = userObj            
+            */
         }
 
 
 
         // TODO - revive multicall
-        return
+        //return
 
         console.log("getting getUserAccountCalls")
         const getUserAccountResults = await this.multicall.methods.tryAggregate(false, getUserAccountCalls).call({gas:10e6})
@@ -350,6 +385,16 @@ class Aave {
             const user = userAddresses[i]
             const result = getUserAccountResults[i]
 
+            //console.log({result})
+
+            const collaterals = {}
+            const debts = {}
+            // init all markets to zero debt and collateral
+            for(const m of this.markets) {
+                collaterals[m] = toBN("0")
+                debts[m] = toBN("0")
+            }
+            
             /*
             uint256 totalCollateralETH,
             uint256 totalDebtETH,
@@ -359,18 +404,20 @@ class Aave {
             uint256 healthFactor*/
 
             const paramType = ["address[]", "uint256[]", "uint256[]"]
+
             const parsedResult = this.web3.eth.abi.decodeParameters(paramType,result.returnData)
             
             const assets = parsedResult["0"]
             const collateral = parsedResult["1"]
             const debt = parsedResult["2"]
 
-            const userObj = []
             for(let i = 0 ; i < assets.length ; i++) {
-                userObj.push({"asset" : assets[i], "collateral" : collateral[i].toString(), "debt" : debt.toString()})
+                collaterals[assets[i]] = toBN(collateral[i])
+                debts[assets[i]] = toBN(debt[i])
             }
 
-            this.users[user] = userObj
+            this.users[user] = {"asset": assets, "borrowBalances" : debts, "collateralBalances": collaterals,
+                                "succ" : true}
         }
     }
   }
@@ -383,4 +430,4 @@ async function test() {
     await aave.main(false)
  }
 
- test()
+ //test()

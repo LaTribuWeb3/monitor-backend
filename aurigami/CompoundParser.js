@@ -23,6 +23,7 @@ async function retry(fn, params, retries = 0) {
     } catch (e) {
         console.error(e)
         retries++
+        if(retries > 10) throw new Error('retry failed')
         console.log(`retry #${retries}`)
         await new Promise(resolve => setTimeout(resolve, 1000 * 5 * retries))
         return retry(fn, params, retries)
@@ -30,22 +31,23 @@ async function retry(fn, params, retries = 0) {
 }
 
 class Compound {
-    constructor(compoundInfo, network, web3, dumpFileName, heavyUpdateInterval = 24) {
-      this.web3 = web3
+    constructor(compoundInfo, network, web3Url, dumpFileName, heavyUpdateInterval = 24) {
+      this.web3Url = web3Url
+      this.web3 = new Web3(web3Url)
       this.network = network
-      this.comptroller = new web3.eth.Contract(Addresses.comptrollerAbi, compoundInfo[network].comptroller)
+      this.comptroller = new this.web3.eth.Contract(Addresses.comptrollerAbi, compoundInfo[network].comptroller)
 
       this.cETHAddresses = [compoundInfo[network].cETH]
 
-      this.priceOracle = new web3.eth.Contract(Addresses.oneInchOracleAbi, Addresses.oneInchOracleAddress[network])
-      this.multicall = new web3.eth.Contract(Addresses.multicallAbi, Addresses.multicallAddress[network])
+      this.priceOracle = new this.web3.eth.Contract(Addresses.oneInchOracleAbi, Addresses.oneInchOracleAddress[network])
+      this.multicall = new this.web3.eth.Contract(Addresses.multicallAbi, Addresses.multicallAddress[network])
       this.deployBlock = compoundInfo[network].deployBlock
       this.blockStepInInit = compoundInfo[network].blockStepInInit
       this.multicallSize = compoundInfo[network].multicallSize
 
       this.userList = []
 
-      this.sumOfBadDebt = web3.utils.toBN("0")
+      this.sumOfBadDebt = toBN("0")
       this.lastUpdateBlock = 0
 
       this.mainCntr = 0
@@ -73,6 +75,15 @@ class Compound {
       this.totalAssetCollateral = {}
       
       this.dumpFileName = dumpFileName
+    }
+
+    initWeb3(web3Url) {
+        console.log("initing web", this.web3Url)
+        this.web3 = new Web3(this.web3Url)
+        this.comptroller = new this.web3.eth.Contract(Addresses.comptrollerAbi, this.comptroller.options.address)
+    
+        this.priceOracle = new this.web3.eth.Contract(Addresses.oneInchOracleAbi, this.priceOracle.options.address)
+        this.multicall = new this.web3.eth.Contract(Addresses.multicallAbi, this.multicall.options.address)
     }
 
     getData() {
@@ -120,6 +131,7 @@ class Compound {
 
     async main(onlyOnce = false) {
         try {
+            await this.initWeb3()
             await this.initPrices()
                         
             const currBlock = await this.web3.eth.getBlockNumber() - 10
@@ -377,7 +389,7 @@ class Compound {
 
     async updateUsers(userAddresses) {
         // need to get: 1) user in market 2) user collateral in all markets 3) user borrow balance in all markets
-        
+        await this.initWeb3()
         // market in
         const assetInCalls = []
         console.log("preparing asset in calls")
@@ -409,9 +421,9 @@ class Compound {
             }
         }
 
-        console.log("getting collateral balances")
+        console.log("getting collateral balances", collateralBalanceCalls.length)
         const collateralBalaceResults = await this.multicall.methods.tryAggregate(false, collateralBalanceCalls).call()
-        console.log("getting borrow balances")        
+        console.log("getting borrow balances", borrowBalanceCalls.length)       
         const borrowBalanceResults = await this.multicall.methods.tryAggregate(false, borrowBalanceCalls).call()
 
         // init class for all users
