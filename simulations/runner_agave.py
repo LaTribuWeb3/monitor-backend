@@ -25,6 +25,7 @@ def create_dex_information():
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "dex_liquidity.json", "w")
     json.dump(data, fp)
 
+
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                              inv_names):
     def roundUp(x):
@@ -93,9 +94,12 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
                 # new_c["collaterals"].append(roundUp(current_debt) / ETH_PRICE)
                 # new_c["collaterals"].append(roundUp(current_collateral) / ETH_PRICE)
-                new_c["collaterals"] = [100_000 / ETH_PRICE, 200_000 / ETH_PRICE, 300_000 / ETH_PRICE, 400_000 / ETH_PRICE, 500_000 / ETH_PRICE,
-                                        600_000 / ETH_PRICE, 700_000 / ETH_PRICE, 800_000 / ETH_PRICE, 900_000 / ETH_PRICE, 1_000_000 / ETH_PRICE,
-                                        1_500_000 / ETH_PRICE, 2_000_000 / ETH_PRICE, 2_500_000 / ETH_PRICE, 3_000_000 / ETH_PRICE,
+                new_c["collaterals"] = [100_000 / ETH_PRICE, 200_000 / ETH_PRICE, 300_000 / ETH_PRICE,
+                                        400_000 / ETH_PRICE, 500_000 / ETH_PRICE,
+                                        600_000 / ETH_PRICE, 700_000 / ETH_PRICE, 800_000 / ETH_PRICE,
+                                        900_000 / ETH_PRICE, 1_000_000 / ETH_PRICE,
+                                        1_500_000 / ETH_PRICE, 2_000_000 / ETH_PRICE, 2_500_000 / ETH_PRICE,
+                                        3_000_000 / ETH_PRICE,
                                         4_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE]
                 if 0 in new_c["collaterals"]:
                     print(new_c)
@@ -124,9 +128,9 @@ def fix_usd_volume_for_slippage():
 lending_platform_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "oracle.json"
 
-assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX']
+assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX', "USDT"]
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
-                  'FOX': 'FOX'}
+                  'FOX': 'FOX', "USDT":"USDC"}
 
 ETH_PRICE = 1600
 print_time_series = False
@@ -196,7 +200,8 @@ if __name__ == '__main__':
 
         base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
         base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
-                                                                prices, collateral_factors, collateral_caps, borrow_caps,
+                                                                prices, collateral_factors, collateral_caps,
+                                                                borrow_caps,
                                                                 underlying)
         base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names,
                                                assets_liquidation_data)
@@ -204,21 +209,29 @@ if __name__ == '__main__':
         create_dex_information()
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
-        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
-        #fix_usd_volume_for_slippage()
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
+                                                    False)
+        # fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
-            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID, private_config.agave_channel, 10, send_alerts)
+            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID,
+                                                               private_config.agave_channel, 10, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
-            base_runner.create_assets_std_ratio_information(SITE_ID, ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX'],[("04", "2022"), ("05", "2022"), ("06", "2022")])
-            create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
-            base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
+            base_runner.create_assets_std_ratio_information(SITE_ID,
+                                                            ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX'],
+                                                            [("04", "2022"), ("05", "2022"), ("06", "2022")])
+            create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
+                                     inv_names)
+            base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names,
+                                                  print_time_series, fast_mode)
             base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-            base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                                       collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+            base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate,
+                                                       assets_aliases,
+                                                       collateral_factors, inv_names, liquidation_incentive, total_jobs,
+                                                       False)
 
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
