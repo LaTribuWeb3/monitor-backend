@@ -31,42 +31,40 @@ async function retry(fn, params, retries = 0) {
     }
 }
 
-async function getPastEvents(contract, key, fromBlock, toBlock) {
+async function getPastEvents(contract, key, fromBlock, toBlock, filter = {}) {
     const fn = (...args) => contract.getPastEvents(...args)
-    const events = await retry(fn, [key, {fromBlock, toBlock}])
+    //const filter = {tokenIn : [Addresses.daiAddress], tokenOut : [Addresses.ohmAddress]}
+    const events = await retry(fn, [key, {filter, fromBlock, toBlock}])
     return events
 }
 
-async function readPairEventsSushi(token0, token1, startBlock, endBlock, fileName, web3) {
-    let pairAddress = null
-    if(token0 === Addresses.wethArbitrum && token1 === Addresses.dpxArbitrum) {
-        pairAddress = Addresses.dpxWethArbitrumPair
-    }
-    else {
-        const factory = new web3.eth.Contract(Addresses.uniswapFactoryAbi, Addresses.sushiswapFactoryAddress)
-        pairAddress = await factory.methods.getPair(token0, token1).call()
-
-    }
-
-    console.log("sushi", {pairAddress})
+async function readPairEventsBalancer(token0, token1, startBlock, endBlock, fileName, web3) {
 
     //console.log("pair address 2", pairAddress)
-    const pair = new web3.eth.Contract(Addresses.uniswapV2PairAbi, pairAddress)
-    const firstToken = await pair.methods.token0().call()
-    const secondToken = await pair.methods.token1().call()
+    const vault = new web3.eth.Contract(Addresses.balancerVaultAbi, Addresses.balancerVault)
     //console.log("pair address 3", pairAddress)
     //console.log(endBlock - startBlock)
 
-    
-    const events = await getPastEvents(pair, "Swap", startBlock, endBlock)
+    console.log({startBlock}, {endBlock})    
+    const eventsDaiToOHM = await getPastEvents(vault, "Swap", startBlock, endBlock, {tokenIn : [Addresses.daiAddress], tokenOut : [Addresses.ohmAddress]})
+    const eventsOHMToDai = await getPastEvents(vault, "Swap", startBlock, endBlock, {tokenOut : [Addresses.daiAddress], tokenIn : [Addresses.ohmAddress]})
+
+    const allEvents = eventsDaiToOHM.concat(eventsOHMToDai)
+    const events = allEvents.sort((a,b) => a.blockNumber - b.blockNumber)
+
+    //console.log(events/*[0].returnValues*/, {startBlock}, {endBlock})
+
 
     //console.log({events})
 
     for(const e of events) {
-        const amount0 = fromWei(toBN(e.returnValues.amount0In).add(toBN(e.returnValues.amount0Out)))
+        const amount0 = fromWei(toBN(e.returnValues.amountIn))
         const blockNumber = e.blockNumber
 
-        const amount1 = fromWei(toBN(e.returnValues.amount1In).add(toBN(e.returnValues.amount1Out)))
+        const amount1 = fromWei(toBN(e.returnValues.amountOut))
+
+        const firstToken = e.returnValues.tokenIn
+        const secondToken = e.returnValues.tokenOut 
 
         const price = token0.toLowerCase() == firstToken.toLowerCase() ? amount0 / amount1 : amount1 / amount0
 
@@ -91,52 +89,6 @@ async function readPairEventsSushi(token0, token1, startBlock, endBlock, fileNam
     }
 }
 
-async function readPairEventsUniV3(token0, token1, fee, startBlock, endBlock, fileName, web3) {
-    const factory = new web3.eth.Contract(Addresses.uniswapFactoryV3Abi, Addresses.uniswapFactoryV3Address)
-    const pairAddress = await factory.methods.getPool(token0, token1, fee/*10000*/).call()
-    //console.log("pair address 2", pairAddress)
-    const pair = new web3.eth.Contract(Addresses.uniswapV3PairAbi, pairAddress)
-    const firstToken = await pair.methods.token0().call()
-    const secondToken = await pair.methods.token1().call()
-
-    console.log({pairAddress}, startBlock, endBlock)
-    //console.log("pair address 3", pairAddress)
-    //console.log(endBlock - startBlock)
-    const events = await getPastEvents(pair, "Swap", startBlock, endBlock) 
-
-    //console.log({events})
-
-    for(const e of events) {
-        let amount0 = Number(fromWei(toBN(e.returnValues.amount0)))
-        const blockNumber = e.blockNumber
-
-        let amount1 = Number(fromWei(toBN(e.returnValues.amount1)))
-
-        if(amount0 < 0) amount0 = amount0 * -1
-        if(amount1 < 0) amount1 = amount1 * -1
-
-        const price = token0.toLowerCase() == firstToken.toLowerCase() ? amount0 / amount1 : amount1 / amount0
-
-        console.log(blockNumber, ",",
-                    token0.toLowerCase() == firstToken.toLowerCase() ? amount0 : amount1, ",",
-                    token1.toLowerCase() == secondToken.toLowerCase() ? amount1 : amount0, ",",
-                    price)
-
-
-        const string = blockNumber.toString() + "," +
-                (token0.toLowerCase() == firstToken.toLowerCase() ? amount0 : amount1) + "," +
-                (token1.toLowerCase() == secondToken.toLowerCase() ? amount1 : amount0) + "," +
-                price.toString() + "\n"
-        
-                fs.appendFileSync(fileName, string)                     
-/*
-                    if(blockNumber == 14099122 || blockNumber === 14098253) {
-                        console.log({e})
-                    }                   
-                    if(blockNumber == 14099122) sd*/
-        //console.log({e})
-    }
-}
 
 async function getHistoricalData(token0, token1, isSushi, fee, numMonths, outputFileName, web3) {
     const step = (await web3.eth.getChainId()) === 42161 ? 10000 : 1000
@@ -157,8 +109,7 @@ async function getHistoricalData(token0, token1, isSushi, fee, numMonths, output
         if(realEnd > endBlock) realEnd = endBlock
 
         //console.log(realStart, realEnd)
-        if(isSushi) await readPairEventsSushi(token0, token1, realStart, realEnd, outputFileName, web3)
-        else await readPairEventsUniV3(token0, token1, fee, realStart, realEnd, outputFileName, web3)
+        await readPairEventsBalancer(token0, token1, realStart, realEnd, outputFileName, web3)
     }
 }
 
@@ -216,10 +167,7 @@ async function findBlockInTheDessert(web3, targetTimestamp, startBlock, endBlock
 async function slow() {
     const fn = (...args) => getCSVHistoricalData(...args)
 
-    //await retry(fn, [Addresses.daiAddress, Addresses.ohmAddress, true, 0, 3, "ohm-dai-mainnet.csv", web3Eth])
-    await retry(fn, [Addresses.wethArbitrum, Addresses.daiArbitrum, false, 3000, 3, "eth-dai-arbitrum.csv", web3Arbitrum])
-    await retry(fn, [Addresses.wethArbitrum, Addresses.dpxArbitrum, true, 0, 3, "eth-dpx-arbitrum.csv", web3Arbitrum])
-    await retry(fn, [Addresses.wethArbitrum, Addresses.gmxArbitrum, false, 10000, 3, "eth-gmx-arbitrum.csv", web3Arbitrum])
+    await retry(fn, [Addresses.daiAddress, Addresses.ohmAddress, true, 0, 3, "ohm-dai-mainnet.csv", web3Eth])
 }
 
 slow()
