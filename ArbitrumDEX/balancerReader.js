@@ -45,6 +45,8 @@ async function readPairEventsBalancer(token0, token1, startBlock, endBlock, file
     //console.log("pair address 3", pairAddress)
     //console.log(endBlock - startBlock)
 
+    const fees = {} // mapping from id to fees
+
     console.log({startBlock}, {endBlock})    
     const eventsDaiToOHM = await getPastEvents(vault, "Swap", startBlock, endBlock, {tokenIn : [Addresses.daiAddress], tokenOut : [Addresses.ohmAddress]})
     const eventsOHMToDai = await getPastEvents(vault, "Swap", startBlock, endBlock, {tokenOut : [Addresses.daiAddress], tokenIn : [Addresses.ohmAddress]})
@@ -58,10 +60,25 @@ async function readPairEventsBalancer(token0, token1, startBlock, endBlock, file
     //console.log({events})
 
     for(const e of events) {
-        const amount0 = fromWei(toBN(e.returnValues.amountIn))
+        const amount0 = Number(fromWei(toBN(e.returnValues.amountIn)))
         const blockNumber = e.blockNumber
 
-        const amount1 = fromWei(toBN(e.returnValues.amountOut))
+        let amount1 = Number(fromWei(toBN(e.returnValues.amountOut)))
+
+        const poolId = e.returnValues.poolId
+        if(!(poolId in fees)) {
+            const getPoolResult = await vault.methods.getPool(poolId).call()
+            console.log({getPoolResult})
+            const poolAddress = getPoolResult["0"]
+            console.log(poolAddress)
+            const poolContract = new web3.eth.Contract(Addresses.balancerPoolAbi, poolAddress)
+            fees[poolId] = Number(fromWei(await poolContract.methods.getSwapFeePercentage().call()))
+        }
+
+        // adjust out amount according to fees
+        const adjustedOutAmount = amount1 / (1 - fees[poolId])
+        console.log({amount1}, {adjustedOutAmount})
+        amount1 = adjustedOutAmount
 
         const firstToken = e.returnValues.tokenIn
         const secondToken = e.returnValues.tokenOut 
