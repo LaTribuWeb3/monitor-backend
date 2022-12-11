@@ -181,6 +181,7 @@ def create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_in
         json.dump(data, fp)
         fp.close()
     except Exception as e:
+        traceback.print_exc()
         print(e)
 
 

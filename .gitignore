@@ -38,3 +38,17 @@ data.json
 agave/0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c_data.json
 aurigami/oracle.json
 vesta/oracle.json
+aurigami/NEARXLiquidity.json
+agave/oracle.json
+simulations/dex_price_tester.py
+ArbitrumDEX/eth-dai-arbitrum.csv
+ArbitrumDEX/eth-dai-arbitrum.csv_.draft
+ArbitrumDEX/ohm-dai-mainnet.csv
+ArbitrumDEX/ohm-dai-mainnet.csv_.draft
+simulations/move_to_prod.py
+ArbitrumDEX/eth-dpx-arbitrum.csv_.draft
+ArbitrumDEX/eth-gmx-arbitrum.csv
+ArbitrumDEX/eth-dpx-arbitrum.csv
+ArbitrumDEX/_ohm-dai-mainnet.csv
+ArbitrumDEX/eth-dai-mainnet.csv
+ArbitrumDEX/ohm-dai-mainnet_no_fees.csv

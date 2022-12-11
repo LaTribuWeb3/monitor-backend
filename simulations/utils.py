@@ -56,15 +56,21 @@ def calc_series_std_ratio(source_base, source_quote, test_base, test_quote, mark
     test_rolling_std = np.average(
         test["price"].rolling(5 * 30).std().dropna() / test["price"].rolling(5 * 30).mean().dropna())
 
+    source_std = np.std(source["price"]) / np.average(source["price"])
+    test_std = np.std(test["price"]) / np.average(test["price"])
+
     print("source_avg", np.average(source["price"]))
     print("source_min", np.min(source["price"]))
-    print("source_std", np.std(source["price"]) / np.average(source["price"]))
+    print("source_std", source_std)
+    print("source_rolling_std", source_rolling_std)
 
     print("test_avg", np.average(test["price"]))
     print("test_min", np.min(test["price"]))
-    print("test_std", np.std(test["price"]) / np.average(test["price"]))
+    print("test_std", test_std)
+    print("test_rolling_std", test_rolling_std)
 
-    print("30M Rolling STD Ratio", test_rolling_std / source_rolling_std)
+    print("30M Rolling STD Ratio", round(test_rolling_std / source_rolling_std,2))
+    print("STD Ratio", round(test_std / source_std,2))
     print()
     return test_rolling_std / source_rolling_std
 
@@ -634,34 +640,6 @@ def copy_site():
         with open("webserver\\2\\" + os.path.basename(file), "w") as the_file:
             the_file.write(contents)
 
-
-def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=None):
-    total_days = 90
-    df = pd.read_csv(path)
-    if eth_usdt_file:
-        df1 = pd.read_csv(eth_usdt_file)
-        df = pd.merge(df, df1, on="block number")
-        df[" price"] = df[" price_x"] / df[" price_y"]
-    rows_for_minute = len(df) / (total_days * 24 * 60)
-    df = df.iloc[::int(rows_for_minute), :]
-    print(df.columns)
-    df.reset_index(drop=True, inplace=True)
-    df["timestamp_x"] = datetime.datetime.now()
-    df["ask_price"] = df[" price"] / decimals
-    df["bid_price"] = df[" price"] / decimals
-    df = df[["timestamp_x", "bid_price", "ask_price"]]
-    l = len(df)
-    rows_for_month = int(l / total_days) * 30
-    index = 0
-    for i in target_month:
-        df1 = df.iloc[index * rows_for_month:(index + 1) * rows_for_month]
-        df1.reset_index(drop=True, inplace=True)
-        start_date = datetime.datetime(int(i[1]), int(i[0]), 1).timestamp()
-        df1["timestamp_x"] = (start_date + df1.index * 60) * (1000 * 1000)
-        df1.to_csv("data\\data_unified_" + i[1] + "_" + i[0] + "_" + pair_name + ".csv", index=False)
-        index += 1
-
-
 def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_base=None):
     plt.cla()
     plt.close()
@@ -755,25 +733,3 @@ def create_production_slippage_graph(SITE_ID, lending_name):
 
     plt.legend(loc="lower left")
     plt.savefig("results\\" + lending_name + ".slippage.jpg")
-
-# create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
-#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1, None)
-#
-#
-# create_price_file("..\\monitor-backend\\ArbitrumDEX\\ohm-dai-mainnet.csv", "OHMUSDT",
-#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1e9, None)
-
-# create_price_file("..\\monitor-backend\\ArbitrumDEX\\eth-gmx-arbitrum.csv", "GMXUSDT",
-#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1,
-#                   "..\\monitor-backend\\ArbitrumDEX\\eth-dai-arbitrum.csv")
-#
-# create_price_file("..\\monitor-backend\\ArbitrumDEX\\eth-dpx-arbitrum.csv", "DPXUSDT",
-#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1,
-#                   "..\\monitor-backend\\ArbitrumDEX\\eth-dai-arbitrum.csv")
-
-# lending_platform_json_file = ".." + os.path.sep + "monitor-backend" + os.path.sep + "vesta" + os.path.sep + "data.json"
-# chain_id = "arbitrum"
-# kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
-# print(kp.get_price("VST", "renBTC", 1000))
-# compare_to_prod_and_send_alerts("aurigami","0","0\\2022-11-18-20-28", "", "")
-# send_telegram_alert(private_config.risk_dao_bot, private_config.vesta_channel, "Test")

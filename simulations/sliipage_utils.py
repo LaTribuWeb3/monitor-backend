@@ -96,10 +96,4 @@ def get_usd_volumes_for_slippage(chain_id, inv_names, liquidation_incentive, get
                                             near_to_stnear_volume, stnear_to_near_volume)
             all_prices[base][quote] = {"volume": volume, "llc": llc}
 
-    if chain_id == "arbitrum":
-        lic = float(liquidation_incentive[inv_names["sGLP"]])
-        llc = lic if lic >= 1 else 1 + lic
-        #all_prices["VST"] = {}
-        all_prices["VST"]["sGLP"] = {"volume": all_prices["VST"]["renBTC"]["volume"], "llc": llc}
-
     return all_prices

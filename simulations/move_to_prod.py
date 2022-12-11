@@ -12,17 +12,17 @@ def update_site(SITE_ID, name):
 
 update = True
 update_site("0", "aurigami")
-# update_site("1", "nervos")
+update_site("1", "nervos")
 update_site("2", "vesta")
 update_site("gearbox/main", "gearbox")
-# update_site("4", "agave")
+update_site("4", "agave")
 
 
-utils.create_production_accounts_graph("0", "total_collateral", "Aurigami")
-utils.create_production_accounts_graph("0", "total_debt", "Aurigami")
-
-utils.create_production_accounts_graph("2", "total_collateral", "Vesta")
-utils.create_production_accounts_graph("2", "total_debt", "Vesta")
-
-utils.create_production_slippage_graph("0", "Aurigami")
-utils.create_production_slippage_graph("2", "Vesta")
+# utils.create_production_accounts_graph("0", "total_collateral", "Aurigami")
+# utils.create_production_accounts_graph("0", "total_debt", "Aurigami")
+#
+# utils.create_production_accounts_graph("2", "total_collateral", "Vesta")
+# utils.create_production_accounts_graph("2", "total_debt", "Vesta")
+#
+# utils.create_production_slippage_graph("0", "Aurigami")
+# utils.create_production_slippage_graph("2", "Vesta")
