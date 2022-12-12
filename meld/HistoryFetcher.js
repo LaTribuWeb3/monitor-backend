@@ -4,8 +4,6 @@ const { normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
 const { tokenPoolToFetch } = require('./Addresses');
 
-const projectId = process.env.BLOCKFROST_PROJECTID;
-
 /**
  * @notice Read the fetched data from CSV and return it as proper array
  * @dev this allow to not refetch 3 months of data each day, which is time consuming
@@ -14,7 +12,7 @@ const projectId = process.env.BLOCKFROST_PROJECTID;
  */
 function getAlreadyFetchedData(filename) {
     if(fs.existsSync(filename)) {
-        const lines = fs.readFileSync(filename, 'utf-8').split(/\r?\n/).slice(1);
+        const lines = fs.readFileSync(filename, 'utf-8').split(/\r?\n/).slice(1); // slice 1 to remove headers line
         const alreadyFetchedData = [];
         lines.forEach(_ => {
             const splitted = _.split(',');
@@ -40,14 +38,15 @@ function getAlreadyFetchedData(filename) {
  * @param {string} tokenSymbol 
  * @param {number} tokenDecimals 
  * @param {string} poolId 
+ * @param {number} monthsToFetch 
  */
-async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecimals, poolId) {
+async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecimals, poolId, monthsToFetch=3) {
     const api = new BlockfrostAdapter({
         projectId: blockfrostProjectId,
         networkId: NetworkId.MAINNET,
     });
 
-    const stopTimestamp = Date.now() / 1000 - 3 * 30 * 24 * 60 * 60; // 3 months ago
+    const stopTimestamp = Date.now() / 1000 - monthsToFetch * 30 * 24 * 60 * 60; // 3 months ago
     var dateMin = new Date(stopTimestamp * 1000);
     
     let mustStop = false;
@@ -87,15 +86,15 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
 
             const [price0, price1] = await api.getPoolPrice({
                 pool,
-                decimalsA: 6,
-                decimalsB: 6,
+                decimalsA: 6, // ADA
+                decimalsB: tokenDecimals,
             });
             
             console.log(`[${tokenSymbol}/ADA]: Block:${historyPoint.blockHeight}: ${price0} ADA/${tokenSymbol}, ${price1} ${tokenSymbol}/ADA`);
             fetchedData.push({
                 blockHeight: historyPoint.blockHeight,
-                price: price1,
-                reserveA: normalize(pool.reserveA.toString(), 6), // reserve A is always ADA ?
+                price: price0,
+                reserveA: normalize(pool.reserveA.toString(), 6), // reserve A must always be ADA
                 reserveB: normalize(pool.reserveB.toString(), tokenDecimals),
                 timestamp: Math.round(historyPoint.time.getTime() / 1000)
             });
@@ -104,16 +103,18 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
 
     // here, 'fetchedData' contains all the data fetched, order it by blockheight and save it as csv
     fetchedData.sort((a, b) => a.blockHeight - b.blockHeight);
-    fs.writeFileSync(filename, 'Block number, timestamp, reserve A, reserve B, price\n');
+    fs.writeFileSync(filename, `Block number, timestamp, reserve ADA, reserve ${tokenSymbol}, price (ADA/${tokenSymbol})\n`);
     fs.appendFileSync(filename, fetchedData.map(_ => `${_.blockHeight},${_.timestamp},${_.reserveA},${_.reserveB},${_.price}`).join('\n'));
 }
 
 /**
  * @notice this is the main entrypoint
  */
-async function HistoryFetcher() {
+async function main() {
+    const projectId = process.env.BLOCKFROST_PROJECTID;
+
     if(!projectId) {
-        console.error('Cannot work without blockfrost project id');
+        console.error('Cannot read env variable BLOCKFROST_PROJECTID');
     }
     for(let i = 0; i < tokenPoolToFetch.length; i++) {
         const tokenToFetch = tokenPoolToFetch[i];
@@ -127,4 +128,4 @@ async function HistoryFetcher() {
     }
 }
 
-HistoryFetcher();
+main();
