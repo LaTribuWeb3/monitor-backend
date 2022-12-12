@@ -7,7 +7,8 @@ const { tokenPoolToFetch } = require('./Addresses');
 const projectId = process.env.BLOCKFROST_PROJECTID;
 
 /**
- * 
+ * @notice Read the fetched data from CSV and return it as proper array
+ * @dev this allow to not refetch 3 months of data each day, which is time consuming
  * @param {string} filename 
  * @returns {{blockHeight: number, timestamp: number, reserveA: number, reserveB: number, price: number}[]}
  */
@@ -33,6 +34,8 @@ function getAlreadyFetchedData(filename) {
 }
 
 /**
+ * @notice fetch 3 month of price history from minswap
+ * @dev only work on pool with ADA as reserveA !!
  * @param {string} blockfrostProjectId 
  * @param {string} tokenSymbol 
  * @param {number} tokenDecimals 
