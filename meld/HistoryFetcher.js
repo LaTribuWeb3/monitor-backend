@@ -83,6 +83,10 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
                 throw new Error('pool not found');
             }
 
+            if(pool.assetA != 'lovelace') {
+                throw new Error('Can only work on pool where assetA is ADA');
+            }
+
 
             const [price0, price1] = await api.getPoolPrice({
                 pool,
@@ -124,7 +128,7 @@ async function main() {
         }
 
         console.log(`Fetching history for ${tokenToFetch.symbol}/ADA`);
-        await fetchMinswapHistory(projectId, tokenToFetch.symbol, 6, tokenToFetch.poolId);
+        await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
     }
 }
 
