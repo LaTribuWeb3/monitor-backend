@@ -3,14 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "dependencies": {
-    "axios": "^0.27.2",
-    "package.json": "^2.0.1",
-    "web3": "^1.7.4"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Risk-DAO/monitor-backend.git"
@@ -20,5 +12,16 @@
   "bugs": {
     "url": "https://github.com/Risk-DAO/monitor-backend/issues"
   },
-  "homepage": "https://github.com/Risk-DAO/monitor-backend#readme"
+  "homepage": "https://github.com/Risk-DAO/monitor-backend#readme",
+  "dependencies": {
+    "@minswap/blockfrost-adapter": "^0.0.4",
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2",
+    "package.json": "^2.0.1",
+    "web3": "^1.7.4"
+  },
+  "devDependencies": {
+    "eslint": "^8.29.0"
+  }
 }
