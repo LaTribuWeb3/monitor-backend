@@ -4,15 +4,17 @@ const { normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
 const { tokenPoolToFetch } = require('./Addresses');
 
+const historySrcDirectory = './history-src';
+
 /**
  * @notice Read the fetched data from CSV and return it as proper array
  * @dev this allow to not refetch 3 months of data each day, which is time consuming
  * @param {string} filename 
  * @returns {{blockHeight: number, timestamp: number, reserveA: number, reserveB: number, price: number}[]}
  */
-function getAlreadyFetchedData(filename) {
-    if(fs.existsSync(filename)) {
-        const lines = fs.readFileSync(filename, 'utf-8').split(/\r?\n/).slice(1); // slice 1 to remove headers line
+function getAlreadyFetchedData(fullFilename) {
+    if(fs.existsSync(fullFilename)) {
+        const lines = fs.readFileSync(fullFilename, 'utf-8').split(/\r?\n/).slice(1); // slice 1 to remove headers line
         const alreadyFetchedData = [];
         lines.forEach(_ => {
             const splitted = _.split(',');
@@ -52,9 +54,9 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
     let mustStop = false;
     let page = 1;
 
-    const filename = `${tokenSymbol}-ADA.csv`;
+    const fullFilename = historySrcDirectory + `/${tokenSymbol}-ADA.csv`;
     // find the last data fetched and keep only values more recent than stopTimestamp
-    const fetchedData = getAlreadyFetchedData(filename).filter(_ => _.timestamp > stopTimestamp);
+    const fetchedData = getAlreadyFetchedData(fullFilename).filter(_ => _.timestamp > stopTimestamp);
 
     let  lastFetchedData = undefined;
     if(fetchedData.length > 0) {
@@ -66,7 +68,7 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
         console.log(`[${tokenSymbol}/ADA]: Getting pool history for page ${page}`);
         const history = await api.getPoolHistory({ id: poolId, count: 100, order: 'desc', page: page++ });
         if(!mustStop && history.length == 0) {
-            console.log(`[${tokenSymbol}/ADA]: Could not find any more history at ${page}`);
+            console.log(`[${tokenSymbol}/ADA]: Could not find any more history`);
             break;
         }
 
@@ -112,29 +114,45 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
 
     // here, 'fetchedData' contains all the data fetched, order it by blockheight and save it as csv
     fetchedData.sort((a, b) => a.blockHeight - b.blockHeight);
-    fs.writeFileSync(filename, `Block number, timestamp, reserve ADA, reserve ${tokenSymbol}, price (ADA/${tokenSymbol})\n`);
-    fs.appendFileSync(filename, fetchedData.map(_ => `${_.blockHeight},${_.timestamp},${_.reserveA},${_.reserveB},${_.price}`).join('\n'));
+    fs.writeFileSync(fullFilename, `Block number,timestamp,reserve ADA,reserve ${tokenSymbol},price (ADA/${tokenSymbol})\n`);
+    fs.appendFileSync(fullFilename, fetchedData.map(_ => `${_.blockHeight},${_.timestamp},${_.reserveA},${_.reserveB},${_.price}`).join('\n'));
 }
 
 /**
  * @notice this is the main entrypoint
  */
 async function main() {
-    const projectId = process.env.BLOCKFROST_PROJECTID;
+    try {
+        console.log('============================================');
+        console.log(`Starting MELD history fetch at ${new Date()}`);
+        const projectId = process.env.BLOCKFROST_PROJECTID;
 
-    if(!projectId) {
-        console.error('Cannot read env variable BLOCKFROST_PROJECTID');
-    }
-    for(let i = 0; i < tokenPoolToFetch.length; i++) {
-        const tokenToFetch = tokenPoolToFetch[i];
-        if(!tokenToFetch.poolId) {
-            console.log(`Not working on ${tokenToFetch.symbol} because no pool id in config`);
-            continue;
+        if(!projectId) {
+            console.error('Cannot read env variable BLOCKFROST_PROJECTID');
+        }
+        if(!fs.existsSync(historySrcDirectory)) {
+            fs.mkdirSync(historySrcDirectory);
         }
 
-        console.log(`Fetching history for ${tokenToFetch.symbol}/ADA`);
-        await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
+        for(let i = 0; i < tokenPoolToFetch.length; i++) {
+            const tokenToFetch = tokenPoolToFetch[i];
+            if(!tokenToFetch.poolId) {
+                console.log(`Not working on ${tokenToFetch.symbol} because no pool id in config`);
+                continue;
+            }
+
+            console.log(`Fetching history for ${tokenToFetch.symbol}/ADA`);
+            await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
+        }
     }
+    catch(e) {
+        console.log('Error occured:', e);
+    }
+    finally {
+        console.log(`Ending MELD history fetch at ${new Date()}`);
+        console.log('============================================');
+    }
+
 }
 
 main();

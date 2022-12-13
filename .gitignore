@@ -53,4 +53,5 @@ ArbitrumDEX/_ohm-dai-mainnet.csv
 ArbitrumDEX/eth-dai-mainnet.csv
 ArbitrumDEX/ohm-dai-mainnet_no_fees.csv
 meld/.env
-meld/*.csv
+meld/**/*.csv
+meld/**/*.json
