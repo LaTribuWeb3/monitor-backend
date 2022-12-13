@@ -10,6 +10,17 @@
     "parserOptions": {
         "ecmaVersion": "latest"
     },
+    "ignorePatterns":[
+        "Agave/*.js",
+        "ArbitrumDEX/*.js",
+        "aurigami/*.js",
+        "GLP/*.js",
+        "Hadouken/*.js",
+        "stables/*.js",
+        "trisolaris/*.js",
+        "vesta/*.js",
+        "yokaiswap/*.js"
+    ],
     "rules": {
         "indent": [
             "error",

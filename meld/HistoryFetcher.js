@@ -65,6 +65,11 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
     while(!mustStop) {
         console.log(`[${tokenSymbol}/ADA]: Getting pool history for page ${page}`);
         const history = await api.getPoolHistory({ id: poolId, count: 100, order: 'desc', page: page++ });
+        if(!mustStop && history.length == 0) {
+            console.log(`[${tokenSymbol}/ADA]: Could not find any more history at ${page}`);
+            break;
+        }
+
         for (const historyPoint of history) {
             
             if(lastFetchedData && historyPoint.blockHeight == lastFetchedData.blockHeight) {
