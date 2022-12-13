@@ -67,7 +67,7 @@ async function test() {
             console.log(error)
         }
 
-        console.log("sleep for an hour")
+        console.log("sleep for an hour", (new Date()).toString())
         await sleep(1000 * 60 * 60)
     }
 }
