@@ -11,9 +11,9 @@ const { BigNumber, utils } = require('ethers');
  *      e = target price and
  *      x = reserve from
  * @param {string} fromSymbol 
- * @param {number} reserveX 
+ * @param {number} fromReserve 
  * @param {string} toSymbol 
- * @param {number} reserveY 
+ * @param {number} toReserve 
  * @param {number} targetSlippage 
  * @returns {number} amount of token exchangeable for defined slippage
  */
