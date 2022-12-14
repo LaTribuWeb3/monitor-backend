@@ -1,10 +1,11 @@
 const { BlockfrostAdapter, NetworkId } = require('@minswap/blockfrost-adapter');
 const fs = require('fs');
-const { normalize } = require('../utils/TokenHelper');
+const { normalize, computeLiquidityForXYKPool } = require('../utils/TokenHelper');
 require('dotenv').config();
 const { tokenPoolToFetch } = require('./Addresses');
 
 const historySrcDirectory = './history-src';
+const liquidityDirectory = './liquidity';
 
 /**
  * @notice Read the fetched data from CSV and return it as proper array
@@ -41,6 +42,7 @@ function getAlreadyFetchedData(fullFilename) {
  * @param {number} tokenDecimals 
  * @param {string} poolId 
  * @param {number} monthsToFetch 
+ * @returns {Promise<{blockHeight: number, timestamp: number, reserveA: number, reserveB: number, price: number}>} last fetched value
  */
 async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecimals, poolId, monthsToFetch=3) {
     const api = new BlockfrostAdapter({
@@ -116,6 +118,9 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
     fetchedData.sort((a, b) => a.blockHeight - b.blockHeight);
     fs.writeFileSync(fullFilename, `Block number,timestamp,reserve ADA,reserve ${tokenSymbol},price (ADA/${tokenSymbol})\n`);
     fs.appendFileSync(fullFilename, fetchedData.map(_ => `${_.blockHeight},${_.timestamp},${_.reserveA},${_.reserveB},${_.price}`).join('\n'));
+
+    // return the last fetched value
+    return fetchedData[fetchedData.length-1];
 }
 
 /**
@@ -126,6 +131,7 @@ async function main() {
         console.log('============================================');
         console.log(`Starting MELD history fetch at ${new Date()}`);
         const projectId = process.env.BLOCKFROST_PROJECTID;
+        const targetSlippage = process.env.TARGET_SLIPPAGE ? Number(process.env.TARGET_SLIPPAGE) : 5 / 100;
 
         if(!projectId) {
             console.error('Cannot read env variable BLOCKFROST_PROJECTID');
@@ -133,6 +139,11 @@ async function main() {
         if(!fs.existsSync(historySrcDirectory)) {
             fs.mkdirSync(historySrcDirectory);
         }
+        if(!fs.existsSync(liquidityDirectory)) {
+            fs.mkdirSync(liquidityDirectory);
+        }
+
+        const slippageObject = {};
 
         for(let i = 0; i < tokenPoolToFetch.length; i++) {
             const tokenToFetch = tokenPoolToFetch[i];
@@ -142,8 +153,17 @@ async function main() {
             }
 
             console.log(`Fetching history for ${tokenToFetch.symbol}/ADA`);
-            await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
+            const lastFetched = await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
+            const liquidity = computeLiquidityForXYKPool(tokenToFetch.symbol, lastFetched.reserveB, 'ADA', lastFetched.reserveA, targetSlippage);
+
+            slippageObject[tokenToFetch.symbol] = {};
+            slippageObject[tokenToFetch.symbol]['ADA'] = {
+                volumeInKind: liquidity,
+                llc: 1 + targetSlippage
+            };
         }
+
+        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage.json`, JSON.stringify(slippageObject, null, 2));
     }
     catch(e) {
         console.log('Error occured:', e);
@@ -152,7 +172,7 @@ async function main() {
         console.log(`Ending MELD history fetch at ${new Date()}`);
         console.log('============================================');
     }
-
 }
 
 main();
+
