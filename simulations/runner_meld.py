@@ -154,7 +154,7 @@ def get_usd_volumes_for_slippage(inv_names, liquidation_incentive, get_price_fun
     return all_prices
 
 
-def create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, get_price_function):
+def create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, get_price_function):
 
     try:
         print("create_usd_volumes_for_slippage")
@@ -218,8 +218,8 @@ c = {
     'liquidation_incentives': [0.1],
     "stability_pool_initial_balances": [0],
     'share_institutionals': [0],
-    'recovery_halflife_retails': [2],
-    "price_recovery_times": [0],
+    'recovery_halflife_retails': [0],
+    "price_recovery_times": [2],
     "l_factors": [0.25, 0.5, 1, 1.5, 2],
     "collateral_factor": 0
 }
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     send_alerts = len(sys.argv) > 3
     print("SEND ALERTS", send_alerts)
 
-    print_time_series = True
+    print_time_series = False
     skip = False
     calc_pnl = False
     SITE_ID = "5"
@@ -249,6 +249,7 @@ if __name__ == '__main__':
     decimals = {}
     assets_aliases = {}
     collateral_factors = {}
+
     for a in assets_to_simulate:
         inv_names[a] = a
         liquidation_incentive[a] = 1.1
@@ -258,11 +259,13 @@ if __name__ == '__main__':
         assets_aliases[a] = a
         collateral_factors[a] = 1
 
+
     # prepare_date_file()
     create_assets_std_ratio_information(SITE_ID, assets_to_simulate)
     create_aggregator_file(SITE_ID, assets_to_simulate)
-    agg = aggregator.AggregatorPrices("webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json", inv_names, underlying, inv_underlying, decimals)
-    create_usd_volumes_for_slippage(SITE_ID, "ada", inv_names, liquidation_incentive, agg.get_price)
+    aggregator_file_path = "webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json"
+    agg = aggregator.AggregatorPrices(aggregator_file_path, inv_names, underlying, inv_underlying, decimals, assets_to_simulate)
+    create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, agg.get_price)
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
     base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)

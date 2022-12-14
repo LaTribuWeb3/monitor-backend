@@ -23,31 +23,32 @@ c = {
     "collateral_factor": 0
 }
 output_folder = "results\\sim1"
-print_time_series = False
+print_time_series = True
 liquidation_df = None
 skip = False
 calc_pnl = False
 
+runs = [{"name": "XXX-YYY1", "series_std_ratio": 1.5,
+         "volume_for_slippage_10_percentss": [100_000 / ETH_PRICE, 1_000_000 / ETH_PRICE],
+         "collaterals": [5_000_000 / ETH_PRICE, 50_000_000 / ETH_PRICE]},
+        {"name": "XXX-YYY2", "series_std_ratio": 1,
+         "volume_for_slippage_10_percentss": [100_000 / ETH_PRICE, 1_000_000 / ETH_PRICE],
+         "collaterals": [5_000_000 / ETH_PRICE, 50_000_000 / ETH_PRICE]},
+        {"name": "XXX-YYY3", "series_std_ratio": 0.5,
+         "volume_for_slippage_10_percentss": [100_000 / ETH_PRICE, 1_000_000 / ETH_PRICE],
+         "collaterals": [5_000_000 / ETH_PRICE, 50_000_000 / ETH_PRICE]}
+        ]
 
-runs = [{"name": "NEARX-USDC", "series_std_ratio": 1.74, "volume_for_slippage_10_percentss": [14_000 / ETH_PRICE],
-         "collaterals": [1100_000 / ETH_PRICE, 1200_000 / ETH_PRICE, 1300_000 / ETH_PRICE, 1400_000 / ETH_PRICE, 1500_000 / ETH_PRICE,
-                         600_000 / ETH_PRICE, 700_000 / ETH_PRICE, 800_000 / ETH_PRICE, 900_000 / ETH_PRICE, 1000_000 / ETH_PRICE]},
-        {"name": "NEARX-ETH", "series_std_ratio": 1.18, "volume_for_slippage_10_percentss": [14_000 / ETH_PRICE],
-         "collaterals": [1100_000 / ETH_PRICE, 1200_000 / ETH_PRICE, 1300_000 / ETH_PRICE, 1400_000 / ETH_PRICE, 1500_000 / ETH_PRICE,
-                         600_000 / ETH_PRICE, 700_000 / ETH_PRICE, 800_000 / ETH_PRICE, 900_000 / ETH_PRICE, 1000_000 / ETH_PRICE]},
-        {"name": "NEARX-WBTC", "series_std_ratio": 1.27, "volume_for_slippage_10_percentss": [14_000 / ETH_PRICE],
-         "collaterals": [1100_000 / ETH_PRICE, 1200_000 / ETH_PRICE, 1300_000 / ETH_PRICE, 1400_000 / ETH_PRICE, 1500_000 / ETH_PRICE,
-                         600_000 / ETH_PRICE, 700_000 / ETH_PRICE, 800_000 / ETH_PRICE, 900_000 / ETH_PRICE, 1000_000 / ETH_PRICE]}]
+assets = ["ADA","COPI","WRT","Min","MELD","iUSD","INDY","HOSKY","C3"]
 
 for run in runs:
     config = copy.deepcopy(c)
     for key in run:
         config[key] = run[key]
     name = run["name"]
-    run_simulation(name, "data_worst\\data_unified_2020_01_ETHUSDT.csv", config)
-    run_simulation(name, "data_worst\\data_unified_2021_02_ETHUSDT.csv", config)
+    # run_simulation(name, "data_worst\\data_unified_2020_01_ETHUSDT.csv", config)
+    # run_simulation(name, "data_worst\\data_unified_2021_02_ETHUSDT.csv", config)
     run_simulation(name, "data_worst\\data_unified_2020_03_ETHUSDT.csv", config)
     sr = stability_report.stability_report()
     sr.ETH_PRICE = ETH_PRICE
     sr.plot_for_html(output_folder, name, print_time_series, 0)
-
