@@ -1,6 +1,7 @@
 const { BlockfrostAdapter, NetworkId } = require('@minswap/blockfrost-adapter');
 const fs = require('fs');
-const { normalize, computeLiquidityForXYKPool } = require('../utils/TokenHelper');
+const { computeLiquidityForXYKPool } = require('../utils/LiquidityHelper');
+const { normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
 const { tokenPoolToFetch } = require('./Addresses');
 
@@ -144,6 +145,9 @@ async function main() {
         }
 
         const slippageObject = {};
+        const poolsObject = {
+            json_time: Math.round(Date.now() / 1000)
+        };
 
         for(let i = 0; i < tokenPoolToFetch.length; i++) {
             const tokenToFetch = tokenPoolToFetch[i];
@@ -154,6 +158,15 @@ async function main() {
 
             console.log(`Fetching history for ${tokenToFetch.symbol}/ADA`);
             const lastFetched = await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
+            poolsObject[`${tokenToFetch.symbol}_ADA`] = {
+                reserveT0: lastFetched.reserveB,
+                reserveT1: lastFetched.reserveA,
+            };
+            poolsObject[`ADA_${tokenToFetch.symbol}`] = {
+                reserveT0: lastFetched.reserveA,
+                reserveT1: lastFetched.reserveB,
+            };
+
             const liquidity = computeLiquidityForXYKPool(tokenToFetch.symbol, lastFetched.reserveB, 'ADA', lastFetched.reserveA, targetSlippage);
 
             slippageObject[tokenToFetch.symbol] = {};
@@ -164,6 +177,8 @@ async function main() {
         }
 
         fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage.json`, JSON.stringify(slippageObject, null, 2));
+        fs.writeFileSync(`${liquidityDirectory}/pools.json`, JSON.stringify(poolsObject, null, 2));
+
     }
     catch(e) {
         console.log('Error occured:', e);
