@@ -73,8 +73,8 @@ module.exports = { findBestQtyThroughPools };
 
 
 /**
- * must be called like that: node PriceAggregator.js 100 ADA MELD
- * it will get the price for 100 ada to meld
+ * must be called like that: 'node PriceAggregator.js 100 ADA MELD'
+ * it will get the price for 100 ada to X meld
  */
 // function test() {
 //     const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
