@@ -77,7 +77,7 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
 
         for (const historyPoint of history) {
             
-            if(lastFetchedData && historyPoint.blockHeight == lastFetchedData.blockHeight) {
+            if(lastFetchedData && historyPoint.blockHeight <= lastFetchedData.blockHeight) {
                 console.log(`[${tokenSymbol}/ADA]: Stopping because history point has already been fetched: ${historyPoint.blockHeight}`);
                 mustStop = true;
                 break;

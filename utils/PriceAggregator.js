@@ -72,16 +72,20 @@ function findBestQtyThroughPools(srcToken, srcQty, destToken, allTokens, liquidi
 module.exports = { findBestQtyThroughPools };
 
 
-function test() {
-    const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
-    const liquidityDictionary = JSON.parse(fs.readFileSync('liq.json'));
-    const quantity = Number(process.argv[2]);
-    const from = process.argv[3];
-    const dest = process.argv[4];
-    const bestForOne = findBestQtyThroughPools(from, 1, dest, allTokens, liquidityDictionary);
-    const best = findBestQtyThroughPools(from, quantity, dest, allTokens, liquidityDictionary);
-    const pricePerToken = best.bestQty/quantity;
-    console.log(`${quantity} ${from} = ${best.bestQty} ${dest} through route: ${best.route}. Slippage: ${Math.abs(roundTo((pricePerToken / bestForOne.bestQty - 1) * 100, 2))}%`);
-}
+/**
+ * must be called like that: node PriceAggregator.js 100 ADA MELD
+ * it will get the price for 100 ada to meld
+ */
+// function test() {
+//     const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
+//     const liquidityDictionary = JSON.parse(fs.readFileSync('liq.json'));
+//     const quantity = Number(process.argv[2]);
+//     const from = process.argv[3];
+//     const dest = process.argv[4];
+//     const bestForOne = findBestQtyThroughPools(from, 1, dest, allTokens, liquidityDictionary);
+//     const best = findBestQtyThroughPools(from, quantity, dest, allTokens, liquidityDictionary);
+//     const pricePerToken = best.bestQty/quantity;
+//     console.log(`${quantity} ${from} = ${best.bestQty} ${dest} through route: ${best.route}. Slippage: ${Math.abs(roundTo((pricePerToken / bestForOne.bestQty - 1) * 100, 2))}%`);
+// }
 
-test();
+// test();

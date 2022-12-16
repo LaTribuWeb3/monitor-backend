@@ -46,6 +46,12 @@ const tokenPoolToFetch = [
         decimals: 6,
         address: '533bb94a8850ee3ccbe483106489399112b74c905342cb1792a797a0494e4459',
         poolId: '571cdbdfae07f098049b917007366cca8f2e0770a7b2bae5f7726f36849fbcb9'
+    },
+    {
+        symbol: 'WMT',
+        decimals: 6,
+        address: '1d7f33bd23d85e1a25d87d86fac4f199c3197a2f7afeb662a0f34e1e776f726c646d6f62696c65746f6b656e',
+        poolId: 'df88a770e300f248b776231b96da4525ce0f54bc457310efe27a03f2c14bb18f'
     }
 ];
 
