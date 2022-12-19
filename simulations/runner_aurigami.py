@@ -1,3 +1,4 @@
+import datetime
 import json
 import time
 import os
@@ -275,12 +276,18 @@ if __name__ == '__main__':
             base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
             base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
                                                        collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+
+            n = datetime.datetime.now().timestamp()
             d1 = utils.get_file_time(oracle_json_file)
             d2 = utils.get_file_time(stnear_stash)
-            d1 = min(d1, d2)
-            d1 = min(last_update_time, d1)
-            utils.update_time_stamps(SITE_ID, d1)
+            d0 = min(d1, d2)
+            d0 = min(last_update_time, d0)
+            utils.update_time_stamps(SITE_ID, d0)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts(old_alerts, d1, "aurigami", "0", SITE_ID, "", 10, False)
+            utils.compare_to_prod_and_send_alerts(old_alerts, d0, "aurigami", "0", SITE_ID, "", 10, False)
+            print("oracle_json_file", n - d1)
+            print("stnear_stash", n - d2)
+            print("last_update_time", n - last_update_time)
             print("Simulation Ended")
+            print()
             exit()
