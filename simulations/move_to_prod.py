@@ -17,6 +17,7 @@ update_site("2", "vesta")
 update_site("gearbox/main", "gearbox")
 update_site("4", "agave")
 
+# utils.move_to_prod("aurigami", '2022-12-14-14-54')
 
 # utils.create_production_accounts_graph("0", "total_collateral", "Aurigami")
 # utils.create_production_accounts_graph("0", "total_debt", "Aurigami")
