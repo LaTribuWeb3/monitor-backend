@@ -35,7 +35,7 @@ def prepare_date_file():
                 new_df.append(new_row)
                 last_block_number += 1
 
-            last_timestamp_x = row[" timestamp"]
+            last_timestamp_x = row["timestamp"]
             last_bid_price = row[price_field_name]
             last_ask_price = row[price_field_name]
 
@@ -114,13 +114,13 @@ def create_aggregator_file(SITE_ID, assets):
             file = pd.read_csv("..\\meld\\" + asset + "-ADA.csv")
             last_row = file.iloc[-1]
             data[asset + "_ADA"] = {}
-            data[asset + "_ADA"]["token0"] = last_row[" reserve " + asset]
-            data[asset + "_ADA"]["token1"] = last_row[" reserve ADA"]
+            data[asset + "_ADA"]["token0"] = last_row["reserve " + asset]
+            data[asset + "_ADA"]["token1"] = last_row["reserve ADA"]
             data[asset + "_ADA"]["reserve"] = ""
 
             data["ADA_" + asset] = {}
-            data["ADA_" + asset]["token0"] = last_row[" reserve ADA"]
-            data["ADA_" + asset]["token1"] = last_row[" reserve " + asset]
+            data["ADA_" + asset]["token0"] = last_row["reserve ADA"]
+            data["ADA_" + asset]["token1"] = last_row["reserve " + asset]
             data["ADA_" + asset]["reserve"] = ""
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json", "w")
@@ -238,8 +238,7 @@ if __name__ == '__main__':
     SITE_ID = "5"
     SITE_ID = utils.get_site_id(SITE_ID)
 
-
-    assets_to_simulate = ["ADA", "WRT", "Min", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3"]
+    assets_to_simulate = ["ADA", "WRT", "Min", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
     ETH_PRICE = 1600
     total_jobs = 5
     inv_names = {}
@@ -259,8 +258,7 @@ if __name__ == '__main__':
         assets_aliases[a] = a
         collateral_factors[a] = 1
 
-
-    # prepare_date_file()
+    prepare_date_file()
     create_assets_std_ratio_information(SITE_ID, assets_to_simulate)
     create_aggregator_file(SITE_ID, assets_to_simulate)
     aggregator_file_path = "webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json"
