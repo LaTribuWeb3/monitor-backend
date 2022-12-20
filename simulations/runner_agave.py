@@ -12,7 +12,7 @@ import utils
 import sys
 import private_config
 import shutil
-
+import datetime
 
 def create_dex_information():
     print("create_dex_information")
@@ -233,10 +233,13 @@ if __name__ == '__main__':
                                                        collateral_factors, inv_names, liquidation_incentive, total_jobs,
                                                        False)
 
+            n = datetime.datetime.now().timestamp()
             d1 = utils.get_file_time(oracle_json_file)
-            d1 = min(last_update_time, d1)
-            utils.update_time_stamps(SITE_ID, d1)
+            d0 = min(last_update_time, d1)
+            utils.update_time_stamps(SITE_ID, d0)
             utils.publish_results(SITE_ID)
             utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID, "", 10, False)
+            print("oracle_json_file", n - d1)
+            print("last_update_time", n - last_update_time)
             print("Simulation Ended")
             exit()
