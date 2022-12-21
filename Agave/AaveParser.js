@@ -129,7 +129,7 @@ class Aave {
             unfrozenMarkets.push(allMarkets[i])
         }
 
-        this.markets = unfrozenMarkets
+        this.markets = allMarkets //unfrozenMarkets
 
         for(const market of this.markets) {
             const cfg = await this.lendingPool.methods.getConfiguration(market).call()
