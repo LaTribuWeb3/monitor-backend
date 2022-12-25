@@ -387,7 +387,7 @@ class Aave {
         //return
 
         console.log("getting getUserAccountCalls")
-        const getUserAccountResults = await this.multicall.methods.tryAggregate(false, getUserAccountCalls).call({gas:10e6})
+        const getUserAccountResults = await this.multicall.methods.tryAggregate(false, getUserAccountCalls).call({gas:100e6})
         console.log("multicall ended")
 
         for(let i = 0 ; i < userAddresses.length ; i++) {
