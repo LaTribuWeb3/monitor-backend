@@ -3,31 +3,38 @@ const wr = require('@wingriders/dex-blockfrost-adapter');
 require('dotenv').config();
 const addressMap = require('./lpmap.mainnet.20230103.json');
 const { normalize } = require('../utils/TokenHelper');
+const { computeLiquidityForXYKPool } = require('../utils/LiquidityHelper');
 const { tokenPoolToFetch } = require('./Addresses');
 const projectId = process.env.BLOCKFROST_PROJECTID;
+const targetSlippage = process.env.TARGET_SLIPPAGE ? Number(process.env.TARGET_SLIPPAGE) : 10 / 100;
 const liquidityDirectory = './liquidity';
+
+
+function aggregateLiquidity(){
+}
 
 
 async function main() {
     try {
         console.log('============================================');
-        console.log(`Starting Wingriders liquidity fetch at ${new Date()}`); 
-        if(!projectId) {
+        console.log(`Starting Wingriders liquidity fetch at ${new Date()}`);
+        if (!projectId) {
             console.error('Cannot read env variable BLOCKFROST_PROJECTID');
         }
         const adapter = new wr.WingRidersAdapter({
             projectId: projectId,
             lpAddressMap: addressMap,
         });
+        const slippageObject = {};
         const poolsObject = {
             json_time: Math.round(Date.now() / 1000)
         };
 
-        for(let i = 0; i < tokenPoolToFetch.length; i++){
+        for (let i = 0; i < tokenPoolToFetch.length; i++) {
             const map = Object.entries(addressMap);
-            for(let j = 0; j < map.length; j++){
+            for (let j = 0; j < map.length; j++) {
                 const tokenToFetch = tokenPoolToFetch[i];
-                if(map[j][1].unitA === 'lovelace' && map[j][1].unitB === tokenToFetch.address){
+                if (map[j][1].unitA === 'lovelace' && map[j][1].unitB === tokenToFetch.address) {
                     const tokenLP = map[j][1];
                     const lastFetched = await adapter.getLiquidityPoolState(tokenLP.unitA, tokenLP.unitB);
                     poolsObject[`${tokenToFetch.symbol}_ADA`] = {
@@ -38,12 +45,20 @@ async function main() {
                         reserveT0: normalize(lastFetched.quantityA, 6),
                         reserveT1: normalize(lastFetched.quantityB, tokenToFetch.decimals),
                     };
+                    const liquidity = computeLiquidityForXYKPool(tokenToFetch.symbol, lastFetched.quantityB, 'ADA', lastFetched.quantityA, targetSlippage);
+
+                    slippageObject[tokenToFetch.symbol] = {};
+                    slippageObject[tokenToFetch.symbol]['ADA'] = {
+                        volumeInKind: liquidity,
+                        llc: 1 + targetSlippage
+                    };
                 }
             }
         }
+        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage_Wingriders.json`, JSON.stringify(slippageObject, null, 2));
         fs.writeFileSync(`${liquidityDirectory}/pools_Wingriders.json`, JSON.stringify(poolsObject, null, 2));
     }
-    catch(e) {
+    catch (e) {
         console.log('Error occured:', e);
     }
     finally {
