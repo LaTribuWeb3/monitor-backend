@@ -10,10 +10,6 @@ const targetSlippage = process.env.TARGET_SLIPPAGE ? Number(process.env.TARGET_S
 const liquidityDirectory = './liquidity';
 
 
-function aggregateLiquidity(){
-}
-
-
 async function main() {
     try {
         console.log('============================================');
@@ -55,8 +51,8 @@ async function main() {
                 }
             }
         }
-        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage_Wingriders.json`, JSON.stringify(slippageObject, null, 2));
-        fs.writeFileSync(`${liquidityDirectory}/pools_Wingriders.json`, JSON.stringify(poolsObject, null, 2));
+        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage_wingriders.json`, JSON.stringify(slippageObject, null, 2));
+        fs.writeFileSync(`${liquidityDirectory}/wingriders_liquidity.json`, JSON.stringify(poolsObject, null, 2));
     }
     catch (e) {
         console.log('Error occured:', e);

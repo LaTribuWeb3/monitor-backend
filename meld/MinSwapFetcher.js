@@ -8,6 +8,7 @@ const { tokenPoolToFetch } = require('./Addresses');
 const historySrcDirectory = './history-src';
 const liquidityDirectory = './liquidity';
 
+
 /**
  * @notice Read the fetched data from CSV and return it as proper array
  * @dev this allow to not refetch 3 months of data each day, which is time consuming
@@ -126,6 +127,7 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
 
 /**
  * @notice this is the main entrypoint
+ * Fetches price history going back 3 months and outputs a liquidity json
  */
 async function main() {
     try {
@@ -177,7 +179,7 @@ async function main() {
         }
 
         fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage.json`, JSON.stringify(slippageObject, null, 2));
-        fs.writeFileSync(`${liquidityDirectory}/pools.json`, JSON.stringify(poolsObject, null, 2));
+        fs.writeFileSync(`${liquidityDirectory}/minswap_liquidity.json`, JSON.stringify(poolsObject, null, 2));
 
     }
     catch(e) {
