@@ -195,12 +195,13 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 new_c["series_std_ratio"] = std_ratio
                 new_c["volume_for_slippage_10_percentss"] = [slippage]
                 new_c["json_time"] = now_time
-                new_c["collaterals"] = [100_000 / ETH_PRICE, 200_000 / ETH_PRICE, 300_000 / ETH_PRICE,
-                                        400_000 / ETH_PRICE, 500_000 / ETH_PRICE,
-                                        600_000 / ETH_PRICE, 700_000 / ETH_PRICE, 800_000 / ETH_PRICE,
-                                        900_000 / ETH_PRICE, 1_000_000 / ETH_PRICE,
-                                        1_500_000 / ETH_PRICE, 2_000_000 / ETH_PRICE, 2_500_000 / ETH_PRICE,
-                                        3_000_000 / ETH_PRICE, 4_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE]
+                new_c["collaterals"] = [5_0000 / ETH_PRICE, 10_000 / ETH_PRICE, 20_000 / ETH_PRICE,
+                                        30_000 / ETH_PRICE, 40_000 / ETH_PRICE,
+                                        50_000 / ETH_PRICE, 60_000 / ETH_PRICE, 70_000 / ETH_PRICE,
+                                        80_000 / ETH_PRICE, 90_000 / ETH_PRICE,
+                                        100_000 / ETH_PRICE, 250_000 / ETH_PRICE, 500_000 / ETH_PRICE,
+                                        750_000 / ETH_PRICE, 1_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
+                                        10_000_000 / ETH_PRICE, 15_000_000 / ETH_PRICE, 20_000_000 / ETH_PRICE]
 
                 data[key] = new_c
 
