@@ -22,7 +22,7 @@ async function updateOracle() {
 }
 
 async function test() {
-    const web3 = new Web3("https://rpc.gnosischain.com")    
+    const web3 = new Web3("https://rpc.gnosis.gateway.fm")    
     aave = new Aave(Addresses.agaveAddress, "GNOSIS", web3, "oracle.json")
 
     await updateOracle(aave)
