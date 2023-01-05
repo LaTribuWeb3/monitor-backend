@@ -11,7 +11,7 @@ async function main() {
         console.log(`Starting Slippage Parser - aggregating data ${new Date()}`);
         
         const targetSlippage = 10/100;
-        const liquidityDictionary =  createAggregatedLiquidityData();
+        const liquidityDictionary = createAggregatedLiquidityData();//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
         const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
 
         const slippageObj = {
@@ -37,7 +37,8 @@ async function main() {
 
                 slippageObj[fromToken][toToken] = {
                     volume: liquidityData.quantity * fromTokenPriceIniUSD.bestQty,
-                    llc: liquidityData.slippage
+                    llc: liquidityData.slippage,
+                    route: liquidityData.route
                 };
             }
         }
@@ -70,10 +71,11 @@ function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlipp
 
     let minQty = undefined;
     let maxQty = undefined;
-    let tryQty = 1000;
+    let tryQty = 10;
     let lastTry = 0;
     let foundSlippage = 0;
-    const stopCondition = 1000; // define when we stop the loop, when minQty and maxQty are less than this value
+    let route = '';
+    const stopCondition = 1; // define when we stop the loop, when minQty and maxQty are less than this value
 
     // eslint-disable-next-line no-constant-condition
     while(true) {
@@ -85,7 +87,7 @@ function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlipp
 
         const tryResult = findBestQtyThroughPools(fromToken, tryQty, toToken, allTokens, liquidityDictionary);
         // console.log(`${fromToken}->${toToken}: route for ${tryQty} ${fromToken} is ${tryResult.route}`);
-
+        route = tryResult.route;
         const priceForTryQuantity = tryResult.bestQty/tryQty;
         const slippage = priceForTryQuantity / basePrice - 1;
         const slippageBeautified = Math.abs(roundTo(slippage * 100, 2));
@@ -101,7 +103,7 @@ function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlipp
             if(minQty) {
                 tryQty = tryQty - ((maxQty - minQty) / 2);
             } else {
-                tryQty = tryQty / 4;
+                tryQty = tryQty / 2;
             }
 
         } else {
@@ -112,14 +114,14 @@ function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlipp
                 tryQty = tryQty + ((maxQty - minQty) / 2);
 
             } else {
-                tryQty = tryQty * 4;
+                tryQty = tryQty * 2;
             }
         }
 
         // console.log(`${fromToken}->${toToken}: quantity changed from ${lastTry} to ${tryQty} ${fromToken}`);
     }
 
-    return { quantity: lastTry, slippage: foundSlippage };
+    return { quantity: lastTry, slippage: foundSlippage, route: route };
 }
 
 function createAggregatedLiquidityData() {
