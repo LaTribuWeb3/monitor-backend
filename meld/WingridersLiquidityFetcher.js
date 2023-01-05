@@ -3,14 +3,12 @@ const wr = require('@wingriders/dex-blockfrost-adapter');
 require('dotenv').config();
 const addressMap = require('./lpmap.mainnet.20230103.json');
 const { normalize } = require('../utils/TokenHelper');
-const { computeLiquidityForXYKPool } = require('../utils/LiquidityHelper');
 const { tokenPoolToFetch } = require('./Addresses');
 const projectId = process.env.BLOCKFROST_PROJECTID;
-const targetSlippage = process.env.TARGET_SLIPPAGE ? Number(process.env.TARGET_SLIPPAGE) : 10 / 100;
 const liquidityDirectory = './liquidity';
 
 
-async function main() {
+async function FetchWingrindersData() {
     try {
         console.log('============================================');
         console.log(`Starting Wingriders liquidity fetch at ${new Date()}`);
@@ -21,7 +19,6 @@ async function main() {
             projectId: projectId,
             lpAddressMap: addressMap,
         });
-        const slippageObject = {};
         const poolsObject = {
             json_time: Math.round(Date.now() / 1000)
         };
@@ -41,21 +38,15 @@ async function main() {
                         reserveT0: normalize(lastFetched.quantityA, 6),
                         reserveT1: normalize(lastFetched.quantityB, tokenToFetch.decimals),
                     };
-                    const liquidity = computeLiquidityForXYKPool(tokenToFetch.symbol, lastFetched.quantityB, 'ADA', lastFetched.quantityA, targetSlippage);
-
-                    slippageObject[tokenToFetch.symbol] = {};
-                    slippageObject[tokenToFetch.symbol]['ADA'] = {
-                        volumeInKind: liquidity,
-                        llc: 1 + targetSlippage
-                    };
                 }
             }
         }
-        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage_wingriders.json`, JSON.stringify(slippageObject, null, 2));
         fs.writeFileSync(`${liquidityDirectory}/wingriders_liquidity.json`, JSON.stringify(poolsObject, null, 2));
+        return true;
     }
     catch (e) {
         console.log('Error occured:', e);
+        return false;
     }
     finally {
         console.log(`Ending Wingriders liquidity fetch at ${new Date()}`);
@@ -63,4 +54,6 @@ async function main() {
     }
 }
 
-main();
+// FetchWingrindersData();
+
+module.exports = { FetchWingrindersData };

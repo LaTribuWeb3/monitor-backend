@@ -17,7 +17,7 @@ async function updateOracle() {
         console.log(error, "will try again in 10 minutes")
     }
 
-    console.log("sleeping for 10 minute")
+    console.log("sleeping for 10 minute", (new Date()).toString())
     setTimeout(updateOracle, 1000 * 60 * 10)
 }
 

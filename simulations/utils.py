@@ -8,7 +8,6 @@ import compound_parser
 import datetime
 import json
 import matplotlib.pyplot as plt
-from matplotlib import animation
 from pathlib import Path
 import os
 from github import Github

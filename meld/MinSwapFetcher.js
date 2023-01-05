@@ -1,9 +1,8 @@
 const { BlockfrostAdapter, NetworkId } = require('@minswap/blockfrost-adapter');
 const fs = require('fs');
-const { computeLiquidityForXYKPool } = require('../utils/LiquidityHelper');
 const { normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
-const { tokenPoolToFetch } = require('./Addresses');
+const { tokens } = require('./Addresses');
 
 const historySrcDirectory = './history-src';
 const liquidityDirectory = './liquidity';
@@ -129,12 +128,11 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
  * @notice this is the main entrypoint
  * Fetches price history going back 3 months and outputs a liquidity json
  */
-async function main() {
+async function FetchMinswapData() {
     try {
         console.log('============================================');
         console.log(`Starting MELD history fetch at ${new Date()}`);
         const projectId = process.env.BLOCKFROST_PROJECTID;
-        const targetSlippage = process.env.TARGET_SLIPPAGE ? Number(process.env.TARGET_SLIPPAGE) : 5 / 100;
 
         if(!projectId) {
             console.error('Cannot read env variable BLOCKFROST_PROJECTID');
@@ -146,13 +144,12 @@ async function main() {
             fs.mkdirSync(liquidityDirectory);
         }
 
-        const slippageObject = {};
         const poolsObject = {
             json_time: Math.round(Date.now() / 1000)
         };
 
-        for(let i = 0; i < tokenPoolToFetch.length; i++) {
-            const tokenToFetch = tokenPoolToFetch[i];
+        for(let i = 0; i < tokens.length; i++) {
+            const tokenToFetch = tokens[i];
             if(!tokenToFetch.poolId) {
                 console.log(`Not working on ${tokenToFetch.symbol} because no pool id in config`);
                 continue;
@@ -169,21 +166,14 @@ async function main() {
                 reserveT1: lastFetched.reserveB,
             };
 
-            const liquidity = computeLiquidityForXYKPool(tokenToFetch.symbol, lastFetched.reserveB, 'ADA', lastFetched.reserveA, targetSlippage);
-
-            slippageObject[tokenToFetch.symbol] = {};
-            slippageObject[tokenToFetch.symbol]['ADA'] = {
-                volumeInKind: liquidity,
-                llc: 1 + targetSlippage
-            };
         }
 
-        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage.json`, JSON.stringify(slippageObject, null, 2));
         fs.writeFileSync(`${liquidityDirectory}/minswap_liquidity.json`, JSON.stringify(poolsObject, null, 2));
-
+        return true;
     }
     catch(e) {
         console.log('Error occured:', e);
+        return false;
     }
     finally {
         console.log(`Ending MELD history fetch at ${new Date()}`);
@@ -191,5 +181,7 @@ async function main() {
     }
 }
 
-main();
+// FetchMinswapData();
+
+module.exports = { FetchMinswapData };
 

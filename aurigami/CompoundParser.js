@@ -151,7 +151,7 @@ class Compound {
             this.lastUpdateTime = currTime
 
             // don't  increase cntr, this way if heavy update is needed, it will be done again next time
-            console.log("sleeping", this.mainCntr++)
+            console.log("sleeping", this.mainCntr++, (new Date()).toString())
         }
         catch(err) {
             console.log("main failed", {err})
@@ -159,7 +159,7 @@ class Compound {
 
         console.log("============================")
         console.log(this.getData())
-
+        console.log((new Date()).toString())
         if(! onlyOnce) setTimeout(this.main.bind(this), 1000 * 60 * 60) // sleep for 1 hour
     }
 

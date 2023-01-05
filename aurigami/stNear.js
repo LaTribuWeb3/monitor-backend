@@ -6,6 +6,8 @@ const fs = require('fs');
 
 
 async function checkMetapoolLiquidity(web3) {
+    const lastUpdateTime = Math.floor(+new Date() / 1000)  
+
     const nearAddress = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
     const near = new web3.eth.Contract(Addresses.erc20Abi, nearAddress)
     const nearDecimals = await near.methods.decimals().call()
@@ -24,10 +26,12 @@ async function checkMetapoolLiquidity(web3) {
     console.log(balance.toString())
     console.log(stbalance.toString())    
 
-    fs.writeFileSync("stNEARLiquidity.json", JSON.stringify({"wNEARBalance" : balance.toString(), "stNEARBalance" : stbalance.toString()}))
+    fs.writeFileSync("stNEARLiquidity.json", JSON.stringify({"wNEARBalance" : balance.toString(), "stNEARBalance" : stbalance.toString(), lastUpdateTime}))
 }
 
 async function checkNearXLiquidity(web3) {
+    const lastUpdateTime = Math.floor(+new Date() / 1000)
+
     const nearAddress = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
     const near = new web3.eth.Contract(Addresses.erc20Abi, nearAddress)
     const nearDecimals = await near.methods.decimals().call()
@@ -46,7 +50,7 @@ async function checkNearXLiquidity(web3) {
     console.log(balance.toString())
     console.log(stbalance.toString())    
 
-    fs.writeFileSync("NEARXLiquidity.json", JSON.stringify({"wNEARBalance" : balance.toString(), "NEARXBalance" : stbalance.toString()}))
+    fs.writeFileSync("NEARXLiquidity.json", JSON.stringify({"wNEARBalance" : balance.toString(), "NEARXBalance" : stbalance.toString(), lastUpdateTime}))
 }
 
 function sleep(ms) {
@@ -67,7 +71,7 @@ async function test() {
             console.log(error)
         }
 
-        console.log("sleep for an hour")
+        console.log("sleep for an hour", (new Date()).toString())
         await sleep(1000 * 60 * 60)
     }
 }

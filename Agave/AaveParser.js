@@ -120,7 +120,16 @@ class Aave {
         const oracleAddress = await this.lendingPoolAddressesProvider.methods.getPriceOracle().call()
         this.oracle = new this.web3.eth.Contract(Addresses.aaveOracleAbi, oracleAddress)
 
-        this.markets = await this.aaveUserInfo.methods.getReservesList(this.lendingPool.options.address).call()
+        const allMarkets = await this.aaveUserInfo.methods.getReservesList(this.lendingPool.options.address).call()
+        this.frozen = await this.aaveUserInfo.methods.getFrozenList(this.lendingPool.options.address).call()
+
+        const unfrozenMarkets = []
+        for(let i = 0 ; i < allMarkets.length ; i++) {
+            if(this.frozen[i]) continue;
+            unfrozenMarkets.push(allMarkets[i])
+        }
+
+        this.markets = allMarkets //unfrozenMarkets
 
         for(const market of this.markets) {
             const cfg = await this.lendingPool.methods.getConfiguration(market).call()
@@ -378,7 +387,7 @@ class Aave {
         //return
 
         console.log("getting getUserAccountCalls")
-        const getUserAccountResults = await this.multicall.methods.tryAggregate(false, getUserAccountCalls).call({gas:10e6})
+        const getUserAccountResults = await this.multicall.methods.tryAggregate(false, getUserAccountCalls).call({gas:100e6})
         console.log("multicall ended")
 
         for(let i = 0 ; i < userAddresses.length ; i++) {
