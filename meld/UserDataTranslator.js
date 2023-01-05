@@ -1,5 +1,6 @@
-const meldData = require('./meld_user_data.json');
+const meldData = require('./dummy_user_data.json');
 const fs = require('fs');
+const { tokens } = require('./Addresses');
 require('dotenv').config();
 
 function getMarkets() {
@@ -199,7 +200,13 @@ function getNames(markets) {
         if(m == 'lovelace') {
             names[m] = 'ADA';
         } else {
-            names[m] = Buffer.from(m, 'hex').toString('utf8');
+            // find the token with the hex key
+            const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == m.toLowerCase());
+            if(foundConfToken) {
+                names[m] = foundConfToken.symbol;
+            } else {
+                throw new Error('Cannot find symbol in configuration for hexKey: ' + m);
+            }
         }
     });
     return names;
@@ -284,8 +291,9 @@ async function TranslateMeldData() {
     }
 
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
+    return true;
 }
 
-TranslateMeldData();
+// TranslateMeldData();
 
 module.exports = { TranslateMeldData };

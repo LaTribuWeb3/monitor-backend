@@ -3,7 +3,7 @@ const wr = require('@wingriders/dex-blockfrost-adapter');
 require('dotenv').config();
 const addressMap = require('./lpmap.mainnet.20230103.json');
 const { normalize } = require('../utils/TokenHelper');
-const { tokenPoolToFetch } = require('./Addresses');
+const { tokens } = require('./Addresses');
 const projectId = process.env.BLOCKFROST_PROJECTID;
 const liquidityDirectory = './liquidity';
 
@@ -23,10 +23,10 @@ async function FetchWingrindersData() {
             json_time: Math.round(Date.now() / 1000)
         };
 
-        for (let i = 0; i < tokenPoolToFetch.length; i++) {
+        for (let i = 0; i < tokens.length; i++) {
             const map = Object.entries(addressMap);
             for (let j = 0; j < map.length; j++) {
-                const tokenToFetch = tokenPoolToFetch[i];
+                const tokenToFetch = tokens[i];
                 if (map[j][1].unitA === 'lovelace' && map[j][1].unitB === tokenToFetch.address) {
                     const tokenLP = map[j][1];
                     const lastFetched = await adapter.getLiquidityPoolState(tokenLP.unitA, tokenLP.unitB);

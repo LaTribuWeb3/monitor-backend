@@ -2,6 +2,7 @@ const fs = require('fs');
 const { roundTo } = require('../utils/NumberHelper');
 const { findBestQtyThroughPools } = require('../utils/PriceAggregator');
 const liquidityDirectory = './liquidity';
+const { tokens } = require('./Addresses');
 
 /**
  * 
@@ -107,7 +108,8 @@ async function ParseLiquidityAndSlippage() {
         
         const targetSlippage = 10/100;
         const liquidityDictionary = createAggregatedLiquidityData();//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
-        const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
+        const allTokens = tokens.map(_ => _.symbol);
+        allTokens.push('ADA'); // add ada as all available reverse are with ada as the second token
 
         const slippageObj = {
             'json_time': Math.floor(Date.now() / 1000),

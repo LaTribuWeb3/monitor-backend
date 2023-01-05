@@ -1,5 +1,6 @@
 const { FetchMinswapData } = require('./MinSwapFetcher');
 const { ParseLiquidityAndSlippage } = require('./SlippageParser');
+const { TranslateMeldData } = require('./UserDataTranslator');
 const { FetchWingrindersData } = require('./WingridersLiquidityFetcher');
 
 async function main() {
@@ -15,7 +16,7 @@ async function main() {
                 success = await ParseLiquidityAndSlippage();
                 if(success) {
                     // start the user data translator
-                    /// ??
+                    success = await TranslateMeldData();
                 }
             }
         }

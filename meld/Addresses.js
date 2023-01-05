@@ -21,7 +21,7 @@ const tokens = [
         poolId: '8fde43a3f0b9f0e6f63bec7335e0b855c6b62a4dc51f1b762ccb6dfbbafcfe47'
     },
     {
-        symbol: 'Min',
+        symbol: 'MIN',
         hexKey: '4d494e',
         decimals: 6,
         address: '29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e',

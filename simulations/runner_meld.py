@@ -1,5 +1,7 @@
 import datetime
+import shutil
 import glob
+import compound_parser
 import stability_report
 import numpy as np
 import utils
@@ -15,7 +17,7 @@ import base_runner
 import sys
 
 def prepare_date_file():
-    files = glob.glob("..\\meld\\*.*")
+    files = glob.glob("..\\meld\\history-src\\*.*")
     for file in files:
         df = pd.read_csv(file)
         price_field_name = [x for x in df.columns if "price" in x][0]
@@ -239,34 +241,52 @@ if __name__ == '__main__':
     SITE_ID = "5"
     SITE_ID = utils.get_site_id(SITE_ID)
 
-    assets_to_simulate = ["ADA", "WRT", "Min", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
+    assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
     ETH_PRICE = 1600
     total_jobs = 5
-    inv_names = {}
-    liquidation_incentive = {}
-    inv_underlying = {}
-    underlying = {}
-    decimals = {}
+    # inv_names = {}
+    # liquidation_incentive = {}
+    # inv_underlying = {}
+    # underlying = {}
+    # decimals = {}
     assets_aliases = {}
-    collateral_factors = {}
+    # collateral_factors = {}
 
     for a in assets_to_simulate:
-        inv_names[a] = a
-        liquidation_incentive[a] = 1.1
-        inv_underlying[a] = a
-        underlying[a] = a
-        decimals[a] = 0
+    #     inv_names[a] = a
+    #     liquidation_incentive[a] = 1.1
+    #     inv_underlying[a] = a
+    #     underlying[a] = a
+    #     decimals[a] = 0
         assets_aliases[a] = a
-        collateral_factors[a] = 1
+    #     collateral_factors[a] = 1
 
     prepare_date_file()
     create_assets_std_ratio_information(SITE_ID, assets_to_simulate)
-    create_aggregator_file(SITE_ID, assets_to_simulate)
-    aggregator_file_path = "webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json"
-    agg = aggregator.AggregatorPrices(aggregator_file_path, inv_names, underlying, inv_underlying, decimals, assets_to_simulate)
-    create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, agg.get_price)
+
+    lending_platform_json_file = "..\\meld\\user-data\\data.json"
+    file = open(lending_platform_json_file)
+    data = json.load(file)
+    cp_parser = compound_parser.CompoundParser()
+    users_data, assets_liquidation_data, \
+    last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
+    underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
+        data)
+
+    # get slippage data from meld directory
+    shutil.copyfile("..\\meld\\liquidity\\usd_volume_for_slippage.json",
+                     "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
+
+    # create_aggregator_file(SITE_ID, assets_to_simulate)
+    # aggregator_file_path = "webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json"
+    # agg = aggregator.AggregatorPrices(aggregator_file_path, inv_names, underlying, inv_underlying, decimals, assets_to_simulate)
+    # create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, agg.get_price)
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
+    
+    
     base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    utils.publish_results(SITE_ID)
+    
+    
+    # utils.publish_results(SITE_ID)
 
