@@ -1,6 +1,5 @@
 const { BlockfrostAdapter, NetworkId } = require('@minswap/blockfrost-adapter');
 const fs = require('fs');
-const { computeLiquidityForXYKPool } = require('../utils/LiquidityHelper');
 const { normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
 const { tokenPoolToFetch } = require('./Addresses');
@@ -134,7 +133,6 @@ async function main() {
         console.log('============================================');
         console.log(`Starting MELD history fetch at ${new Date()}`);
         const projectId = process.env.BLOCKFROST_PROJECTID;
-        const targetSlippage = process.env.TARGET_SLIPPAGE ? Number(process.env.TARGET_SLIPPAGE) : 5 / 100;
 
         if(!projectId) {
             console.error('Cannot read env variable BLOCKFROST_PROJECTID');
@@ -146,7 +144,6 @@ async function main() {
             fs.mkdirSync(liquidityDirectory);
         }
 
-        const slippageObject = {};
         const poolsObject = {
             json_time: Math.round(Date.now() / 1000)
         };
@@ -169,16 +166,8 @@ async function main() {
                 reserveT1: lastFetched.reserveB,
             };
 
-            const liquidity = computeLiquidityForXYKPool(tokenToFetch.symbol, lastFetched.reserveB, 'ADA', lastFetched.reserveA, targetSlippage);
-
-            slippageObject[tokenToFetch.symbol] = {};
-            slippageObject[tokenToFetch.symbol]['ADA'] = {
-                volumeInKind: liquidity,
-                llc: 1 + targetSlippage
-            };
         }
 
-        fs.writeFileSync(`${liquidityDirectory}/volume_for_slippage.json`, JSON.stringify(slippageObject, null, 2));
         fs.writeFileSync(`${liquidityDirectory}/minswap_liquidity.json`, JSON.stringify(poolsObject, null, 2));
 
     }
