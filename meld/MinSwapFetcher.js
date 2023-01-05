@@ -2,7 +2,7 @@ const { BlockfrostAdapter, NetworkId } = require('@minswap/blockfrost-adapter');
 const fs = require('fs');
 const { normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
-const { tokenPoolToFetch } = require('./Addresses');
+const { tokens } = require('./Addresses');
 
 const historySrcDirectory = './history-src';
 const liquidityDirectory = './liquidity';
@@ -148,8 +148,8 @@ async function FetchMinswapData() {
             json_time: Math.round(Date.now() / 1000)
         };
 
-        for(let i = 0; i < tokenPoolToFetch.length; i++) {
-            const tokenToFetch = tokenPoolToFetch[i];
+        for(let i = 0; i < tokens.length; i++) {
+            const tokenToFetch = tokens[i];
             if(!tokenToFetch.poolId) {
                 console.log(`Not working on ${tokenToFetch.symbol} because no pool id in config`);
                 continue;

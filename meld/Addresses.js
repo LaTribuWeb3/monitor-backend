@@ -1,4 +1,4 @@
-const tokenPoolToFetch = [
+const tokens = [
     {
         symbol: 'MELD',
         decimals: 6,
@@ -55,4 +55,4 @@ const tokenPoolToFetch = [
     }
 ];
 
-module.exports = { tokenPoolToFetch };
+module.exports = { tokens };
