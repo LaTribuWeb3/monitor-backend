@@ -128,7 +128,7 @@ async function fetchMinswapHistory(blockfrostProjectId, tokenSymbol, tokenDecima
  * @notice this is the main entrypoint
  * Fetches price history going back 3 months and outputs a liquidity json
  */
-async function main() {
+async function FetchMinswapData() {
     try {
         console.log('============================================');
         console.log(`Starting MELD history fetch at ${new Date()}`);
@@ -169,10 +169,11 @@ async function main() {
         }
 
         fs.writeFileSync(`${liquidityDirectory}/minswap_liquidity.json`, JSON.stringify(poolsObject, null, 2));
-
+        return true;
     }
     catch(e) {
         console.log('Error occured:', e);
+        return false;
     }
     finally {
         console.log(`Ending MELD history fetch at ${new Date()}`);
@@ -180,5 +181,7 @@ async function main() {
     }
 }
 
-main();
+// FetchMinswapData();
+
+module.exports = { FetchMinswapData };
 

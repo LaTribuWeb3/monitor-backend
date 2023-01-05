@@ -8,7 +8,7 @@ const projectId = process.env.BLOCKFROST_PROJECTID;
 const liquidityDirectory = './liquidity';
 
 
-async function main() {
+async function FetchWingrindersData() {
     try {
         console.log('============================================');
         console.log(`Starting Wingriders liquidity fetch at ${new Date()}`);
@@ -42,9 +42,11 @@ async function main() {
             }
         }
         fs.writeFileSync(`${liquidityDirectory}/wingriders_liquidity.json`, JSON.stringify(poolsObject, null, 2));
+        return true;
     }
     catch (e) {
         console.log('Error occured:', e);
+        return false;
     }
     finally {
         console.log(`Ending Wingriders liquidity fetch at ${new Date()}`);
@@ -52,4 +54,6 @@ async function main() {
     }
 }
 
-main();
+// FetchWingrindersData();
+
+module.exports = { FetchWingrindersData };

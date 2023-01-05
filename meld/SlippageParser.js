@@ -3,59 +3,6 @@ const { roundTo } = require('../utils/NumberHelper');
 const { findBestQtyThroughPools } = require('../utils/PriceAggregator');
 const liquidityDirectory = './liquidity';
 
-/// take the two liquidity files and merges them to ouptut merged_liquidity.json
-
-async function main() {
-    try {
-        console.log('============================================');
-        console.log(`Starting Slippage Parser - aggregating data ${new Date()}`);
-        
-        const targetSlippage = 10/100;
-        const liquidityDictionary = createAggregatedLiquidityData();//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
-        const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
-
-        const slippageObj = {
-            'json_time': Math.floor(Date.now() / 1000),
-        };
-
-        for(let i = 0; i < allTokens.length; i++) {
-            const fromToken = allTokens[i];
-            
-            // find the current price of the from in iUSD
-            const fromTokenPriceIniUSD = findBestQtyThroughPools(fromToken, 1, 'iUSD', allTokens, liquidityDictionary);
-
-            slippageObj[fromToken] = {};
-            for(let j = 0; j < allTokens.length; j++) {
-                const toToken = allTokens[j];
-                if(fromToken === toToken) {
-                    continue;
-                }
-
-                console.log(`Searching quantity of ${fromToken} -> ${toToken} for ${targetSlippage * 100}% slippage`);
-                const liquidityData = getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlippage, allTokens, liquidityDictionary);
-                console.log('liquidityData', liquidityData);
-
-                slippageObj[fromToken][toToken] = {
-                    volume: liquidityData.quantity * fromTokenPriceIniUSD.bestQty,
-                    llc: liquidityData.slippage,
-                    route: liquidityData.route
-                };
-            }
-        }
-
-        fs.writeFileSync(`${liquidityDirectory}/usd_volume_for_slippage.json`, JSON.stringify(slippageObj, null, 2));
-    }
-    catch (e) {
-        console.log('Error occured:', e);
-    }
-    finally {
-        console.log(`Ending Slippage Parser - data aggregated at ${new Date()}`);
-        console.log('============================================');
-    }
-}
-
-main();
-
 /**
  * 
  * @param {string} fromToken 
@@ -152,3 +99,58 @@ function createAggregatedLiquidityData() {
     fs.writeFileSync(`${liquidityDirectory}/aggregated_liquidity.json`, JSON.stringify(aggregatedData, null, 2));
     return aggregatedData;
 }
+
+async function ParseLiquidityAndSlippage() {
+    try {
+        console.log('============================================');
+        console.log(`Starting Slippage Parser - aggregating data ${new Date()}`);
+        
+        const targetSlippage = 10/100;
+        const liquidityDictionary = createAggregatedLiquidityData();//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
+        const allTokens = ['C3', 'WRT', 'Min', 'MELD', 'iUSD', 'INDY', 'HOSKY', 'COPI', 'ADA'];
+
+        const slippageObj = {
+            'json_time': Math.floor(Date.now() / 1000),
+        };
+
+        for(let i = 0; i < allTokens.length; i++) {
+            const fromToken = allTokens[i];
+            
+            // find the current price of the from in iUSD
+            const fromTokenPriceIniUSD = findBestQtyThroughPools(fromToken, 1, 'iUSD', allTokens, liquidityDictionary);
+
+            slippageObj[fromToken] = {};
+            for(let j = 0; j < allTokens.length; j++) {
+                const toToken = allTokens[j];
+                if(fromToken === toToken) {
+                    continue;
+                }
+
+                console.log(`Searching quantity of ${fromToken} -> ${toToken} for ${targetSlippage * 100}% slippage`);
+                const liquidityData = getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlippage, allTokens, liquidityDictionary);
+                // console.log('liquidityData', liquidityData);
+
+                slippageObj[fromToken][toToken] = {
+                    volume: liquidityData.quantity * fromTokenPriceIniUSD.bestQty,
+                    llc: liquidityData.slippage,
+                    route: liquidityData.route
+                };
+            }
+        }
+
+        fs.writeFileSync(`${liquidityDirectory}/usd_volume_for_slippage.json`, JSON.stringify(slippageObj, null, 2));
+        return true;
+    }
+    catch (e) {
+        console.log('Error occured:', e);
+        return false;
+    }
+    finally {
+        console.log(`Ending Slippage Parser - data aggregated at ${new Date()}`);
+        console.log('============================================');
+    }
+}
+
+// ParseLiquidityAndSlippage();
+
+module.exports = { ParseLiquidityAndSlippage };
