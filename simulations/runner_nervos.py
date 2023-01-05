@@ -9,7 +9,7 @@ import base_runner
 import copy
 import aggregator
 import shutil
-
+import datetime
 import private_config
 import utils
 
@@ -154,7 +154,15 @@ if __name__ == '__main__':
             users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
             users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
 
-        ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals)
+        ETH = "0x9E858A7aAEDf9FDB1026Ab1f77f627be2791e98A"
+        BNB = "0xBAdb9b25150Ee75bb794198658A4D0448e43E528"
+        USDC = "0x186181e225dc1Ad85a4A94164232bD261e351C33"
+        WCKB = "0xC296F806D15e97243A08334256C705bA5C5754CD"
+        USDT = "0x8E019acb11C7d17c26D334901fA2ac41C1f44d50"
+        BTC = "0x82455018F2c32943b3f12F4e59D0DA2FAf2257Ef"
+
+        allTokens = [ETH, BNB, USDC, WCKB, USDT, BTC]
+        ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals, allTokens)
         base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
         base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
                                                                 prices, collateral_factors, collateral_caps,
@@ -187,10 +195,15 @@ if __name__ == '__main__':
                                                        collateral_factors, inv_names, liquidation_incentive, total_jobs,
                                                        False)
 
+            n = datetime.datetime.now().timestamp()
             d1 = utils.get_file_time(oracle_json_file)
-            d1 = min(last_update_time, d1)
-            utils.update_time_stamps(SITE_ID, d1)
+            d0 = min(last_update_time, d1)
+            utils.update_time_stamps(SITE_ID, d0)
             utils.publish_results(SITE_ID)
-            utils.compare_to_prod_and_send_alerts(old_alerts, d1, "nervos", "1", SITE_ID, "", 10, False)
+            utils.compare_to_prod_and_send_alerts(old_alerts, d0, "nervos", "1", SITE_ID, "", 10, False)
+            if d1 < float('inf'):
+                print("oracle_json_file", round((n - d1) / 60), "Minutes")
+            if last_update_time < float('inf'):
+                print("last_update_time", round((n - last_update_time) / 60), "Minutes")
             print("Simulation Ended")
             exit()
