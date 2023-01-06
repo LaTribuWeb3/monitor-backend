@@ -1,6 +1,8 @@
 const meldData = require('./dummy_user_data1.json');
 const fs = require('fs');
 const { tokens } = require('./Addresses');
+const { BigNumber } = require('ethers');
+const { BNToHex } = require('../utils/TokenHelper');
 require('dotenv').config();
 
 function getMarkets() {
@@ -98,8 +100,31 @@ function getTotalBorrows(marketMap) {
 // eslint-disable-next-line no-unused-vars
 function getPrices(marketMap, decimals) {
     const prices = {};
-    for (const marketName of Object.values(marketMap)) {
-        prices[marketName] = 0;
+    for (const [tokenId, marketName] of Object.entries(marketMap)) {
+        let decimals = 6; // default for ADA
+        if(marketName != 'lovelace') {
+            const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == marketName.toLowerCase());
+            if (!foundConfToken) {
+                throw new Error('Cannot find symbol in configuration for hexKey: ' + marketName);
+            }
+            decimals = foundConfToken.decimals;
+        }
+
+        const assetState = meldData.qrdAssetStateMap[tokenId];
+        const meldPrice = assetState.asPrice; // in USD
+        console.log('meldPrice', meldPrice);
+        const meldPriceWith6Decimals = Math.round(meldPrice * 1e6);
+        console.log('meldPriceWith6Decimals', meldPriceWith6Decimals);
+        const meldPrice18Decimals = BigNumber.from(meldPriceWith6Decimals).mul(BigNumber.from(10).pow(12));
+
+        console.log('meldPrice18Decimals', meldPrice18Decimals.toString());
+
+        // now we must pad with a number of zeroes = 18 - decimals
+        // for most of the cardano tokens it will add 18 - 6 = 12 zeroes
+        const numberOfZeroToAdd = 18 - decimals;
+        const priceWithValidNumberOfZeroes = meldPrice18Decimals.toString() + ''.padEnd(numberOfZeroToAdd, '0');
+        console.log('priceWithValidNumberOfZeroes', priceWithValidNumberOfZeroes);
+        prices[marketName] = BNToHex(priceWithValidNumberOfZeroes);
     }
 
     return prices;
@@ -292,6 +317,6 @@ async function TranslateMeldData() {
     return true;
 }
 
-TranslateMeldData();
+// TranslateMeldData();
 
 module.exports = { TranslateMeldData };

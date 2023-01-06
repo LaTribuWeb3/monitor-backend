@@ -1,5 +1,19 @@
 const { BigNumber, utils } = require('ethers');
 
+/**
+ * 
+ * @param {string} bnStr big number string representation
+ * @returns hex value for a big number
+ */
+function BNToHex(bnStr) {
+    const bn = BigNumber.from(bnStr);
+    const hex = bn.toHexString();
+    if (hex == '0x00') {
+        return '0';
+    } else {
+        return hex.replace('0x', '').replace(/^0+/, '');
+    }
+}
 
 /**
  * Normalize a integer value to a number
@@ -21,4 +35,4 @@ function normalize(amount, decimals) {
         return Number(utils.formatEther(norm));
     }
 }
-module.exports = { normalize };
+module.exports = { normalize, BNToHex };
