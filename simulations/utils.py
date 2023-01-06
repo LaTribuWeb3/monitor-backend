@@ -557,13 +557,15 @@ def move_to_prod(name, key):
     repo.update_file(contents.path, "more tests", key, contents.sha)
 
 
-def publish_results(SITE_ID):
+def publish_results(SITE_ID, target=None):
     print("publish_results")
     if private_config.git_token == "":
         print("Git Upload Failed. no Token")
         exit()
 
-    SITE_ID = SITE_ID.replace('\\', '/')
+    if target is None:
+        target = SITE_ID
+    target = target.replace('\\', '/')
     gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com')
     repo_name = "Risk-DAO/simulation-results"
     repo = gh.get_repo(repo_name)
@@ -571,9 +573,16 @@ def publish_results(SITE_ID):
     print(files)
     for f in files:
         file = open(f)
-        git_file = SITE_ID + "/" + os.path.basename(f)
+        git_file = target + "/" + os.path.basename(f)
         print(git_file)
-        repo.create_file(git_file, "Commit Comments", file.read())
+        try:
+            oldFile = repo.get_contents(git_file)
+            print('will update old file: ', oldFile)
+            repo.update_file(git_file, 'Commit Comments', file.read(), oldFile.sha)
+            
+        except:
+            print('will create new file: ', git_file)
+            repo.create_file(git_file, "Commit Comments", file.read())
 
 
 lastTGCallDate = None

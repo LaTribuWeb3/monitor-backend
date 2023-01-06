@@ -2,7 +2,7 @@ const meldData = require('./dummy_user_data1.json');
 const fs = require('fs');
 const { tokens } = require('./Addresses');
 const { BigNumber } = require('ethers');
-const { BNToHex } = require('../utils/TokenHelper');
+const { BNToHex, normalize } = require('../utils/TokenHelper');
 require('dotenv').config();
 
 function getMarkets() {
@@ -101,15 +101,6 @@ function getTotalBorrows(marketMap) {
 function getPrices(marketMap, decimals) {
     const prices = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
-        let decimals = 6; // default for ADA
-        if(marketName != 'lovelace') {
-            const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == marketName.toLowerCase());
-            if (!foundConfToken) {
-                throw new Error('Cannot find symbol in configuration for hexKey: ' + marketName);
-            }
-            decimals = foundConfToken.decimals;
-        }
-
         const assetState = meldData.qrdAssetStateMap[tokenId];
         const meldPrice = assetState.asPrice; // in USD
         console.log('meldPrice', meldPrice);
@@ -121,7 +112,7 @@ function getPrices(marketMap, decimals) {
 
         // now we must pad with a number of zeroes = 18 - decimals
         // for most of the cardano tokens it will add 18 - 6 = 12 zeroes
-        const numberOfZeroToAdd = 18 - decimals;
+        const numberOfZeroToAdd = 18 - getDecimalForTokenHex(marketName);
         const priceWithValidNumberOfZeroes = meldPrice18Decimals.toString() + ''.padEnd(numberOfZeroToAdd, '0');
         console.log('priceWithValidNumberOfZeroes', priceWithValidNumberOfZeroes);
         prices[marketName] = BNToHex(priceWithValidNumberOfZeroes);
@@ -168,38 +159,53 @@ function getTotalCollaterals(marketMap) {
  * @param {{[marketId: string]: string} marketMap 
  */
 function getUsers(markets, marketMap) {
+    const usersCollateralAndDebt = [];
     const users = {};
     for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
         const userBorrow = {};
         const userCollateral = {};
+        let sumBorrow = 0;
+        let sumCollateral = 0;
         let hasAnyBorrowOrCollateral = false;
         for (const [tokenId, marketName] of Object.entries(marketMap)) {
+            const tokenDecimals = getDecimalForTokenHex(marketName);
+
             if (meldUser.asBorrows[tokenId]) {
                 userBorrow[marketName] = BNToHex(meldUser.asBorrows[tokenId]['avAmount'].toString());
+                sumBorrow += normalize(meldUser.asBorrows[tokenId]['avValue'].toString(), tokenDecimals);
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userBorrow[marketName] = '0';
             }
-            if (meldUser.asCollaterals[tokenId]) {
-                const collateralId = meldUser.asCollaterals[tokenId];
-                userCollateral[marketName] = BNToHex(meldUser.asDeposits[collateralId]['avAmount'].toString());
+
+            if (meldUser.asCollaterals.includes(Number(tokenId))) {
+                userCollateral[marketName] = BNToHex(meldUser.asDeposits[tokenId]['avAmount'].toString());
+                sumCollateral += normalize(meldUser.asDeposits[tokenId]['avValue'].toString(), tokenDecimals);
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userCollateral[marketName] = '0';
             }
         }
+
         if (hasAnyBorrowOrCollateral) {
-            users[i] = {
+            users[meldUser.adUserNft] = {
                 succ: true,
                 assets: markets,
                 borrowBalances: userBorrow,
                 collateralBalances: userCollateral,
             };
+
+            usersCollateralAndDebt.push({
+                userCollateral: sumCollateral,
+                userDebt: sumBorrow
+            });
         }
     }
 
-    return users;
+
+
+    return { users, usersCollateralAndDebt };
 }
 
 /**
@@ -208,18 +214,35 @@ function getUsers(markets, marketMap) {
  */
 function getDecimals(markets) {
     const tokenDecimals = {};
-    markets.forEach(m => {
-        let decimals = 6; // default for ADA
-        if(m != 'lovelace') {
-            const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == m.toLowerCase());
-            if (!foundConfToken) {
-                throw new Error('Cannot find symbol in configuration for hexKey: ' + m);
-            }
-            decimals = foundConfToken.decimals;
-        }
-        tokenDecimals[m] = decimals;
-    });
+    markets.forEach(m => tokenDecimals[m] = getDecimalForTokenHex(m));
     return tokenDecimals;
+}
+
+function getDecimalForTokenHex(tokenHexKey) {
+    let decimals = 6; // default for ADA
+    if(tokenHexKey != 'lovelace') {
+        const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == tokenHexKey.toLowerCase());
+        if (!foundConfToken) {
+            throw new Error('Cannot find symbol in configuration for hexKey: ' + tokenHexKey);
+        }
+        decimals = foundConfToken.decimals;
+    }
+
+    return decimals;
+}
+
+function getSymbolForTokenHex(tokenHexKey) {    
+    if (tokenHexKey== 'lovelace') {
+        return 'ADA';
+    } else {
+        // find the token with the hex key
+        const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == tokenHexKey.toLowerCase());
+        if (foundConfToken) {
+            return foundConfToken.symbol;
+        } else {
+            throw new Error('Cannot find symbol in configuration for hexKey: ' + tokenHexKey);
+        }
+    }
 }
 
 /**
@@ -228,20 +251,65 @@ function getDecimals(markets) {
  */
 function getNames(markets) {
     const names = {};
-    markets.forEach(m => {
-        if (m == 'lovelace') {
-            names[m] = 'ADA';
-        } else {
-            // find the token with the hex key
-            const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == m.toLowerCase());
-            if (foundConfToken) {
-                names[m] = foundConfToken.symbol;
-            } else {
-                throw new Error('Cannot find symbol in configuration for hexKey: ' + m);
-            }
-        }
-    });
+    markets.forEach(m => names[m] = getSymbolForTokenHex(m));
     return names;
+}
+
+/**
+ * 
+ * @param {{userCollateral: number; userDebt: number;}[]} usersCollateralAndDebt 
+ */
+function createOverviewData(usersCollateralAndDebt) {
+
+    const overviewData = {
+        'json_time': Math.floor(Date.now() / 1000)
+    };
+
+    // sort by collateral desc
+    usersCollateralAndDebt.sort((a, b) => b.userCollateral - a.userCollateral);
+    // total_collateral
+    overviewData.total_collateral = usersCollateralAndDebt.reduce((a, b) => a + b.userCollateral, 0);
+    // median_collateral
+    // for even number of users, the median is the simple average of the n/2 -th and the (n/2 + 1) -th terms.
+    const cptUsers = usersCollateralAndDebt.length;
+    overviewData.median_collateral = 0;
+    if(cptUsers % 2 == 0) {
+        const n1Collateral = usersCollateralAndDebt[cptUsers/2-1].userCollateral;
+        const n2Collateral = usersCollateralAndDebt[cptUsers/2].userCollateral;
+        overviewData.median_collateral = (n1Collateral + n2Collateral) / 2;
+    } 
+    // for odd number of credit account, the media is the value at (n+1)/2 -th CA
+    else {
+        overviewData.median_collateral = usersCollateralAndDebt[(cptUsers-1)/2].userCollateral;
+    }
+
+    // top_1_collateral
+    overviewData.top_1_collateral = usersCollateralAndDebt[0].userCollateral;
+    // top_10_collateral
+    overviewData.top_10_collateral = usersCollateralAndDebt.slice(0, 10).reduce((a, b) => a + b.userCollateral, 0);
+
+    // sort by debt desc
+    usersCollateralAndDebt.sort((a, b) => b.userDebt - a.userDebt);
+    // total_debt
+    overviewData.total_debt = usersCollateralAndDebt.reduce((a, b) => a + b.userDebt, 0);
+    // median_debt
+    overviewData.median_debt = 0;
+    if(cptUsers % 2 == 0) {
+        const n1Debt = usersCollateralAndDebt[cptUsers/2-1].userDebt;
+        const n2Debt = usersCollateralAndDebt[cptUsers/2].userDebt;
+        overviewData.median_debt = (n1Debt + n2Debt) / 2;
+    } 
+    // for odd number of credit account, the media is the value at (n+1)/2 -th CA
+    else {
+        overviewData.median_debt = usersCollateralAndDebt[(cptUsers-1)/2].userDebt;
+    }
+    // top_1_debt
+    overviewData.top_1_debt = usersCollateralAndDebt[0].userDebt;
+    // top_10_debt
+    overviewData.top_10_debt = usersCollateralAndDebt.slice(0, 10).reduce((a, b) => a + b.userDebt, 0);
+
+
+    return overviewData;
 }
 
 async function TranslateMeldData() {
@@ -298,8 +366,9 @@ async function TranslateMeldData() {
     console.log('totalCollaterals', totalCollaterals);
 
     // get users
-    const users = getUsers(markets, marketMap);
-    console.log('users', users);
+    const getUserResp = getUsers(markets, marketMap);
+    console.log('users', getUserResp.users);
+    console.log('userCollateralAndDebt', getUserResp.usersCollateralAndDebt);
 
     const data = {
         markets: markets,
@@ -315,17 +384,20 @@ async function TranslateMeldData() {
         closeFactor: closeFactor,
         totalBorrows: totalBorrows,
         totalCollateral: totalCollaterals,
-        users: users
+        users: getUserResp.users
     };
 
     if (!fs.existsSync('./user-data')) {
         fs.mkdirSync('user-data');
     }
 
+    // const overviewData = createOverviewData(getUserResp.usersCollateralAndDebt);
+
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
+    // fs.writeFileSync('./user-data/overview.json', JSON.stringify(overviewData, null, 2));
     return true;
 }
 
-// TranslateMeldData();
+TranslateMeldData();
 
 module.exports = { TranslateMeldData };

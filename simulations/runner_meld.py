@@ -261,8 +261,9 @@ if __name__ == '__main__':
         assets_aliases[a] = a
     #     collateral_factors[a] = 1
 
-    prepare_date_file()
-    create_assets_std_ratio_information(SITE_ID, assets_to_simulate)
+    # get slippage data from meld directory
+    shutil.copyfile("..\\meld\\liquidity\\usd_volume_for_slippage.json",
+                     "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
 
     lending_platform_json_file = "..\\meld\\user-data\\data.json"
     file = open(lending_platform_json_file)
@@ -273,17 +274,27 @@ if __name__ == '__main__':
     underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
         data)
 
-    # get slippage data from meld directory
-    shutil.copyfile("..\\meld\\liquidity\\usd_volume_for_slippage.json",
-                     "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
+    prepare_date_file()
+    create_assets_std_ratio_information(SITE_ID, assets_to_simulate)
 
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
     
     base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
-                                                       collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+    # base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases, collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
     
-    #copy riskparams
-    #utils.publish_results(SITE_ID)
+    base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
+    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
+                                                                prices, collateral_factors, collateral_caps, borrow_caps,
+                                                                underlying)
+    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names, assets_liquidation_data, False)
+    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
+    base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+    #copy riskparams to output
+    # files = glob.glob("webserver" + os.path.sep + SITE_ID + os.path.sep + "*.json")
+    # print(files)
+    # for f in files:
+    #     shutil.copyfile(f, ".." + os.path.sep + "meld" + os.path.sep + "simulation-output" + os.path.sep + os.path.basename(f))
+
+    utils.publish_results(SITE_ID, '5/testlt')
 
