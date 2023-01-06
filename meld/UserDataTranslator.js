@@ -1,4 +1,4 @@
-const meldData = require('./dummy_user_data.json');
+const meldData = require('./dummy_user_data1.json');
 const fs = require('fs');
 const { tokens } = require('./Addresses');
 require('dotenv').config();
@@ -9,7 +9,7 @@ function getMarkets() {
     for (const [key, assetStateMap] of Object.entries(meldData.qrdAssetStateMap)) {
         const assetClass = assetStateMap.asRiskParameters.rpAssetClassData;
         let market = 'lovelace';
-        if(assetClass.toLowerCase() != 'lovelace') {
+        if (assetClass.toLowerCase() != 'lovelace') {
             // "rpAssetClassData": "87ecaf019a342a7b3ec6227213e0c523d22bfab4315e5103909c0e85.4d454c44",
             // here we need to only keep the token name, which is the value after the '.'
             market = assetClass.split('.')[1];
@@ -20,7 +20,7 @@ function getMarkets() {
 
     }
 
-    return {markets: markets, marketMap: marketMap};
+    return { markets: markets, marketMap: marketMap };
 }
 
 /**
@@ -99,7 +99,7 @@ function getTotalBorrows(marketMap) {
 function getPrices(marketMap, decimals) {
     const prices = {};
     for (const marketName of Object.values(marketMap)) {
-        prices[marketName] = '0';
+        prices[marketName] = 0;
     }
 
     return prices;
@@ -111,17 +111,15 @@ function getPrices(marketMap, decimals) {
  */
 function getTotalCollaterals(marketMap) {
     const tempCollaterals = {}; // used for sum
-    
-    for(let i = 0; i < meldData.qrdAccountList.length; i++) {
+    for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
-        for (const [tokenId, isCollateral] of Object.entries(meldUser.asCollaterals)) {
+        for (let j = 0; j < meldUser.asCollaterals.length; j++) {
+            const tokenId = meldUser.asCollaterals[j];
             const marketName = marketMap[tokenId];
-            if(isCollateral) {
-                if(tempCollaterals[marketName] == undefined) {
-                    tempCollaterals[marketName] = meldUser.asDeposits[tokenId];
-                } else {
-                    tempCollaterals[marketName] += meldUser.asDeposits[tokenId];
-                }
+            if (tempCollaterals[marketName] == undefined) {
+                tempCollaterals[marketName] = meldUser.asDeposits[tokenId]['avAmount'];
+            } else {
+                tempCollaterals[marketName] += meldUser.asDeposits[tokenId]['avAmount'];
             }
         }
     }
@@ -129,7 +127,7 @@ function getTotalCollaterals(marketMap) {
     const totalCollaterals = {};
     for (const marketName of Object.values(marketMap)) {
         const tempCollateral = tempCollaterals[marketName];
-        if(tempCollateral == undefined) {
+        if (tempCollateral == undefined) {
             totalCollaterals[marketName] = '0';
         } else {
             totalCollaterals[marketName] = tempCollateral.toString();
@@ -146,28 +144,28 @@ function getTotalCollaterals(marketMap) {
  */
 function getUsers(markets, marketMap) {
     const users = {};
-    for(let i = 0; i < meldData.qrdAccountList.length; i++) {
+    for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
         const userBorrow = {};
         const userCollateral = {};
         let hasAnyBorrowOrCollateral = false;
         for (const [tokenId, marketName] of Object.entries(marketMap)) {
-            if(meldUser.asBorrows[tokenId]) {
+            if (meldUser.asBorrows[tokenId]) {
                 userBorrow[marketName] = meldUser.asBorrows[tokenId].toString();
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userBorrow[marketName] = '0';
 
             }
-
-            if(meldUser.asCollaterals[tokenId]) {
-                userCollateral[marketName] = meldUser.asDeposits[tokenId].toString();
+            if (meldUser.asCollaterals[tokenId]) {
+                const collateralId = meldUser.asCollaterals[tokenId];
+                userCollateral[marketName] = meldUser.asDeposits[collateralId]['avAmount'].toString();
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userCollateral[marketName] = '0';
             }
         }
-        if(hasAnyBorrowOrCollateral) {
+        if (hasAnyBorrowOrCollateral) {
             users[i] = {
                 succ: true,
                 assets: markets,
@@ -197,12 +195,12 @@ function getDecimals(markets) {
 function getNames(markets) {
     const names = {};
     markets.forEach(m => {
-        if(m == 'lovelace') {
+        if (m == 'lovelace') {
             names[m] = 'ADA';
         } else {
             // find the token with the hex key
             const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == m.toLowerCase());
-            if(foundConfToken) {
+            if (foundConfToken) {
                 names[m] = foundConfToken.symbol;
             } else {
                 throw new Error('Cannot find symbol in configuration for hexKey: ' + m);
@@ -214,7 +212,7 @@ function getNames(markets) {
 
 async function TranslateMeldData() {
     // get markets
-    const {markets, marketMap} = getMarkets();
+    const { markets, marketMap } = getMarkets();
     console.log('markets', markets);
     console.log('marketMap', marketMap);
 
@@ -286,7 +284,7 @@ async function TranslateMeldData() {
         users: users
     };
 
-    if(!fs.existsSync('./user-data')) {
+    if (!fs.existsSync('./user-data')) {
         fs.mkdirSync('user-data');
     }
 
@@ -294,6 +292,6 @@ async function TranslateMeldData() {
     return true;
 }
 
-// TranslateMeldData();
+TranslateMeldData();
 
 module.exports = { TranslateMeldData };
