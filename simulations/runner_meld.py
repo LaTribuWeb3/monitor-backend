@@ -277,16 +277,13 @@ if __name__ == '__main__':
     shutil.copyfile("..\\meld\\liquidity\\usd_volume_for_slippage.json",
                      "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
 
-    # create_aggregator_file(SITE_ID, assets_to_simulate)
-    # aggregator_file_path = "webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json"
-    # agg = aggregator.AggregatorPrices(aggregator_file_path, inv_names, underlying, inv_underlying, decimals, assets_to_simulate)
-    # create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, agg.get_price)
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
-    
     
     base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases,
+                                                       collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
     
-    
-    # utils.publish_results(SITE_ID)
+    #copy riskparams
+    #utils.publish_results(SITE_ID)
 
