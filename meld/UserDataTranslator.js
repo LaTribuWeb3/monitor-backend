@@ -85,7 +85,7 @@ function getTotalBorrows(marketMap) {
     const totalBorrows = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetStateMap = meldData.qrdAssetStateMap[tokenId];
-        totalBorrows[marketName] = assetStateMap.asTotalBorrow.toString();
+        totalBorrows[marketName] = BNToHex(assetStateMap.asTotalBorrow.toString());
     }
 
     return totalBorrows;
@@ -155,7 +155,7 @@ function getTotalCollaterals(marketMap) {
         if (tempCollateral == undefined) {
             totalCollaterals[marketName] = '0';
         } else {
-            totalCollaterals[marketName] = tempCollateral.toString();
+            totalCollaterals[marketName] = BNToHex(tempCollateral.toString());
         }
     }
 
@@ -176,15 +176,14 @@ function getUsers(markets, marketMap) {
         let hasAnyBorrowOrCollateral = false;
         for (const [tokenId, marketName] of Object.entries(marketMap)) {
             if (meldUser.asBorrows[tokenId]) {
-                userBorrow[marketName] = meldUser.asBorrows[tokenId].toString();
+                userBorrow[marketName] = BNToHex(meldUser.asBorrows[tokenId]['avAmount'].toString());
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userBorrow[marketName] = '0';
-
             }
             if (meldUser.asCollaterals[tokenId]) {
                 const collateralId = meldUser.asCollaterals[tokenId];
-                userCollateral[marketName] = meldUser.asDeposits[collateralId]['avAmount'].toString();
+                userCollateral[marketName] = BNToHex(meldUser.asDeposits[collateralId]['avAmount'].toString());
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userCollateral[marketName] = '0';
@@ -208,9 +207,19 @@ function getUsers(markets, marketMap) {
  * @param {string[]} markets 
  */
 function getDecimals(markets) {
-    const collateralCaps = {};
-    markets.forEach(m => collateralCaps[m] = 6);
-    return collateralCaps;
+    const tokenDecimals = {};
+    markets.forEach(m => {
+        let decimals = 6; // default for ADA
+        if(m != 'lovelace') {
+            const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == m.toLowerCase());
+            if (!foundConfToken) {
+                throw new Error('Cannot find symbol in configuration for hexKey: ' + m);
+            }
+            decimals = foundConfToken.decimals;
+        }
+        tokenDecimals[m] = decimals;
+    });
+    return tokenDecimals;
 }
 
 /**
