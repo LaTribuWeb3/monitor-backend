@@ -1,14 +1,14 @@
-const meldData = require('./dummy_user_data1.json');
+const meldData = require('./dummy_user_data2.json');
 const fs = require('fs');
 const { tokens } = require('./Addresses');
 const { BigNumber } = require('ethers');
-const { BNToHex, normalize } = require('../utils/TokenHelper');
+const { BNToHex } = require('../utils/TokenHelper');
 require('dotenv').config();
 
 function getMarkets() {
     const markets = [];
     const marketMap = {};
-    for (const [key, assetStateMap] of Object.entries(meldData.qrdAssetStateMap)) {
+    for (const [key, assetStateMap] of Object.entries(meldData.qrdGlobalState.gsAssetStateMap)) {
         const assetClass = assetStateMap.asRiskParameters.rpAssetClassData;
         let market = 'lovelace';
         if (assetClass.toLowerCase() != 'lovelace') {
@@ -26,12 +26,11 @@ function getMarkets() {
 }
 
 /**
- * 
  * @param {string[]} markets 
  */
 function getLiquidationIncentives(markets) {
     const liquidationIncentives = {};
-    markets.forEach(m => liquidationIncentives[m] = '1.10');
+    markets.forEach(m => liquidationIncentives[m] = (1 + meldData.qrdGlobalState.gsLiquidatorIncentive).toString());
     return liquidationIncentives;
 }
 
@@ -42,7 +41,7 @@ function getLiquidationIncentives(markets) {
 function getCollateralFactors(marketMap) {
     const collateralFactors = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
-        const assetStateMap = meldData.qrdAssetStateMap[tokenId];
+        const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         collateralFactors[marketName] = assetStateMap.asRiskParameters.rpLiquidationThreshold.toString();
     }
 
@@ -56,7 +55,7 @@ function getCollateralFactors(marketMap) {
 function getBorrowCaps(marketMap) {
     const borrowCaps = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
-        const assetStateMap = meldData.qrdAssetStateMap[tokenId];
+        const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         borrowCaps[marketName] = assetStateMap.asRiskParameters.rpBorrowCap.toString();
     }
 
@@ -70,7 +69,7 @@ function getBorrowCaps(marketMap) {
 function getCollateralCaps(marketMap) {
     const collateralCaps = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
-        const assetStateMap = meldData.qrdAssetStateMap[tokenId];
+        const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         collateralCaps[marketName] = assetStateMap.asRiskParameters.rpSupplyCap.toString();
     }
 
@@ -84,7 +83,7 @@ function getCollateralCaps(marketMap) {
 function getTotalBorrows(marketMap) {
     const totalBorrows = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
-        const assetStateMap = meldData.qrdAssetStateMap[tokenId];
+        const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         totalBorrows[marketName] = BNToHex(assetStateMap.asTotalBorrow.toString());
     }
 
@@ -93,7 +92,6 @@ function getTotalBorrows(marketMap) {
 
 
 /**
- * TODO CORRECT PRICE GET WITH 18 - decimals ZERO PADDING
  * @param {{[marketId: string]: string} marketMap 
  * @param {{[marketId: string]: number} decimals
  */
@@ -101,7 +99,7 @@ function getTotalBorrows(marketMap) {
 function getPrices(marketMap, decimals) {
     const prices = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
-        const assetState = meldData.qrdAssetStateMap[tokenId];
+        const assetState = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         const meldPrice = assetState.asPrice; // in USD
         console.log('meldPrice', meldPrice);
         const meldPriceWith6Decimals = Math.round(meldPrice * 1e6);
@@ -159,21 +157,15 @@ function getTotalCollaterals(marketMap) {
  * @param {{[marketId: string]: string} marketMap 
  */
 function getUsers(markets, marketMap) {
-    const usersCollateralAndDebt = [];
     const users = {};
     for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
         const userBorrow = {};
         const userCollateral = {};
-        let sumBorrow = 0;
-        let sumCollateral = 0;
         let hasAnyBorrowOrCollateral = false;
         for (const [tokenId, marketName] of Object.entries(marketMap)) {
-            const tokenDecimals = getDecimalForTokenHex(marketName);
-
             if (meldUser.asBorrows[tokenId]) {
                 userBorrow[marketName] = BNToHex(meldUser.asBorrows[tokenId]['avAmount'].toString());
-                sumBorrow += normalize(meldUser.asBorrows[tokenId]['avValue'].toString(), tokenDecimals);
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userBorrow[marketName] = '0';
@@ -181,7 +173,6 @@ function getUsers(markets, marketMap) {
 
             if (meldUser.asCollaterals.includes(Number(tokenId))) {
                 userCollateral[marketName] = BNToHex(meldUser.asDeposits[tokenId]['avAmount'].toString());
-                sumCollateral += normalize(meldUser.asDeposits[tokenId]['avValue'].toString(), tokenDecimals);
                 hasAnyBorrowOrCollateral = true;
             } else {
                 userCollateral[marketName] = '0';
@@ -195,21 +186,15 @@ function getUsers(markets, marketMap) {
                 borrowBalances: userBorrow,
                 collateralBalances: userCollateral,
             };
-
-            usersCollateralAndDebt.push({
-                userCollateral: sumCollateral,
-                userDebt: sumBorrow
-            });
         }
     }
 
 
 
-    return { users, usersCollateralAndDebt };
+    return users;
 }
 
 /**
- * TODO CHANGE WITH REAL DATA?
  * @param {string[]} markets 
  */
 function getDecimals(markets) {
@@ -255,63 +240,6 @@ function getNames(markets) {
     return names;
 }
 
-/**
- * 
- * @param {{userCollateral: number; userDebt: number;}[]} usersCollateralAndDebt 
- */
-function createOverviewData(usersCollateralAndDebt) {
-
-    const overviewData = {
-        'json_time': Math.floor(Date.now() / 1000)
-    };
-
-    // sort by collateral desc
-    usersCollateralAndDebt.sort((a, b) => b.userCollateral - a.userCollateral);
-    // total_collateral
-    overviewData.total_collateral = usersCollateralAndDebt.reduce((a, b) => a + b.userCollateral, 0);
-    // median_collateral
-    // for even number of users, the median is the simple average of the n/2 -th and the (n/2 + 1) -th terms.
-    const cptUsers = usersCollateralAndDebt.length;
-    overviewData.median_collateral = 0;
-    if(cptUsers % 2 == 0) {
-        const n1Collateral = usersCollateralAndDebt[cptUsers/2-1].userCollateral;
-        const n2Collateral = usersCollateralAndDebt[cptUsers/2].userCollateral;
-        overviewData.median_collateral = (n1Collateral + n2Collateral) / 2;
-    } 
-    // for odd number of credit account, the media is the value at (n+1)/2 -th CA
-    else {
-        overviewData.median_collateral = usersCollateralAndDebt[(cptUsers-1)/2].userCollateral;
-    }
-
-    // top_1_collateral
-    overviewData.top_1_collateral = usersCollateralAndDebt[0].userCollateral;
-    // top_10_collateral
-    overviewData.top_10_collateral = usersCollateralAndDebt.slice(0, 10).reduce((a, b) => a + b.userCollateral, 0);
-
-    // sort by debt desc
-    usersCollateralAndDebt.sort((a, b) => b.userDebt - a.userDebt);
-    // total_debt
-    overviewData.total_debt = usersCollateralAndDebt.reduce((a, b) => a + b.userDebt, 0);
-    // median_debt
-    overviewData.median_debt = 0;
-    if(cptUsers % 2 == 0) {
-        const n1Debt = usersCollateralAndDebt[cptUsers/2-1].userDebt;
-        const n2Debt = usersCollateralAndDebt[cptUsers/2].userDebt;
-        overviewData.median_debt = (n1Debt + n2Debt) / 2;
-    } 
-    // for odd number of credit account, the media is the value at (n+1)/2 -th CA
-    else {
-        overviewData.median_debt = usersCollateralAndDebt[(cptUsers-1)/2].userDebt;
-    }
-    // top_1_debt
-    overviewData.top_1_debt = usersCollateralAndDebt[0].userDebt;
-    // top_10_debt
-    overviewData.top_10_debt = usersCollateralAndDebt.slice(0, 10).reduce((a, b) => a + b.userDebt, 0);
-
-
-    return overviewData;
-}
-
 async function TranslateMeldData() {
     // get markets
     const { markets, marketMap } = getMarkets();
@@ -322,7 +250,6 @@ async function TranslateMeldData() {
     // get prices
     const prices = getPrices(marketMap);
     console.log('prices', prices);
-
 
     // get liquidation incentives
     const liquidationIncentives = getLiquidationIncentives(markets);
@@ -354,7 +281,8 @@ async function TranslateMeldData() {
     markets.forEach(m => underlying[m] = m);
     console.log('underlying', underlying);
     // get close factor
-    const closeFactor = '0.5';
+
+    const closeFactor = meldData.qrdGlobalState.gsCloseFactor.toString();
     console.log('closeFactor', closeFactor);
 
     // get total borrow
@@ -366,9 +294,8 @@ async function TranslateMeldData() {
     console.log('totalCollaterals', totalCollaterals);
 
     // get users
-    const getUserResp = getUsers(markets, marketMap);
-    console.log('users', getUserResp.users);
-    console.log('userCollateralAndDebt', getUserResp.usersCollateralAndDebt);
+    const users = getUsers(markets, marketMap);
+    console.log('users', users);
 
     const data = {
         markets: markets,
@@ -384,17 +311,14 @@ async function TranslateMeldData() {
         closeFactor: closeFactor,
         totalBorrows: totalBorrows,
         totalCollateral: totalCollaterals,
-        users: getUserResp.users
+        users: users
     };
 
     if (!fs.existsSync('./user-data')) {
         fs.mkdirSync('user-data');
     }
 
-    // const overviewData = createOverviewData(getUserResp.usersCollateralAndDebt);
-
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
-    // fs.writeFileSync('./user-data/overview.json', JSON.stringify(overviewData, null, 2));
     return true;
 }
 
