@@ -33,7 +33,7 @@ async function main() {
             return;
         }
         
-        processExecutor.execSync(`cd ../simulations && ${pythonCommand} runner_meld 1`, {stdio: 'inherit'});
+        // processExecutor.execSync(`cd ../simulations && ${pythonCommand} runner_meld.py 1`, {stdio: 'inherit'});
 
         // TODO CHECK FILES ARE UPDATED
 
