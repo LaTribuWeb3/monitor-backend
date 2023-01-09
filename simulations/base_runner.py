@@ -80,26 +80,40 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
     data = {"json_time": time.time()}
     asset_name_ignore_list = ["auSTNEAR"]
     cex_ignore_list = ["DPX", "GMX", "OHM", "GLP"]
+    if chain_id == "cardano": 
+        # ignored tokens for MELD protocol on cardano
+        cex_ignore_list =  ["iUSD", "MIN", "COPI", "C3", "INDY",]
+
     dex_ignore_list = ["sGLP"]
     for asset_id in prices:
         asset_name = names[asset_id]
         cex_name = assets_cex_aliases[asset_name]
         cex_price = 1
         if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
-            exchange = "binance" if cex_name != "FOX" else "coinbasepro"
+            exchange = "binance" 
+            if cex_name == "FOX":
+                exchange = "coinbasepro"
+            elif cex_name == "MELD" or cex_name == "HOSKY" or cex_name == "WRT":
+                exchange = "mexc"
+            elif cex_name == "WMT":
+                exchange = "huobi"
             cex_price = cp.get_price(exchange, cex_name, "USDT") if (cex_name not in cex_ignore_list and asset_name not in asset_name_ignore_list) else 'NaN'
 
         dex_price = 1
-        if chain_id == "aurora":
-            if asset_name != "auUSDC":
-                dex_price = dex_get_price_function("auUSDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
-        elif chain_id == "arbitrum":
-            if asset_name != "VST":
-                dex_price = dex_get_price_function("VST", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
-        elif chain_id == "yokaiswap" or chain_id == "og":
-            if asset_name != "USDC":
-                dex_price = dex_get_price_function("USDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
-                print(dex_price)
+        if chain_id == "cardano":
+            # do not fetch dex price for cardano using this function
+            dex_price = 'NaN'
+        else:
+            if chain_id == "aurora":
+                if asset_name != "auUSDC":
+                    dex_price = dex_get_price_function("auUSDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
+            elif chain_id == "arbitrum":
+                if asset_name != "VST":
+                    dex_price = dex_get_price_function("VST", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
+            elif chain_id == "yokaiswap" or chain_id == "og":
+                if asset_name != "USDC":
+                    dex_price = dex_get_price_function("USDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
+                    print(dex_price)
 
         data[asset_name] = {"oracle": prices[asset_id], "cex_price": cex_price, "dex_price": dex_price}
 
