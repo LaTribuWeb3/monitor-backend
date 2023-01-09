@@ -115,11 +115,18 @@ async function ParseLiquidityAndSlippage() {
             'json_time': Math.floor(Date.now() / 1000),
         };
 
+        const dexPriceObj = {
+            'json_time': Math.floor(Date.now() / 1000),
+        };
+
         for(let i = 0; i < allTokens.length; i++) {
             const fromToken = allTokens[i];
             
             // find the current price of the from in iUSD
             const fromTokenPriceIniUSD = findBestQtyThroughPools(fromToken, 1, 'iUSD', allTokens, liquidityDictionary);
+            dexPriceObj[fromToken] = {
+                priceUSD: fromTokenPriceIniUSD.bestQty,
+            };
 
             slippageObj[fromToken] = {};
             for(let j = 0; j < allTokens.length; j++) {
@@ -141,6 +148,7 @@ async function ParseLiquidityAndSlippage() {
         }
 
         fs.writeFileSync(`${liquidityDirectory}/usd_volume_for_slippage.json`, JSON.stringify(slippageObj, null, 2));
+        fs.writeFileSync(`${liquidityDirectory}/dex_price.json`, JSON.stringify(dexPriceObj, null, 2));
         return true;
     }
     catch (e) {
