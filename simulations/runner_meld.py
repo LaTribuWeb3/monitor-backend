@@ -255,6 +255,21 @@ if __name__ == '__main__':
     underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
         data)
 
+    users_data["nl_user_collateral"] = 0
+    users_data["nl_user_debt"] = 0
+
+    for base_to_simulation in assets_to_simulate:
+        users_data["NL_COLLATERAL_" + base_to_simulation] = users_data["NO_CF_COLLATERAL_" + base_to_simulation]
+        users_data["NL_DEBT_" + base_to_simulation] = users_data["DEBT_" + base_to_simulation]
+        users_data["MIN_" + base_to_simulation] = users_data[
+            ["NO_CF_COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
+
+        users_data["NL_COLLATERAL_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
+        users_data["NL_DEBT_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
+        users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
+        users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
+
+
     prepare_date_file()
     
     base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
