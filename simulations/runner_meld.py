@@ -160,6 +160,11 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                                         750_000 / ETH_PRICE, 1_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
                                         10_000_000 / ETH_PRICE, 15_000_000 / ETH_PRICE, 20_000_000 / ETH_PRICE]
 
+                if base_to_simulation in ["ADA", "iUSD"] and quote_to_simulation in ["ADA", "iUSD"]:
+                    new_c['price_recovery_times'] = [0]
+                else:
+                    new_c['price_recovery_times'] = [2]
+
                 current_debt = 0
                 for index, row in users_data.iterrows():
                     current_debt += float(row["DEBT_" + base_to_simulation])
@@ -173,11 +178,13 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
-def fix_lending_platform_current_information(protocolFees, magicNumber):
+def fix_lending_platform_current_information(protocolFees, magicNumber, liquidationDelay, liquidationIncentive):
     file = open("webserver" + os.sep + SITE_ID + os.sep + "lending_platform_current.json")
     data = json.load(file)
     data["protocolFees"] = float(protocolFees)
     data["magicNumber"] = float(magicNumber)
+    data["liquidationDelay"] = liquidationDelay
+    data["liquidationIncentive"] = float(liquidationIncentive)
     file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "lending_platform_current.json", "w")
     json.dump(data, fp)
@@ -196,6 +203,7 @@ c = {
     'share_institutionals': [0],
     'recovery_halflife_retails': [0],
     "price_recovery_times": [2],
+    "delays_in_minutes": [5],
     "l_factors": [0.25, 0.5, 1, 1.5, 2],
     "collateral_factor": 0
 }
@@ -235,11 +243,11 @@ if __name__ == '__main__':
     magic_number = private_config.meld_magic_number
 
     # substract protocol fees for each liquidation incentives
-    
+    source_liquidation_incentive = 0
     for a in data["liquidationIncentive"]:
-        oldLi = data["liquidationIncentive"][a]
+        source_liquidation_incentive = data["liquidationIncentive"][a]
         data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - magic_number
-        print('liquidation incentives change from', oldLi, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
+        print('liquidation incentives change from', source_liquidation_incentive, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
 
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \
@@ -254,7 +262,7 @@ if __name__ == '__main__':
                                                                 prices, collateral_factors, collateral_caps, borrow_caps,
                                                                 underlying)
     
-    fix_lending_platform_current_information(protocol_fees, magic_number)
+    fix_lending_platform_current_information(protocol_fees, magic_number, c["delays_in_minutes"], source_liquidation_incentive)
     base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names, assets_liquidation_data, False)
     
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, None)
