@@ -284,6 +284,8 @@ async function TranslateMeldData() {
 
     const closeFactor = meldData.qrdGlobalState.gsCloseFactor.toString();
     console.log('closeFactor', closeFactor);
+    const protocolFees = meldData.qrdGlobalState.gsProtocolIncentive.toString();
+    console.log('protocolFees', protocolFees);
 
     // get total borrow
     const totalBorrows = getTotalBorrows(marketMap);
@@ -309,6 +311,7 @@ async function TranslateMeldData() {
         decimals: decimals,
         underlying: underlying,
         closeFactor: closeFactor,
+        protocolFees: protocolFees,
         totalBorrows: totalBorrows,
         totalCollateral: totalCollaterals,
         users: users

@@ -171,6 +171,16 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
+def fix_lending_platform_current_information(protocolFees, magicNumber):
+    file = open("webserver" + os.sep + SITE_ID + os.sep + "lending_platform_current.json")
+    data = json.load(file)
+    data["protocolFees"] = float(protocolFees)
+    data["magicNumber"] = float(magicNumber)
+    file.close()
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "lending_platform_current.json", "w")
+    json.dump(data, fp)
+    fp.close()
+
 ETH_PRICE = 1600
 chain_id = "cardano"
 ADA_TO_USD = 3
@@ -217,6 +227,18 @@ if __name__ == '__main__':
     lending_platform_json_file = ".." + os.path.sep + "meld" + os.path.sep + "user-data" + os.path.sep + "data.json"
     file = open(lending_platform_json_file)
     data = json.load(file)
+    file.close()
+
+    protocol_fees = data['protocolFees']
+    magic_number = 5/100
+
+    # substract protocol fees for each liquidation incentives
+    
+    for a in data["liquidationIncentive"]:
+        oldLi = data["liquidationIncentive"][a]
+        data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - float(protocol_fees)
+        print('liquidation incentives change from', oldLi, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
+
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \
     last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
@@ -229,6 +251,8 @@ if __name__ == '__main__':
     base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
                                                                 prices, collateral_factors, collateral_caps, borrow_caps,
                                                                 underlying)
+    
+    fix_lending_platform_current_information(protocol_fees, magic_number)
     base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names, assets_liquidation_data, False)
     
     base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, None)
