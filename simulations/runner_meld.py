@@ -205,22 +205,10 @@ if __name__ == '__main__':
     assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
     ETH_PRICE = 1600
     total_jobs = 5
-    # inv_names = {}
-    # liquidation_incentive = {}
-    # inv_underlying = {}
-    # underlying = {}
-    # decimals = {}
     assets_aliases = {}
-    # collateral_factors = {}
 
     for a in assets_to_simulate:
-    #     inv_names[a] = a
-    #     liquidation_incentive[a] = 1.1
-    #     inv_underlying[a] = a
-    #     underlying[a] = a
-    #     decimals[a] = 0
         assets_aliases[a] = a
-    #     collateral_factors[a] = 1
 
     # get slippage data from meld directory
     shutil.copyfile(".." + os.path.sep + "meld" + os.path.sep + "liquidity" + os.path.sep + "usd_volume_for_slippage.json",
