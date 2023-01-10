@@ -18,11 +18,11 @@ The javascript backend is composed of few script that are run sequentially:
    
 All these scripts are run by the MeldWorker.js
 
-## MinswapFetcher
+### MinswapFetcher
 
 This script has three goals:
 
-### 1/ Fetch 3 months of price history for each tokens allowed in the MELD protocol
+#### 1/ Fetch 3 months of price history for each tokens allowed in the MELD protocol
 
 Using the minswap blockfrost API, it will get all trades from now to 3 months ago for each {token}/ADA pools
 
@@ -38,40 +38,40 @@ On the first launch, without any csv to read from, the script will have to fetch
 
 It is not possible with a free Blockfrost API in one run. It must be done in 2 or 3 days (starting the script, stopping it when the api limit is reached, restarting after etc...).
 
-### 2/ Save the minswap pools reserves
+#### 2/ Save the minswap pools reserves
 
 Creates a `./liquidity/minswap_liquidity.json` file that list the reserves for each pools:
 
 ![](img/minswap_liquidity.png)
 
 
-### 3/ Generate a dex_price.json file
+#### 3/ Generate a dex_price.json file
 
 From the last results, creates a `./liquidity/dex_price.json` file:
 
 ![](img/dex_price.png)
 
 
-## WingridersLiquidityFetcher
+### WingridersLiquidityFetcher
 
 Using the blockfrost API, it will get the reserve values from the DEX Wingriders.
 
 The file is saved here: `./liquidity/wingriders_liquidity.json`
 
-## SlippageParser
+### SlippageParser
 
 This script has two goals:
 
 1. it aggregates the liquidities from Minswap and Wingriders
 2. it generates a `./liquidity/usd_volume_for_slippage.json` file which is the volume of each tokens for 10% slippage
 
-## UserDataTranslator
+### UserDataTranslator
 
 This script transforms the data from MELD (TODO: HOW WILL MELD SEND US THE FILE ?) into the correct format needed by the simulation
 
 The script will generate a `./user-data/data.json` file that will be read by the python script
 
-## Steps to run the data fetch and simulation
+### Steps to run the data fetch and simulation
 
 1. Have a Blockfrost api key
 1. Run the javascript backend
