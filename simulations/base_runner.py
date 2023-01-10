@@ -89,15 +89,18 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
         asset_name = names[asset_id]
         cex_name = assets_cex_aliases[asset_name]
         cex_price = 1
-        if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
-            exchange = "binance" 
-            if cex_name == "FOX":
-                exchange = "coinbasepro"
-            elif cex_name == "MELD" or cex_name == "HOSKY" or cex_name == "WRT":
+        if chain_id == "cardano":
+            exchange = 'binance' # default to binance
+            if cex_name in ["MELD", "HOSKY", "WRT"]:
                 exchange = "mexc"
-            elif cex_name == "WMT":
+            elif cex_name in ["WMT"]:
                 exchange = "huobi"
+
             cex_price = cp.get_price(exchange, cex_name, "USDT") if (cex_name not in cex_ignore_list and asset_name not in asset_name_ignore_list) else 'NaN'
+        else:
+            if cex_name != "USDC" and cex_name != "USDT" and cex_name != "DAI" and cex_name != "VST":
+                exchange = "binance" if cex_name != "FOX" else "coinbasepro"
+                cex_price = cp.get_price(exchange, cex_name, "USDT") if (cex_name not in cex_ignore_list and asset_name not in asset_name_ignore_list) else 'NaN'
 
         dex_price = 1
         if chain_id == "cardano":
