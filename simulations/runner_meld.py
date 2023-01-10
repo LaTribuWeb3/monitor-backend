@@ -123,26 +123,6 @@ def create_assets_std_ratio_information(SITE_ID, assets):
     json.dump(data, fp)
     fp.close()
 
-def create_aggregator_file(SITE_ID, assets):
-    data = {"json_time": time.time()}
-    for asset in assets:
-        if asset != "ADA":
-            file = pd.read_csv(".." + os.path.sep + "meld" + os.path.sep + asset + "-ADA.csv")
-            last_row = file.iloc[-1]
-            data[asset + "_ADA"] = {}
-            data[asset + "_ADA"]["token0"] = last_row["reserve " + asset]
-            data[asset + "_ADA"]["token1"] = last_row["reserve ADA"]
-            data[asset + "_ADA"]["reserve"] = ""
-
-            data["ADA_" + asset] = {}
-            data["ADA_" + asset]["token0"] = last_row["reserve ADA"]
-            data["ADA_" + asset]["token1"] = last_row["reserve " + asset]
-            data["ADA_" + asset]["reserve"] = ""
-
-    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json", "w")
-    json.dump(data, fp)
-    fp.close()
-
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names):
     print("create_simulation_config")
     f1 = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
