@@ -16,6 +16,8 @@ import traceback
 import copy
 import base_runner
 import sys
+import private_config
+
 
 def overwrite_dex_prices():
     oracle_price_file = "webserver" + os.path.sep + SITE_ID + os.path.sep + "oracles.json"
@@ -230,13 +232,13 @@ if __name__ == '__main__':
     file.close()
 
     protocol_fees = data['protocolFees']
-    magic_number = 5/100
+    magic_number = private_config.meld_magic_number
 
     # substract protocol fees for each liquidation incentives
     
     for a in data["liquidationIncentive"]:
         oldLi = data["liquidationIncentive"][a]
-        data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - float(protocol_fees)
+        data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - magic_number
         print('liquidation incentives change from', oldLi, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
 
     cp_parser = compound_parser.CompoundParser()
