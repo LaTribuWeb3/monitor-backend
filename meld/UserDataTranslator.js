@@ -325,6 +325,6 @@ async function TranslateMeldData() {
     return true;
 }
 
-TranslateMeldData();
+// TranslateMeldData();
 
 module.exports = { TranslateMeldData };
