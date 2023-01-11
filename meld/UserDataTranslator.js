@@ -120,20 +120,18 @@ function getPrices(marketMap, decimals) {
 }
 
 /**
- * 
  * @param {{[marketId: string]: string} marketMap 
  */
 function getTotalCollaterals(marketMap) {
     const tempCollaterals = {}; // used for sum
     for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
-        for (let j = 0; j < meldUser.asCollaterals.length; j++) {
-            const tokenId = meldUser.asCollaterals[j];
+        for (const [tokenId, tokenVal] of Object.entries(meldUser.asDeposits)) { 
             const marketName = marketMap[tokenId];
             if (tempCollaterals[marketName] == undefined) {
-                tempCollaterals[marketName] = meldUser.asDeposits[tokenId]['avAmount'];
+                tempCollaterals[marketName] = tokenVal['avAmount'];
             } else {
-                tempCollaterals[marketName] += meldUser.asDeposits[tokenId]['avAmount'];
+                tempCollaterals[marketName] += tokenVal['avAmount'];
             }
         }
     }
@@ -171,7 +169,7 @@ function getUsers(markets, marketMap) {
                 userBorrow[marketName] = '0';
             }
 
-            if (meldUser.asCollaterals.includes(Number(tokenId))) {
+            if (meldUser.asDeposits[tokenId]) {
                 userCollateral[marketName] = BNToHex(meldUser.asDeposits[tokenId]['avAmount'].toString());
                 hasAnyBorrowOrCollateral = true;
             } else {
