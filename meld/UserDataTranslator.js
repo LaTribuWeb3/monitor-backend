@@ -102,9 +102,9 @@ function getPrices(marketMap, decimals) {
         const assetState = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         const meldPrice = assetState.asPrice; // in USD
         console.log('meldPrice', meldPrice);
-        const meldPriceWith6Decimals = Math.round(meldPrice * 1e6);
-        console.log('meldPriceWith6Decimals', meldPriceWith6Decimals);
-        const meldPrice18Decimals = BigNumber.from(meldPriceWith6Decimals).mul(BigNumber.from(10).pow(12));
+        const meldPriceWith10Decimals = Math.round(meldPrice * 1e10);
+        console.log('meldPriceWith10Decimals', meldPriceWith10Decimals);
+        const meldPrice18Decimals = BigNumber.from(meldPriceWith10Decimals).mul(BigNumber.from(10).pow(8));
 
         console.log('meldPrice18Decimals', meldPrice18Decimals.toString());
 
@@ -325,6 +325,6 @@ async function TranslateMeldData() {
     return true;
 }
 
-// TranslateMeldData();
+TranslateMeldData();
 
 module.exports = { TranslateMeldData };
