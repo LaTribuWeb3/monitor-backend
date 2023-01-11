@@ -82,7 +82,7 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
     cex_ignore_list = ["DPX", "GMX", "OHM", "GLP"]
     if chain_id == "cardano": 
         # ignored tokens for MELD protocol on cardano
-        cex_ignore_list =  ["iUSD", "MIN", "COPI", "C3", "INDY",]
+        cex_ignore_list =  ["iUSD", "MIN", "COPI", "C3", "iBTC"]
 
     dex_ignore_list = ["sGLP"]
     for asset_id in prices:

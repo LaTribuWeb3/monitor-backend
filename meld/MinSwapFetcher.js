@@ -150,13 +150,13 @@ async function FetchMinswapData() {
 
         for(let i = 0; i < tokens.length; i++) {
             const tokenToFetch = tokens[i];
-            if(!tokenToFetch.poolId) {
+            if(!tokenToFetch.minswapPoolId) {
                 console.log(`Not working on ${tokenToFetch.symbol} because no pool id in config`);
                 continue;
             }
 
             console.log(`Fetching history for ${tokenToFetch.symbol}/ADA`);
-            const lastFetched = await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.poolId);
+            const lastFetched = await fetchMinswapHistory(projectId, tokenToFetch.symbol, tokenToFetch.decimals, tokenToFetch.minswapPoolId);
             poolsObject[`${tokenToFetch.symbol}_ADA`] = {
                 reserveT0: lastFetched.reserveB,
                 reserveT1: lastFetched.reserveA,

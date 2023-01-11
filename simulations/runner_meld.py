@@ -222,7 +222,7 @@ if __name__ == '__main__':
     SITE_ID = "5"
     SITE_ID = utils.get_site_id(SITE_ID)
 
-    assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
+    assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "iBTC", "HOSKY", "COPI", "C3", "WMT"]
     ETH_PRICE = 1600
     total_jobs = 5
     assets_aliases = {}
