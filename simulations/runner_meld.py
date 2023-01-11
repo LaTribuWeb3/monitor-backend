@@ -1,5 +1,8 @@
 import datetime
+import kyber_prices
+import shutil
 import glob
+import compound_parser
 import stability_report
 import numpy as np
 import utils
@@ -13,9 +16,24 @@ import traceback
 import copy
 import base_runner
 import sys
+import private_config
+
+
+def overwrite_dex_prices():
+    oracle_price_file = "webserver" + os.path.sep + SITE_ID + os.path.sep + "oracles.json"
+    oracle_data = json.load(open(oracle_price_file))
+    dex_price_file = ".." + os.path.sep + "meld" + os.path.sep + "liquidity" + os.path.sep + "dex_price.json"
+    dex_price_data = json.load(open(dex_price_file))
+    for p in oracle_data:
+        if p != "json_time":
+            oracle_data[p]["dex_price"] = dex_price_data[p]["priceUSD"]
+
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "oracles.json", "w")
+    json.dump(oracle_data, fp)
+    fp.close()
 
 def prepare_date_file():
-    files = glob.glob("..\\meld\\*.*")
+    files = glob.glob(".." + os.path.sep + "meld" + os.path.sep + "history-src" + os.path.sep + "*.*")
     for file in files:
         df = pd.read_csv(file)
         price_field_name = [x for x in df.columns if "price" in x][0]
@@ -92,7 +110,7 @@ def create_assets_std_ratio_information(SITE_ID, assets):
     print("create_assets_std_ratio_information")
     data = {"json_time": time.time()}
     dates = ["2022_09", "2022_10", "2022_11"]
-    df1 = pd.concat((pd.read_csv("data\\data_unified_" + f + "_ETHUSDT.csv") for f in dates), ignore_index=True)
+    df1 = pd.concat((pd.read_csv("data" + os.path.sep + "data_unified_" + f + "_ETHUSDT.csv") for f in dates), ignore_index=True)
     df1 = df1.sort_values("timestamp_x")
     df1["price"] = (df1["bid_price"] + df1["ask_price"]) * 0.5
     for base in assets:
@@ -106,67 +124,6 @@ def create_assets_std_ratio_information(SITE_ID, assets):
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "assets_std_ratio.json", "w")
     json.dump(data, fp)
     fp.close()
-
-def create_aggregator_file(SITE_ID, assets):
-    data = {"json_time": time.time()}
-    for asset in assets:
-        if asset != "ADA":
-            file = pd.read_csv("..\\meld\\" + asset + "-ADA.csv")
-            last_row = file.iloc[-1]
-            data[asset + "_ADA"] = {}
-            data[asset + "_ADA"]["token0"] = last_row["reserve " + asset]
-            data[asset + "_ADA"]["token1"] = last_row["reserve ADA"]
-            data[asset + "_ADA"]["reserve"] = ""
-
-            data["ADA_" + asset] = {}
-            data["ADA_" + asset]["token0"] = last_row["reserve ADA"]
-            data["ADA_" + asset]["token1"] = last_row["reserve " + asset]
-            data["ADA_" + asset]["reserve"] = ""
-
-    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json", "w")
-    json.dump(data, fp)
-    fp.close()
-
-
-def get_usd_volumes_for_slippage(inv_names, liquidation_incentive, get_price_function):
-    base = "ADA"
-    asset_usdc_price = {}
-    for quote in inv_names:
-        print(base, quote)
-        price_in_base = get_price_function(base, quote, 1000)
-        print(price_in_base)
-        asset_usdc_price[quote] = price_in_base
-
-    print(asset_usdc_price)
-    all_prices = {}
-    for base in inv_names:
-        for quote in inv_names:
-            if base == quote:
-                continue
-            if base not in all_prices:
-                all_prices[base] = {}
-            lic = float(liquidation_incentive[inv_names[quote]])
-            print(base, quote)
-            llc = lic if lic >= 1 else 1 + lic
-            volume = sliipage_utils.get_usd_volume_for_slippage(base, quote, llc, asset_usdc_price, get_price_function)
-            all_prices[base][quote] = {"volume": volume / ADA_TO_USD, "llc": llc}
-
-    return all_prices
-
-
-def create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, get_price_function):
-
-    try:
-        print("create_usd_volumes_for_slippage")
-        data = get_usd_volumes_for_slippage(inv_names, liquidation_incentive, get_price_function)
-        data["json_time"] = time.time()
-        fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
-        json.dump(data, fp)
-        fp.close()
-    except Exception as e:
-        traceback.print_exc()
-        print(e)
-
 
 def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names):
     print("create_simulation_config")
@@ -203,13 +160,38 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                                         750_000 / ETH_PRICE, 1_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
                                         10_000_000 / ETH_PRICE, 15_000_000 / ETH_PRICE, 20_000_000 / ETH_PRICE]
 
+                if base_to_simulation in ["ADA", "iUSD"] and quote_to_simulation in ["ADA", "iUSD"]:
+                    new_c['price_recovery_times'] = [0]
+                else:
+                    new_c['price_recovery_times'] = [2]
+
+                current_debt = 0
+                for index, row in users_data.iterrows():
+                    current_debt += float(row["DEBT_" + base_to_simulation])
+
+                new_c["current_debt"] = current_debt / ETH_PRICE
+                print(new_c["current_debt"])
+
                 data[key] = new_c
 
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "simulation_configs.json", "w")
     json.dump(data, fp)
 
 
+def fix_lending_platform_current_information(protocolFees, magicNumber, liquidationDelay, liquidationIncentive):
+    file = open("webserver" + os.sep + SITE_ID + os.sep + "lending_platform_current.json")
+    data = json.load(file)
+    data["protocolFees"] = float(protocolFees)
+    data["magicNumber"] = float(magicNumber)
+    data["liquidationDelay"] = liquidationDelay
+    data["liquidationIncentive"] = float(liquidationIncentive)
+    file.close()
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "lending_platform_current.json", "w")
+    json.dump(data, fp)
+    fp.close()
+
 ETH_PRICE = 1600
+chain_id = "cardano"
 ADA_TO_USD = 3
 c = {
     "series_std_ratio": 1,
@@ -221,6 +203,7 @@ c = {
     'share_institutionals': [0],
     'recovery_halflife_retails': [0],
     "price_recovery_times": [2],
+    "delays_in_minutes": [5],
     "l_factors": [0.25, 0.5, 1, 1.5, 2],
     "collateral_factor": 0
 }
@@ -239,34 +222,80 @@ if __name__ == '__main__':
     SITE_ID = "5"
     SITE_ID = utils.get_site_id(SITE_ID)
 
-    assets_to_simulate = ["ADA", "WRT", "Min", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
+    assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
     ETH_PRICE = 1600
     total_jobs = 5
-    inv_names = {}
-    liquidation_incentive = {}
-    inv_underlying = {}
-    underlying = {}
-    decimals = {}
     assets_aliases = {}
-    collateral_factors = {}
 
     for a in assets_to_simulate:
-        inv_names[a] = a
-        liquidation_incentive[a] = 1.1
-        inv_underlying[a] = a
-        underlying[a] = a
-        decimals[a] = 0
         assets_aliases[a] = a
-        collateral_factors[a] = 1
+
+    # get slippage data from meld directory
+    shutil.copyfile(".." + os.path.sep + "meld" + os.path.sep + "liquidity" + os.path.sep + "usd_volume_for_slippage.json",
+                     "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
+
+    lending_platform_json_file = ".." + os.path.sep + "meld" + os.path.sep + "user-data" + os.path.sep + "data.json"
+    file = open(lending_platform_json_file)
+    data = json.load(file)
+    file.close()
+
+    protocol_fees = data['protocolFees']
+    magic_number = private_config.meld_magic_number
+
+    # substract protocol fees for each liquidation incentives
+    source_liquidation_incentive = 0
+    for a in data["liquidationIncentive"]:
+        source_liquidation_incentive = data["liquidationIncentive"][a]
+        data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - magic_number
+        print('liquidation incentives change from', source_liquidation_incentive, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
+
+    cp_parser = compound_parser.CompoundParser()
+    users_data, assets_liquidation_data, \
+    last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
+    underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
+        data)
+
+    users_data["nl_user_collateral"] = 0
+    users_data["nl_user_debt"] = 0
+
+    for base_to_simulation in assets_to_simulate:
+        users_data["NL_COLLATERAL_" + base_to_simulation] = users_data["NO_CF_COLLATERAL_" + base_to_simulation]
+        users_data["NL_DEBT_" + base_to_simulation] = users_data["DEBT_" + base_to_simulation]
+        users_data["MIN_" + base_to_simulation] = users_data[
+            ["NO_CF_COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
+
+        users_data["NL_COLLATERAL_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
+        users_data["NL_DEBT_" + base_to_simulation] -= users_data["MIN_" + base_to_simulation]
+        users_data["nl_user_collateral"] += users_data["NL_COLLATERAL_" + base_to_simulation]
+        users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
+
 
     prepare_date_file()
+    
+    base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
+    base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
+                                                                prices, collateral_factors, collateral_caps, borrow_caps,
+                                                                underlying)
+    
+    fix_lending_platform_current_information(protocol_fees, magic_number, c["delays_in_minutes"], source_liquidation_incentive)
+    base_runner.create_account_information(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow, inv_names, assets_liquidation_data, False)
+    
+    base_runner.create_oracle_information(SITE_ID, prices, chain_id, names, assets_aliases, None)
+    # must overwrite dex prices with the data from the file generated by the js scripts
+    overwrite_dex_prices()
+
+    base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
+    base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+    
+
     create_assets_std_ratio_information(SITE_ID, assets_to_simulate)
-    create_aggregator_file(SITE_ID, assets_to_simulate)
-    aggregator_file_path = "webserver" + os.path.sep + SITE_ID + os.path.sep + "aggregator.json"
-    agg = aggregator.AggregatorPrices(aggregator_file_path, inv_names, underlying, inv_underlying, decimals, assets_to_simulate)
-    create_usd_volumes_for_slippage(SITE_ID, inv_names, liquidation_incentive, agg.get_price)
+
     create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
+    
     base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
     base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
-    utils.publish_results(SITE_ID)
+    
+    base_runner.create_current_simulation_risk(SITE_ID, ETH_PRICE, users_data, assets_to_simulate, assets_aliases, collateral_factors, inv_names, liquidation_incentive, total_jobs, False)
+    
+    utils.publish_results(SITE_ID, '5/staging')
 
