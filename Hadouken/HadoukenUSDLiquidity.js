@@ -17,8 +17,7 @@ const {hadoukenVaultAbi, hadoukenVaultAddress } = require("./Addresses.js");
 //         throw error(console.log("unknown token"))
 //     }
 // }
-
-async function test() {
+async function hadoukenUSDLiquidityFetcher() {
     const web3 = new Web3("https://v1.mainnet.godwoken.io/rpc");
     try {
         console.log('============================================');
@@ -40,7 +39,7 @@ async function test() {
             };
         
 
-        fs.writeFileSync(`./hadouken_usd_liquidity.json`, JSON.stringify(formattedOutput, null, 2));
+        return formattedOutput;
         }
     catch (e) {
         console.log('Error occured:', e);
@@ -51,6 +50,4 @@ async function test() {
         console.log('============================================');
     }
  }
-
-
- test()
+ module.exports = {hadoukenUSDLiquidityFetcher}

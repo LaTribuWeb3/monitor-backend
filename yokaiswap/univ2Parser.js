@@ -4,12 +4,12 @@ const axios = require('axios')
 const Addresses = require("./Addresses.js")
 const fs = require('fs');
 
-async function getTokaiLiquidity(web3, tokens) {
+async function getTokaiLiquidity() {
     const output = {}
     output["lastUpdate"] = Math.floor(Date.now() / 1000)
 
-    const token0s = tokens
-    const token1s = tokens
+    const token0s = ALL
+    const token1s = ALL
 
     const router = new web3.eth.Contract(Addresses.uniswapRouter02Abi, Addresses.yokaiswapAddress)
     const factoryAddress = await router.methods.factory().call()
@@ -135,14 +135,14 @@ const BTC = "0x82455018F2c32943b3f12F4e59D0DA2FAf2257Ef"
 
 const ALL = [ETH, BNB, USDC, WCKB, USDT, BTC]
 
-async function test() {
-    const liquidityJson = await getTokaiLiquidity(web3, ALL)
-    console.log({liquidityJson})
-    fs.writeFileSync("data.json", JSON.stringify(liquidityJson));
+// async function test() {
+//     const liquidityJson = await getTokaiLiquidity(web3, ALL)
+//     console.log({liquidityJson})
+//     fs.writeFileSync("data.json", JSON.stringify(liquidityJson));
 
-    console.log("sleeping for an hour")
-    setTimeout(test, 1000 * 60 * 60) // sleep for 1 hour    
-}
+//     console.log("sleeping for an hour")
+//     setTimeout(test, 1000 * 60 * 60) // sleep for 1 hour    
+// }
 
 /*
 async function test() {
@@ -154,4 +154,6 @@ async function test() {
     console.log(ethPrice.toString(), {ETH}, {USDC})
 }
 */
-test()
+// test()
+
+module.exports = {getTokaiLiquidity}
