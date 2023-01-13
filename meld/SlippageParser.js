@@ -3,7 +3,7 @@ const { roundTo } = require('../utils/NumberHelper');
 const { findBestQtyThroughPools } = require('../utils/PriceAggregator');
 const liquidityDirectory = './liquidity';
 const { tokens } = require('./Addresses');
-
+const GETPRICE_USD_AMOUNT = 10; // this is the amount of iUSD that will be spent to find the price of a token in the get price fct
 /**
  * 
  * @param {string} fromToken 
@@ -12,24 +12,26 @@ const { tokens } = require('./Addresses');
  * @param {string[]} allTokens 
  * @param {{[key:string]: {reserveT0: number, reserveT1: number}}} liquidityDictionary 
  */
-function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlippage, allTokens, liquidityDictionary) {
-    const baseQty = findBestQtyThroughPools(fromToken, 1, toToken, allTokens, liquidityDictionary);
-    const basePrice = baseQty.bestQty;
-    console.log(`${fromToken}->${toToken}: base price of ${fromToken} = ${basePrice} ${toToken}`);
+function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlippage, allTokens, liquidityDictionary, usdPrice) {
+    const qtyFromTokenForXUSD = GETPRICE_USD_AMOUNT/usdPrice;
+    const baseQty = findBestQtyThroughPools(fromToken, qtyFromTokenForXUSD, toToken, allTokens, liquidityDictionary);
+    const basePrice = baseQty.bestQty/qtyFromTokenForXUSD;
+    console.log(`${fromToken}->${toToken}: base price of 1 ${fromToken} = ${basePrice} ${toToken}`);
 
     let minQty = undefined;
     let maxQty = undefined;
-    let tryQty = 10;
+    let tryQty = qtyFromTokenForXUSD * 2;
     let lastTry = 0;
     let foundSlippage = 0;
     let route = '';
-    const stopCondition = 0.001; // define when we stop the loop, when minQty and maxQty are less than this value
+    // const stopCondition = 0.001; // define when we stop the loop, when minQty and maxQty are less than this value
+    const stopConditionUSD = 1; // define when we stop the loop, when minQty and maxQty are less than this value
 
     // eslint-disable-next-line no-constant-condition
     while(true) {
         // stops when we have found the min and max qty and when the difference
         // between max and min is less than stopGap value
-        if(minQty && maxQty && (maxQty - minQty) < stopCondition) {
+        if(minQty && maxQty && (maxQty - minQty) * usdPrice  < stopConditionUSD) {
             break;
         }
 
@@ -101,13 +103,21 @@ function createAggregatedLiquidityData() {
     return aggregatedData;
 }
 
+
+function getTokenPrice(fromToken, allTokens, liquidityDictionary) {
+    const whatXUSDCanBuy = findBestQtyThroughPools('iUSD', GETPRICE_USD_AMOUNT, fromToken, allTokens, liquidityDictionary);
+    const howManyUSDForThatAmount = findBestQtyThroughPools(fromToken, whatXUSDCanBuy.bestQty, 'iUSD', allTokens, liquidityDictionary);
+    return howManyUSDForThatAmount.bestQty / whatXUSDCanBuy.bestQty;
+}
+
 async function ParseLiquidityAndSlippage() {
     try {
         console.log('============================================');
         console.log(`Starting Slippage Parser - aggregating data ${new Date()}`);
         
         const targetSlippage = 10/100;
-        const liquidityDictionary = createAggregatedLiquidityData();//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
+        // const liquidityDictionary = JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
+        const liquidityDictionary = createAggregatedLiquidityData();
         const allTokens = tokens.map(_ => _.symbol);
         allTokens.push('ADA'); // add ada as all available reverse are with ada as the second token
 
@@ -123,9 +133,10 @@ async function ParseLiquidityAndSlippage() {
             const fromToken = allTokens[i];
             
             // find the current price of the from in iUSD
-            const fromTokenPriceIniUSD = findBestQtyThroughPools(fromToken, 1, 'iUSD', allTokens, liquidityDictionary);
+            const fromTokenPriceIniUSD = getTokenPrice(fromToken, allTokens, liquidityDictionary);
+            console.log(fromToken,'base price: $', fromTokenPriceIniUSD);
             dexPriceObj[fromToken] = {
-                priceUSD: fromTokenPriceIniUSD.bestQty,
+                priceUSD: fromTokenPriceIniUSD,
             };
 
             slippageObj[fromToken] = {};
@@ -136,11 +147,11 @@ async function ParseLiquidityAndSlippage() {
                 }
 
                 console.log(`Searching quantity of ${fromToken} -> ${toToken} for ${targetSlippage * 100}% slippage`);
-                const liquidityData = getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlippage, allTokens, liquidityDictionary);
+                const liquidityData = getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlippage, allTokens, liquidityDictionary, fromTokenPriceIniUSD);
                 // console.log('liquidityData', liquidityData);
 
                 slippageObj[fromToken][toToken] = {
-                    volume: liquidityData.quantity * fromTokenPriceIniUSD.bestQty,
+                    volume: liquidityData.quantity * fromTokenPriceIniUSD,
                     llc: liquidityData.slippage,
                     route: liquidityData.route
                 };
