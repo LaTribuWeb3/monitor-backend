@@ -16,7 +16,6 @@ class AggregatorPrices:
     def get_sum_fixed_point(self, x, y, A):
         if(x == 0 and y == 0):
             return 0
-
         sum = x + y
 
         for i in range(255):
@@ -26,8 +25,8 @@ class AggregatorPrices:
 
             prevSum = sum
 
-            n = (A * 2 * (x+y) + 2 * dP) * sum
-            d = (A * 2 - 1) * sum
+            n = (float(A) * 2 * (x+y) + 2 * dP) * sum
+            d = (float(A) * 2 - 1) * sum
             sum = n / (d + 3 * dP)
 
         return sum
@@ -36,9 +35,9 @@ class AggregatorPrices:
         sum = self.get_sum_fixed_point(xBalance, yBalance, A)
 
         c = sum * sum / (2 * (xQty + xBalance))
-        c = c * sum / (4 * A)
+        c = c * sum / (4 * float(A))
 
-        b = (xQty + xBalance) + (sum / (2 * A))
+        b = (xQty + xBalance) + (sum / (2 * float(A)))
         yPrev = 0
         y = sum
 
@@ -96,7 +95,7 @@ class AggregatorPrices:
             y = self.liquidityJson[key]["token1"]
             dy = -1
 
-            if self.liquidityJson[key]['type'] == 'curve':
+            if "type" in self.liquidityJson[key] and self.liquidityJson[key]['type'] == 'curve':
                 A = self.liquidityJson[key]['ampFactor']
                 dy = self.get_return(int(srcQty), float(x), float(y), A)
             else:

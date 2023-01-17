@@ -70,7 +70,8 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
 lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "oracle.json"
-aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
+# aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
+aggregator_path = ".." + os.path.sep + "Hadouken" + os.path.sep + "aggregated_liquidity.json"
 
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC", "USDT"]
 assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC": "USDC", "USDT": "USDC"}
@@ -174,6 +175,7 @@ if __name__ == '__main__':
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
+        exit()
 
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
