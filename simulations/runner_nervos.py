@@ -70,7 +70,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
 lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "oracle.json"
-aggregator_path = ".." + os.path.sep + "Hadouken" + os.path.sep + "aggregated_liquidity.json"
+aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
 
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC", "USDT"]
 assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC": "USDC", "USDT": "USDC"}
@@ -159,10 +159,6 @@ if __name__ == '__main__':
         USDC = "0x186181e225dc1Ad85a4A94164232bD261e351C33"
         WCKB = "0xC296F806D15e97243A08334256C705bA5C5754CD"
         USDT = "0x8E019acb11C7d17c26D334901fA2ac41C1f44d50"
-        # USDT = "0xa0430f122fb7e4f6f509c9cb664912c2f01db3e2"
-        # USDC = "0x149916D7128C36bbcebD04F794217Baf51085fB9"
-        lUSDT = "0xa0430f122fb7e4f6f509c9cb664912c2f01db3e2"
-        lUSDC = "0x149916D7128C36bbcebD04F794217Baf51085fB9"
         BTC = "0x82455018F2c32943b3f12F4e59D0DA2FAf2257Ef"
 
         allTokens = [ETH, BNB, USDC, WCKB, USDT, BTC]
@@ -178,7 +174,6 @@ if __name__ == '__main__':
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
-        exit()
 
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
