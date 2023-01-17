@@ -9,8 +9,8 @@ async function hadoukenUSDLiquidityFetcher() {
         console.log('============================================');
         console.log(`Started fetching USDT/USDC liquidity at ${new Date()}`);
         pool = new web3.eth.Contract(hadoukenUSDPoolABI, hadoukenUSDPoolAddress);
-        ampFactor = await pool.methods.getAmplificationParameter().call();
-        ampFactor = ampFactor["value"] / 1000
+        ampParameters = await pool.methods.getAmplificationParameter().call();
+        ampFactor = Number(ampParameters["value"]) / Number(ampParameters["precision"]);
         vault = new web3.eth.Contract(hadoukenVaultAbi, hadoukenVaultAddress);
         liquidity = await vault.methods.getPoolTokens('0xaf9d4028272f750dd2d028990fd664dc223479b1000000000000000000000013').call();
         formattedOutput = {}
