@@ -66,8 +66,16 @@ def findBestDestQty(srcToken, srcQty, destToken, allTokens, liquidityJson):
 
         x = liquidityJson[key]["token0"]
         y = liquidityJson[key]["token1"]
+        dy = -1
 
-        dy = calcDestQty(int(srcQty), float(x), float(y))
+        if self.liquidityJson[key]['type'] == 'curve':
+            A = self.liquidityJson[key]['ampFactor']
+            dy = self.get_return(int(srcQty), float(x), float(y), A)
+        else:
+            dy = self.calcDestQty(int(srcQty), float(x), float(y))
+        
+        if dy == -1:
+            raise Exception("can't compute price, dy == -1")
 
         newSrcToken = token
         newSrcQty = dy
