@@ -13,6 +13,8 @@ async function hadoukenUSDLiquidityFetcher() {
         formattedOutput = {}
         const UsdcUsdt = liquidity['0'][0] + '_' + liquidity['0'][1];
         const UsdtUsdc = liquidity['0'][1] + '_' + liquidity['0'][0];
+        // const UsdcUsdt = '0x186181e225dc1Ad85a4A94164232bD261e351C33_0x8E019acb11C7d17c26D334901fA2ac41C1f44d50';
+        // const UsdtUsdc = '0x8E019acb11C7d17c26D334901fA2ac41C1f44d50_0x186181e225dc1Ad85a4A94164232bD261e351C33';
         formattedOutput['lastUpdate'] = Math.floor(Date.now() / 1000);
         formattedOutput[UsdcUsdt] = {
             token0: liquidity['1'][0],
