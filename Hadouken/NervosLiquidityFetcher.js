@@ -32,6 +32,7 @@ async function NervosLiquidityFetcher() {
         }
 
         fs.writeFileSync(`aggregated_liquidity.json`, JSON.stringify(aggregated_liquidity, null, 2));
+        
     }
 
     catch (e) {
@@ -41,6 +42,8 @@ async function NervosLiquidityFetcher() {
     finally {
         console.log(`Ended Nervos liquidity fetcher at ${new Date()}`);
         console.log('============================================');
+        console.log("sleeping for an hour")
+        setTimeout(NervosLiquidityFetcher, 1000 * 60 * 60) // sleep for 1 hour 
     }
  }
 
