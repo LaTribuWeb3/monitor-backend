@@ -1,5 +1,6 @@
 import json
 
+# input should be in wei
 def get_sum_fixed_point(x, y, A):
     if(x == 0 and y == 0):
         return 0
@@ -36,6 +37,7 @@ def get_return(xQty, xBalance, yBalance, A):
         y = n / d
 
     return yBalance - y
+
 
 def calcDestQty(dx, x, y):
     # (x + dx) * (y-dy) = xy
@@ -102,5 +104,12 @@ def test():
     print(ethPrice, ETH, USDC)
 
 
-test()
+def test2():
+    # USDT to USDC
+    print(get_return(1e4, 7e5 * 1e6, 5e5 * 1e6, 200))
+
+    # ETH to stETH
+    print(get_return(1000000e18, 330454 * 1e18, 460898 * 1e18, 50))    
+    
+test2()
 
