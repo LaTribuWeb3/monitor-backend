@@ -39,6 +39,5 @@ async function hadoukenUSDLiquidityFetcher() {
         console.log('============================================');
     }
  }
-
- hadoukenUSDLiquidityFetcher();
+ 
  module.exports = {hadoukenUSDLiquidityFetcher}
