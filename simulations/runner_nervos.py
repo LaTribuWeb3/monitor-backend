@@ -175,7 +175,6 @@ if __name__ == '__main__':
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, ap.get_price)
-        exit()
 
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
