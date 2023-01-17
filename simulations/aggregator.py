@@ -12,6 +12,43 @@ class AggregatorPrices:
         self.all_tokens = allTokens
         self.pCKB = "0x7538C85caE4E4673253fFd2568c1F1b48A71558a"
         self.WCKB = "0xC296F806D15e97243A08334256C705bA5C5754CD"
+    
+    def get_sum_fixed_point(self, x, y, A):
+        if(x == 0 and y == 0):
+            return 0
+
+        sum = x + y
+
+        for i in range(255):
+            dP = sum
+            dP = dP * sum / (2*x + 1)
+            dP = dP * sum / (2*y + 1)
+
+            prevSum = sum
+
+            n = (A * 2 * (x+y) + 2 * dP) * sum
+            d = (A * 2 - 1) * sum
+            sum = n / (d + 3 * dP)
+
+        return sum
+
+    def get_return(self, xQty, xBalance, yBalance, A):
+        sum = self.get_sum_fixed_point(xBalance, yBalance, A)
+
+        c = sum * sum / (2 * (xQty + xBalance))
+        c = c * sum / (4 * A)
+
+        b = (xQty + xBalance) + (sum / (2 * A))
+        yPrev = 0
+        y = sum
+
+        for i in range(255):
+            yPrev = y
+            n = y * y + c
+            d = y * 2 + b - sum
+            y = n / d
+
+        return yBalance - y
 
     def calcDestQty(self, dx, x, y):
         # (x + dx) * (y-dy) = xy
@@ -57,8 +94,16 @@ class AggregatorPrices:
 
             x = self.liquidityJson[key]["token0"]
             y = self.liquidityJson[key]["token1"]
+            dy = -1
 
-            dy = self.calcDestQty(int(srcQty), float(x), float(y))
+            if self.liquidityJson[key]['type'] == 'curve':
+                A = self.liquidityJson[key]['ampFactor']
+                dy = self.get_return(int(srcQty), float(x), float(y), A)
+            else:
+                dy = self.calcDestQty(int(srcQty), float(x), float(y))
+            
+            if dy == -1:
+                raise Exception("can't compute price, dy == -1")
 
             newSrcToken = token
             newSrcQty = dy

@@ -1,5 +1,42 @@
 import json
 
+def get_sum_fixed_point(x, y, A):
+    if(x == 0 and y == 0):
+        return 0
+
+    sum = x + y
+
+    for i in range(255):
+        dP = sum
+        dP = dP * sum / (2*x + 1)
+        dP = dP * sum / (2*y + 1)
+
+        prevSum = sum
+
+        n = (A * 2 * (x+y) + 2 * dP) * sum
+        d = (A * 2 - 1) * sum
+        sum = n / (d + 3 * dP)
+
+    return sum
+
+def get_return(xQty, xBalance, yBalance, A):
+    sum = get_sum_fixed_point(xBalance, yBalance, A)
+
+    c = sum * sum / (2 * (xQty + xBalance))
+    c = c * sum / (4 * A)
+
+    b = (xQty + xBalance) + (sum / (2 * A))
+    yPrev = 0
+    y = sum
+
+    for i in range(255):
+        yPrev = y
+        n = y * y + c
+        d = y * 2 + b - sum
+        y = n / d
+
+    return yBalance - y
+
 def calcDestQty(dx, x, y):
     # (x + dx) * (y-dy) = xy
     # dy = y - xy/(x+dx)
@@ -28,7 +65,13 @@ def findBestDestQty(srcToken, srcQty, destToken, allTokens, liquidityJson):
         x = liquidityJson[key]["token0"]
         y = liquidityJson[key]["token1"]
 
-        dy = calcDestQty(int(srcQty), float(x), float(y))
+        if liquidityJson[key]['type'] == 'uniswap':
+            dy = calcDestQty(int(srcQty), float(x), float(y))
+        elif liquidityJson[key]['type'] == 'curve':
+            A = liquidityJson[key]['ampFactor']
+            dy = get_return(int(srcQty), float(x), float(y), A)
+        else:
+            print('Error, type is neither uniswap nor curve')
 
         newSrcToken = token
         newSrcQty = dy

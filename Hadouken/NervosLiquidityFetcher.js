@@ -13,6 +13,7 @@ async function NervosLiquidityFetcher() {
         
 
         const aggregated_liquidity = {};
+        aggregated_liquidity['lastUpdateTime'] = Math.floor(Date.now() / 1000);
         for(entry in USDLiquidity){
             if(entry === "lastUpdate"){
             }
@@ -30,9 +31,7 @@ async function NervosLiquidityFetcher() {
             }
         }
 
-
-
-        console.log('aggregated_liquidity', aggregated_liquidity)
+        fs.writeFileSync(`aggregated_liquidity.json`, JSON.stringify(aggregated_liquidity, null, 2));
     }
 
     catch (e) {
