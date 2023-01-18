@@ -42,8 +42,6 @@ async function NervosLiquidityFetcher() {
     finally {
         console.log(`Ended Nervos liquidity fetcher at ${new Date()}`);
         console.log('============================================');
-        console.log("sleeping for an hour")
-        setTimeout(NervosLiquidityFetcher, 1000 * 60 * 60) // sleep for 1 hour 
     }
  }
 

@@ -21,7 +21,7 @@ async function updateOracle() {
     setTimeout(updateOracle, 1000 * 60 * 10)
 }
 
-async function OracleUpdater() {
+async function oracleUpdater() {
     const web3 = new Web3("https://v1.mainnet.godwoken.io/rpc")
     aave = new Aave(Addresses.hadoukenAddress, "GW", web3, "oracle.json")
 
@@ -29,4 +29,4 @@ async function OracleUpdater() {
  }
 
 
- module.exports = {OracleUpdater}
+ module.exports = {oracleUpdater}
