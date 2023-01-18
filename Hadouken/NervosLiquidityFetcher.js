@@ -47,4 +47,4 @@ async function NervosLiquidityFetcher() {
     }
  }
 
- NervosLiquidityFetcher()
+ module.exports = {NervosLiquidityFetcher}
