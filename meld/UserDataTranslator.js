@@ -244,7 +244,7 @@ function getNames(markets) {
 async function TranslateMeldData() {
     // get MeldData
     try {
-        const meldResponse = await axios.get('https://staging-api.lending.meld.com/lending/v1/risk-dao');
+        const meldResponse = await axios.get(process.env.MELD_APIURL);
         meldData = meldResponse.data;
     } catch (error) {
         console.log('could not fetch meld data');
