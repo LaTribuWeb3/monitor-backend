@@ -1,9 +1,12 @@
-const meldData = require('./dummy_user_data2.json');
+let meldData = undefined;
 const fs = require('fs');
 const { tokens } = require('./Addresses');
 const { BigNumber } = require('ethers');
 const { BNToHex } = require('../utils/TokenHelper');
+const { default: axios } = require('axios');
 require('dotenv').config();
+
+
 
 function getMarkets() {
     const markets = [];
@@ -126,7 +129,7 @@ function getTotalCollaterals(marketMap) {
     const tempCollaterals = {}; // used for sum
     for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
-        for (const [tokenId, tokenVal] of Object.entries(meldUser.asDeposits)) { 
+        for (const [tokenId, tokenVal] of Object.entries(meldUser.asDeposits)) {
             const marketName = marketMap[tokenId];
             if (tempCollaterals[marketName] == undefined) {
                 tempCollaterals[marketName] = tokenVal['avAmount'];
@@ -203,7 +206,7 @@ function getDecimals(markets) {
 
 function getDecimalForTokenHex(tokenHexKey) {
     let decimals = 6; // default for ADA
-    if(tokenHexKey != 'lovelace') {
+    if (tokenHexKey != 'lovelace') {
         const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == tokenHexKey.toLowerCase());
         if (!foundConfToken) {
             throw new Error('Cannot find symbol in configuration for hexKey: ' + tokenHexKey);
@@ -214,8 +217,8 @@ function getDecimalForTokenHex(tokenHexKey) {
     return decimals;
 }
 
-function getSymbolForTokenHex(tokenHexKey) {    
-    if (tokenHexKey== 'lovelace') {
+function getSymbolForTokenHex(tokenHexKey) {
+    if (tokenHexKey == 'lovelace') {
         return 'ADA';
     } else {
         // find the token with the hex key
@@ -239,6 +242,14 @@ function getNames(markets) {
 }
 
 async function TranslateMeldData() {
+    // get MeldData
+    try {
+        const meldResponse = await axios.get('https://staging-api.lending.meld.com/lending/v1/risk-dao');
+        meldData = meldResponse.data;
+    } catch (error) {
+        console.log('could not fetch meld data');
+        console.error(error);
+    }
     // get markets
     const { markets, marketMap } = getMarkets();
     console.log('markets', markets);
@@ -322,7 +333,5 @@ async function TranslateMeldData() {
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
     return true;
 }
-
 // TranslateMeldData();
-
 module.exports = { TranslateMeldData };
