@@ -3,6 +3,7 @@ const { roundTo } = require('../utils/NumberHelper');
 const { findBestQtyThroughPools } = require('../utils/PriceAggregator');
 const liquidityDirectory = './liquidity';
 const { tokens } = require('./Addresses');
+const { default: axios } = require('axios');
 const GETPRICE_USD_AMOUNT = 10; // this is the amount of iUSD that will be spent to find the price of a token in the get price fct
 /**
  * 
@@ -114,8 +115,17 @@ async function ParseLiquidityAndSlippage() {
     try {
         console.log('============================================');
         console.log(`Starting Slippage Parser - aggregating data ${new Date()}`);
+
+        let targetSlippage = 10/100;
+        // get custom target slippage
+        try {
+            const meldResponse = await axios.get(process.env.MELD_APIURL);
+            targetSlippage = meldResponse.data.qrdGlobalState.gsLiquidatorIncentive;
+        } catch (error) {
+            console.log('could not fetch target slippage data');
+            console.error(error);
+        }
         
-        const targetSlippage = 10/100;
         // const liquidityDictionary = JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));//  JSON.parse(fs.readFileSync('liquidity/minswap_liquidity.json'));// 
         const liquidityDictionary = createAggregatedLiquidityData();
         const allTokens = tokens.map(_ => _.symbol);
