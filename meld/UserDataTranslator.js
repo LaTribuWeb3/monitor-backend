@@ -104,8 +104,17 @@ function getPrices(marketMap, decimals) {
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetState = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         const meldPrice = assetState.asPrice; // in USD
+        const tokenDecimals = getDecimalForTokenHex(marketName);
         console.log('meldPrice', meldPrice);
-        const meldPriceWith10Decimals = Math.round(meldPrice * 1e10);
+        let meldPriceWith10Decimals = Math.round(meldPrice * 1e10);
+        console.log(`meldPriceWith10Decimals: ${meldPriceWith10Decimals}`);
+        if(tokenDecimals != 6) {
+            // MELD price is considering every token has 6 decimals, if not true, must divide the price
+            // by 1e(6-decimals)
+            meldPriceWith10Decimals = Math.round(meldPriceWith10Decimals / Math.pow(10, (6 - tokenDecimals)));
+            console.log(`meldPriceWith10Decimals: ${meldPriceWith10Decimals} because ${getSymbolForTokenHex(marketName)} decimals: ${tokenDecimals}`);
+        }
+        
         console.log('meldPriceWith10Decimals', meldPriceWith10Decimals);
         const meldPrice18Decimals = BigNumber.from(meldPriceWith10Decimals).mul(BigNumber.from(10).pow(8));
 
@@ -113,7 +122,7 @@ function getPrices(marketMap, decimals) {
 
         // now we must pad with a number of zeroes = 18 - decimals
         // for most of the cardano tokens it will add 18 - 6 = 12 zeroes
-        const numberOfZeroToAdd = 18 - getDecimalForTokenHex(marketName);
+        const numberOfZeroToAdd = 18 - tokenDecimals;
         const priceWithValidNumberOfZeroes = meldPrice18Decimals.toString() + ''.padEnd(numberOfZeroToAdd, '0');
         console.log('priceWithValidNumberOfZeroes', priceWithValidNumberOfZeroes);
         prices[marketName] = BNToHex(priceWithValidNumberOfZeroes);
