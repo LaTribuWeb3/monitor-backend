@@ -566,7 +566,7 @@ def publish_results(SITE_ID, target=None):
     if target is None:
         target = SITE_ID
     target = target.replace('\\', '/')
-    gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com')
+    gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com', timeout= 60)
     repo_name = "Risk-DAO/simulation-results"
     repo = gh.get_repo(repo_name)
     files = glob.glob("webserver" + os.path.sep + SITE_ID + os.path.sep + "*.json")
@@ -575,15 +575,20 @@ def publish_results(SITE_ID, target=None):
         file = open(f)
         git_file = target + "/" + os.path.basename(f)
         print(git_file)
+        sha = None
         try:
             oldFile = repo.get_contents(git_file)
+            sha = oldFile.sha
+        except Exception as e:
+            print(e)
+        
+        if(sha != None):
             print('will update old file: ', oldFile)
-            repo.update_file(git_file, 'Commit Comments', file.read(), oldFile.sha)
-            
-        except:
+            repo.update_file(git_file, 'Commit Comments', file.read(), sha)
+
+        else:
             print('will create new file: ', git_file)
             repo.create_file(git_file, "Commit Comments", file.read())
-
 
 lastTGCallDate = None
 
