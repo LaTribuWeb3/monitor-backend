@@ -59,7 +59,11 @@ function getBorrowCaps(marketMap) {
     const borrowCaps = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
-        borrowCaps[marketName] = assetStateMap.asRiskParameters.rpBorrowCap.toString();
+        if(assetStateMap.asRiskParameters.rpBorrowCap == 0) {
+            borrowCaps[marketName] = BNToHex('1');
+        } else {
+            borrowCaps[marketName] = BNToHex(assetStateMap.asRiskParameters.rpBorrowCap.toString());
+        }
     }
 
     return borrowCaps;
@@ -73,7 +77,11 @@ function getCollateralCaps(marketMap) {
     const collateralCaps = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
-        collateralCaps[marketName] = assetStateMap.asRiskParameters.rpSupplyCap.toString();
+        if(assetStateMap.asRiskParameters.rpSupplyCap == 0) {
+            collateralCaps[marketName] = BNToHex('1');
+        } else {
+            collateralCaps[marketName] = BNToHex(assetStateMap.asRiskParameters.rpSupplyCap.toString());
+        }
     }
 
     return collateralCaps;
@@ -104,25 +112,15 @@ function getPrices(marketMap, decimals) {
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetState = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         const meldPrice = assetState.asPrice; // in USD
-        const tokenDecimals = getDecimalForTokenHex(marketName);
         console.log('meldPrice', meldPrice);
-        let meldPriceWith10Decimals = Math.round(meldPrice * 1e10);
-        console.log(`meldPriceWith10Decimals: ${meldPriceWith10Decimals}`);
-        if(tokenDecimals != 6) {
-            // MELD price is considering every token has 6 decimals, if not true, must divide the price
-            // by 1e(6-decimals)
-            meldPriceWith10Decimals = Math.round(meldPriceWith10Decimals / Math.pow(10, (6 - tokenDecimals)));
-            console.log(`meldPriceWith10Decimals: ${meldPriceWith10Decimals} because ${getSymbolForTokenHex(marketName)} decimals: ${tokenDecimals}`);
-        }
-        
+        const meldPriceWith10Decimals = Math.round(meldPrice * 1e10);
         console.log('meldPriceWith10Decimals', meldPriceWith10Decimals);
         const meldPrice18Decimals = BigNumber.from(meldPriceWith10Decimals).mul(BigNumber.from(10).pow(8));
-
         console.log('meldPrice18Decimals', meldPrice18Decimals.toString());
 
         // now we must pad with a number of zeroes = 18 - decimals
         // for most of the cardano tokens it will add 18 - 6 = 12 zeroes
-        const numberOfZeroToAdd = 18 - tokenDecimals;
+        const numberOfZeroToAdd = 18 - getDecimalForTokenHex(marketName);
         const priceWithValidNumberOfZeroes = meldPrice18Decimals.toString() + ''.padEnd(numberOfZeroToAdd, '0');
         console.log('priceWithValidNumberOfZeroes', priceWithValidNumberOfZeroes);
         prices[marketName] = BNToHex(priceWithValidNumberOfZeroes);
