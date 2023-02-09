@@ -152,6 +152,15 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 new_c["series_std_ratio"] = std_ratio
                 new_c["volume_for_slippage_10_percentss"] = [slippage]
                 new_c["json_time"] = now_time
+
+                new_c['price_recovery_times'] = [2]
+                if base_to_simulation in ["ADA", "iUSD", "iBTC"] and quote_to_simulation in ["ADA", "iUSD", "iBTC"]:
+                    new_c['price_recovery_times'] = [0]
+                elif base_to_simulation in ["ADA", "iUSD", "iBTC"]:
+                    new_c["volume_for_slippage_10_percents_price_drop"] = jj1["ADA"][quote_to_simulation]["volume"] / ETH_PRICE
+                elif quote_to_simulation in ["ADA", "iUSD", "iBTC"]:
+                    new_c["volume_for_slippage_10_percents_price_drop"] = jj1[base_to_simulation]["ADA"]["volume"] / ETH_PRICE
+
                 new_c["collaterals"] = [5_0000 / ETH_PRICE, 10_000 / ETH_PRICE, 20_000 / ETH_PRICE,
                                         30_000 / ETH_PRICE, 40_000 / ETH_PRICE,
                                         50_000 / ETH_PRICE, 60_000 / ETH_PRICE, 70_000 / ETH_PRICE,
@@ -160,10 +169,10 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                                         750_000 / ETH_PRICE, 1_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
                                         10_000_000 / ETH_PRICE, 15_000_000 / ETH_PRICE, 20_000_000 / ETH_PRICE]
 
-                if base_to_simulation in ["ADA", "iUSD"] and quote_to_simulation in ["ADA", "iUSD"]:
-                    new_c['price_recovery_times'] = [0]
-                else:
-                    new_c['price_recovery_times'] = [2]
+                # if base_to_simulation in ["ADA", "iUSD"] and quote_to_simulation in ["ADA", "iUSD"]:
+                #     new_c['price_recovery_times'] = [0]
+                # else:
+                #     new_c['price_recovery_times'] = [2]
 
                 current_debt = 0
                 for index, row in users_data.iterrows():

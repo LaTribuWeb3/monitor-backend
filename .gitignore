@@ -19,7 +19,6 @@ vesta/data.json
 trisolaris/status.txt
 package.json
 package-lock.json
-Hadouken/0x1C2b0bC50633EB1cec9157bd702980fD9ED53EC8_data.json
 aurigami/data.json
 aurigami/key.json
 package.json
@@ -33,7 +32,7 @@ simulations/xxx.csv
 simulations/research/
 gearbox/
 simulations/private_config.py
-Hadouken/
+Hadouken/*.json
 data.json
 agave/0x5E15d5E33d318dCEd84Bfe3F4EACe07909bE6d9c_data.json
 aurigami/oracle.json
@@ -55,3 +54,4 @@ ArbitrumDEX/ohm-dai-mainnet_no_fees.csv
 meld/.env
 meld/**/*.csv
 meld/**/*.json
+.vscode/launch.json

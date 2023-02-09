@@ -1,5 +1,44 @@
 import json
 
+# input should be in wei
+def get_sum_fixed_point(x, y, A):
+    if(x == 0 and y == 0):
+        return 0
+
+    sum = x + y
+
+    for i in range(255):
+        dP = sum
+        dP = dP * sum / (2*x + 1)
+        dP = dP * sum / (2*y + 1)
+
+        prevSum = sum
+
+        n = (A * 2 * (x+y) + 2 * dP) * sum
+        d = (A * 2 - 1) * sum
+        sum = n / (d + 3 * dP)
+
+    return sum
+
+def get_return(xQty, xBalance, yBalance, A):
+    sum = get_sum_fixed_point(xBalance, yBalance, A)
+
+    c = sum * sum / (2 * (xQty + xBalance))
+    c = c * sum / (4 * A)
+
+    b = (xQty + xBalance) + (sum / (2 * A))
+    yPrev = 0
+    y = sum
+
+    for i in range(255):
+        yPrev = y
+        n = y * y + c
+        d = y * 2 + b - sum
+        y = n / d
+
+    return yBalance - y
+
+
 def calcDestQty(dx, x, y):
     # (x + dx) * (y-dy) = xy
     # dy = y - xy/(x+dx)
@@ -27,8 +66,16 @@ def findBestDestQty(srcToken, srcQty, destToken, allTokens, liquidityJson):
 
         x = liquidityJson[key]["token0"]
         y = liquidityJson[key]["token1"]
+        dy = -1
 
-        dy = calcDestQty(int(srcQty), float(x), float(y))
+        if self.liquidityJson[key]['type'] == 'curve':
+            A = self.liquidityJson[key]['ampFactor']
+            dy = self.get_return(int(srcQty), float(x), float(y), A)
+        else:
+            dy = self.calcDestQty(int(srcQty), float(x), float(y))
+        
+        if dy == -1:
+            raise Exception("can't compute price, dy == -1")
 
         newSrcToken = token
         newSrcQty = dy
@@ -59,5 +106,12 @@ def test():
     print(ethPrice, ETH, USDC)
 
 
-test()
+def test2():
+    # USDT to USDC
+    print(get_return(1e4, 7e5 * 1e6, 5e5 * 1e6, 200))
+
+    # ETH to stETH
+    print(get_return(1000000e18, 330454 * 1e18, 460898 * 1e18, 50))    
+    
+test2()
 

@@ -36,8 +36,8 @@ class stability_report:
                 else:
                     # all_df = all_df.append(df)
                     all_df = pd.concat([all_df, df])
-        all_df["Debt ceiling (M)"] = round(all_df["collateral"] / 1_000_000, 1)
-        all_df["Monthly liquidation volume factor"] = all_df["collateral_liquidation_factor"]
+        all_df["Total Debt (M)"] = round(all_df["collateral"] / 1_000_000, 1)
+        all_df["Stress Factor"] = all_df["collateral_liquidation_factor"]
 
         gg = [('price_recovery_time', 'prc'),
               ('volume_for_slippage_10_percents', 'vfs10p'), ('recovery_halflife_retail', 'rhr'),
@@ -51,18 +51,19 @@ class stability_report:
                 batch_df = batch_df.loc[batch_df[g[0]] == row[g[0]]]
 
             sns.set(font_scale=1.5)
-            hm = self.get_heatmap(batch_df, "Debt ceiling (M)", "Monthly liquidation volume factor", "max_drop")
+            hm = self.get_heatmap(batch_df, "Total Debt (M)", "Stress Factor", "max_drop")
             ax = sns.heatmap(hm, annot=True, linewidths=.5, cmap="PiYG", vmin=0.5, vmax=1)
             file_name = "hm"
             for g in gg:
                 file_name += "^" + g[1] + "^" + str(row[g[0]])
             fig = plt.gcf()
-            fig.set_size_inches(12.5, 8.5)
+            fig.set_size_inches(12.5, 10.5)
+            plt.suptitle("Dex Liquidity (M-USD): " + str(row["volume_for_slippage_10_percents"] * self.ETH_PRICE / 1_000_000))
             plt.savefig(directory + os.path.sep + name.replace("|", "-") + os.path.sep + file_name + ".jpg")
             plt.cla()
             plt.close()
             group_by_df = pd.DataFrame({'max_drop':
-                                            batch_df.groupby(["Debt ceiling (M)", "Monthly liquidation volume factor"])[
+                                            batch_df.groupby(["Total Debt (M)", "Stress Factor"])[
                                                 "max_drop"].max()}).reset_index()
             to_return.append((group_by_df, file_name, name, li))
 
@@ -361,6 +362,9 @@ class stability_report:
                                                 last_row_date = 0
                                                 daily_volume = 0
                                                 collateral_factor = config["collateral_factor"]
+                                                volume_for_slippage_10_percents_price_drop = volume_for_slippage_10_percents
+                                                if "volume_for_slippage_10_percents_price_drop" in config:
+                                                    volume_for_slippage_10_percents_price_drop = config["volume_for_slippage_10_percents_price_drop"]
                                                 for row in dai_eth_array:
                                                     time = row["timestamp_x"]
                                                     row_liquidation = row[self.liquidation_side]
@@ -540,7 +544,7 @@ class stability_report:
                                                     # multiply the price by the trade slippage
                                                     if l_incentive > 0 and trade_volume > 0:
                                                         multiply_price_liquidation_factor = self.get_slippage_for_volume(
-                                                            cycle_trade_volume, 1 - l_incentive, trade_volume)
+                                                            volume_for_slippage_10_percents_price_drop, 1 - l_incentive, trade_volume)
                                                     else:
                                                         multiply_price_liquidation_factor = 1
 
