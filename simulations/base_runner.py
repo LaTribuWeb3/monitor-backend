@@ -378,8 +378,8 @@ def create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_ser
 
                 for index, row in df.iterrows():
                     data[j][simulation_name].append(
-                        {'dc': round(row['Debt ceiling (M)'], 2),
-                         'lf': row['Monthly liquidation volume factor'],
+                        {'dc': round(row['Total Debt (M)'], 2),
+                         'lf': row['Stress Factor'],
                          'md': round(row["max_drop"], 3),
                          "li": li})
 
