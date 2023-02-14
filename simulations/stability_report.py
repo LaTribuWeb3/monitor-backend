@@ -364,7 +364,10 @@ class stability_report:
                                                 collateral_factor = config["collateral_factor"]
                                                 volume_for_slippage_10_percents_price_drop = volume_for_slippage_10_percents
                                                 if "volume_for_slippage_10_percents_price_drop" in config:
+                                                    oldVolume = volume_for_slippage_10_percents_price_drop
                                                     volume_for_slippage_10_percents_price_drop = config["volume_for_slippage_10_percents_price_drop"]
+                                                    if oldVolume != volume_for_slippage_10_percents_price_drop:
+                                                        print('VOLUME CHANGED: old:', oldVolume, 'new:', volume_for_slippage_10_percents_price_drop)
                                                 for row in dai_eth_array:
                                                     time = row["timestamp_x"]
                                                     row_liquidation = row[self.liquidation_side]
