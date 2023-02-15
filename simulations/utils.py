@@ -293,9 +293,8 @@ def send_telegram_table(bot_id, chat_id, headers, rows):
 
 
 def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, current_SITE_ID, client_chat_id,
-                                    slippage_threshold=5,
-                                    send_alerts=False, new_json=False, send_table=False,
-                                    ignore_gb_redundant_tokens=False):
+                                    slippage_threshold=5, send_alerts=False, new_json=False, send_table=False,
+                                    ignore_gb_redundant_tokens=False, ignore_list=[]):
     print("comparing to prod", name)
     prod_version = get_prod_version(name)
     print(prod_version)
@@ -331,6 +330,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
         send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
     for key1 in prod_file:
         if key1 == "json_time": continue
+        if key1 in ignore_list: continue
 
         if ignore_gb_redundant_tokens:
             if len(key1) > 3:  # this is checked to avoid ignoring CVX token but only the ones like 'cvxcrvFRAX'
@@ -340,6 +340,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                     continue
         for key2 in prod_file[key1]:
             print(key1, key2)
+            if key2 in ignore_list: continue
 
             last_volume = last_file[key1][key2]["volume"]
             prod_volume = prod_file[key1][key2]["volume"]
@@ -367,7 +368,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                     if client_chat_id != "" and change < 0:
                         message_key = f'{name}.slippage.{key1}.{key2}'
                         last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                        if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(change) \
+                        if message_key not in old_alerts or abs(change) - abs(old_alerts[message_key]) > 10  \
                                 or np.sign(old_alerts[message_key]) != np.sign(change):
                             print("Sensing To TG to client", message_key)
                             send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
@@ -429,11 +430,17 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
 
     for market in oracle_file:
         if market == "json_time": continue
+
         cex = float(oracle_file[market]["cex_price"])
         oracle = float(oracle_file[market]["oracle"])
         dex = float(oracle_file[market]["dex_price"])
         diff = (100 * ((oracle / dex) - 1))
-        if abs(diff) > 3 and oracle > 0:
+        oracleThreshold = 3
+        if market in ignore_list:
+            print('changing oracleThreshold to 20 for', market, 'because it is in the ignore list')
+            oracleThreshold = 20
+        
+        if abs(diff) > oracleThreshold and oracle > 0:
             message = f"{name}" \
                       f"\n{time_alert}" \
                       f"\n{market}" \
@@ -463,7 +470,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
 
         if cex > 0 and oracle > 0:
             diff = (100 * ((oracle / cex) - 1))
-            if abs(diff) > 3:
+            if abs(diff) > oracleThreshold:
                 message = f"{name}" \
                           f"\n{time_alert}" \
                           f"\n{market} " \
