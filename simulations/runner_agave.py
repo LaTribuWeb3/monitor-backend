@@ -209,6 +209,26 @@ if __name__ == '__main__':
         create_dex_information()
         base_runner.create_whale_accounts_information(SITE_ID, users_data, assets_to_simulate)
         base_runner.create_open_liquidations_information(SITE_ID, users_data, assets_to_simulate)
+        
+        ignore_list=[]
+        if alert_mode:
+            # build ignore list for each tokens with <= $10 collateral caps
+            for tokenAddr in collateral_caps: 
+                tokenName = names[tokenAddr]
+                tokenCap = collateral_caps[tokenAddr]
+                if tokenCap <= 10:
+                    print('Adding', tokenName, 'to the ignore list because collateralCap:', tokenCap)
+                    ignore_list.append(tokenName)
+            
+            # for every tokens in the ignore list, delete entry in inv_names before calling 'create_usd_volumes_for_slippage'
+            # it will remove them from the data fetch and will greatly speed up the alert process
+            # the slippage data for these tokens will not be needed anyway as we will ignore them
+            # this is only done when in alert mode
+            for name in ignore_list:
+                del inv_names[name]
+            
+            print('new value for inv_names', inv_names)
+
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
                                                     False)
         # fix_usd_volume_for_slippage()
@@ -216,7 +236,7 @@ if __name__ == '__main__':
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
             old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID,
-                                                               private_config.agave_channel, 10, send_alerts)
+                                                               private_config.agave_channel, 10, send_alerts, ignore_list= ignore_list)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
