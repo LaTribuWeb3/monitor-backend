@@ -2,19 +2,16 @@ import glob
 import numpy as np
 import copy
 import pandas as pd
-import requests
-import time
 import compound_parser
 import datetime
 import json
 import matplotlib.pyplot as plt
+from matplotlib import animation
 from pathlib import Path
 import os
 from github import Github
-import matplotlib.dates as mdates
-import prettytable as pt
-import math
 import private_config
+import matplotlib.dates as mdates
 
 
 def get_gmx_price():
@@ -55,21 +52,15 @@ def calc_series_std_ratio(source_base, source_quote, test_base, test_quote, mark
     test_rolling_std = np.average(
         test["price"].rolling(5 * 30).std().dropna() / test["price"].rolling(5 * 30).mean().dropna())
 
-    source_std = np.std(source["price"]) / np.average(source["price"])
-    test_std = np.std(test["price"]) / np.average(test["price"])
-
     print("source_avg", np.average(source["price"]))
     print("source_min", np.min(source["price"]))
-    print("source_std", source_std)
-    print("source_rolling_std", source_rolling_std)
+    print("source_std", np.std(source["price"]) / np.average(source["price"]))
 
     print("test_avg", np.average(test["price"]))
     print("test_min", np.min(test["price"]))
-    print("test_std", test_std)
-    print("test_rolling_std", test_rolling_std)
+    print("test_std", np.std(test["price"]) / np.average(test["price"]))
 
-    print("30M Rolling STD Ratio", round(test_rolling_std / source_rolling_std,2))
-    print("STD Ratio", round(test_std / source_std,2))
+    print("30M Rolling STD Ratio", test_rolling_std / source_rolling_std)
     print()
     return test_rolling_std / source_rolling_std
 
@@ -152,6 +143,82 @@ def copy_day_to_worst_day(date1, date2):
     df.to_csv(file_name.replace("data\\", "data_worst_day\\"))
 
 
+def check_json_file(path):
+    file = open(path)
+    data = json.load(file)
+    decimals = eval(data["decimals"])
+    names = eval(data["names"])
+    collateral_factors = eval(data["collateralFactors"])
+    users = data["users"]
+    users = users.replace("true", "True")
+    users = users.replace("false", "False")
+    users = eval(users)
+    prices = eval(data["prices"])
+
+    for i_d in prices:
+        prices[i_d] = int(prices[i_d], 16) / 10 ** (36 - decimals[i_d])
+
+    for user in users:
+        if user == '0x211d417B596b4FEA2a5019f7e0CE4E63dE8d149e':
+            collateral_balances = users[user]["collateralBalances"]
+            total_c = 0
+            total_b = 0
+            for asset_id in collateral_balances:
+                total_c += float(prices[asset_id]) * float(collateral_factors[asset_id]) * int(
+                    collateral_balances[asset_id], 16) / 10 ** decimals[asset_id]
+                print("collateralBalances", names[asset_id],
+                      float(prices[asset_id]) * float(collateral_factors[asset_id]) * int(collateral_balances[asset_id],
+                                                                                          16) / 10 ** decimals[
+                          asset_id])
+
+            borrow_balances = users[user]["borrowBalances"]
+            for asset_id in borrow_balances:
+                total_b += float(prices[asset_id]) * int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id]
+                print("borrowBalances", names[asset_id],
+                      float(prices[asset_id]) * int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id])
+
+            print()
+            print(total_b)
+            print(total_c)
+
+
+def get_total_bad_debt(users, asset, price_factor, prices, collateral_factors, names):
+    total_bad_debt = 0
+    assets_total_bad_debt = {}
+    for user in users:
+        user_collateral = 0
+        user_debt = 0
+        user_assets_debt = {}
+
+        collateral_balances = users[user]["collateralBalances"]
+
+        for asset_id in collateral_balances:
+            c = int(collateral_balances[asset_id] * prices[asset_id]
+                    * float(collateral_factors[asset_id]))
+            if asset == names[asset_id]:
+                c *= price_factor
+            user_collateral += c
+            x1 = c
+
+        borrow_balances = users[user]["borrowBalances"]
+        for asset_id in borrow_balances:
+            c = int(borrow_balances[asset_id] * prices[asset_id])
+            if asset == names[asset_id]:
+                c *= price_factor
+            user_debt += c
+
+            user_assets_debt[asset_id] = c
+
+        if user_debt > user_collateral:
+            total_bad_debt += user_debt
+            for asset_id in user_assets_debt:
+                if asset_id not in assets_total_bad_debt:
+                    assets_total_bad_debt[asset_id] = 0
+                assets_total_bad_debt[asset_id] += user_assets_debt[asset_id]
+
+    return total_bad_debt, assets_total_bad_debt
+
+
 def get_file_time(file_name):
     print(file_name)
     if not os.path.exists(file_name):
@@ -184,6 +251,110 @@ def update_time_stamps(SITE_ID, last_update_time):
             print(e)
 
 
+def create_liquidata_data_from_json(json_file):
+    file = open(json_file)
+    data = json.load(file)
+    last_update_time = data["lastUpdateTime"]
+    names = eval(data["names"])
+    inv_names = {v: k for k, v in names.items()}
+    decimals = eval(data["decimals"])
+    for x in decimals:
+        decimals[x] = int(decimals[x])
+    collateral_factors = eval(data["collateralFactors"])
+    borrow_caps = eval(data["borrowCaps"])
+    collateral_caps = eval(data["collateralCaps"])
+    prices = eval(data["prices"])
+    underlying = eval(data["underlying"])
+    inv_underlying = {v: k for k, v in underlying.items()}
+
+    liquidation_incentive = data["liquidationIncentive"]
+    totalAssetBorrow = eval(data["totalBorrows"])
+    totalAssetCollateral = eval(data["totalCollateral"])
+
+    for i_d in prices:
+        prices[i_d] = int(prices[i_d], 16) / 10 ** (36 - decimals[i_d])
+
+    for i_d in collateral_caps:
+        collateral_caps[i_d] = int(collateral_caps[i_d], 16) / 10 ** (decimals[i_d])
+
+    for i_d in borrow_caps:
+        borrow_caps[i_d] = int(borrow_caps[i_d], 16) / 10 ** (decimals[i_d])
+
+    for i_d in totalAssetCollateral:
+        totalAssetCollateral[i_d] = prices[i_d] * int(totalAssetCollateral[i_d], 16) / 10 ** (
+            decimals[i_d])
+
+    for i_d in totalAssetBorrow:
+        totalAssetBorrow[i_d] = prices[i_d] * int(totalAssetBorrow[i_d], 16) / 10 ** (decimals[i_d])
+
+    users = data["users"]
+    users = users.replace("true", "True")
+    users = users.replace("false", "False")
+    users = eval(users)
+    users_data = []
+    orig_user_data = []
+    for user in users:
+        user_collateral = 0
+        uset_no_cf_collateral = 0
+        user_debt = 0
+        user_data = {"user": user}
+        collateral_balances = users[user]["collateralBalances"]
+        for asset_id in collateral_balances:
+            collateral_balances[asset_id] = int(collateral_balances[asset_id], 16) / 10 ** decimals[asset_id]
+            user_collateral += collateral_balances[asset_id] * prices[asset_id] * float(
+                collateral_factors[asset_id])
+
+            uset_no_cf_collateral += collateral_balances[asset_id] * prices[asset_id]
+            user_data["COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
+                asset_id] * float(collateral_factors[asset_id])
+            user_data["NO_CF_COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
+                asset_id]
+
+        user_data["user_collateral"] = user_collateral
+        user_data["user_no_cf_collateral"] = uset_no_cf_collateral
+
+        borrow_balances = users[user]["borrowBalances"]
+        for asset_id in borrow_balances:
+            borrow_balances[asset_id] = int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id]
+            debt = borrow_balances[asset_id] * prices[asset_id]
+            user_data["DEBT_" + names[asset_id]] = debt
+            user_debt += debt
+
+        user_data["user_debt"] = user_debt
+
+        users_data.append(user_data)
+    assets_liquidation_data = {}
+    assets_to_check = names.values()
+    for asset in assets_to_check:
+        results = {}
+        asset_price = prices[inv_names[asset]]
+        for i in reversed(np.arange(0, 5, 0.1)):
+            users_total_bad_debt, users_assets_total_bad_debt = get_total_bad_debt(users, asset, i, prices,
+                                                                                   collateral_factors, names)
+            key = asset_price * i
+            for asset_id in users_assets_total_bad_debt:
+                asset_name = names[asset_id]
+                if asset_name != asset:
+                    if asset_name not in results:
+                        results[asset_name] = {}
+                    results[asset_name][i] = users_assets_total_bad_debt[asset_id]
+
+        assets_liquidation_data[inv_names[asset]] = results
+
+        users_data = pd.DataFrame(users_data)
+        orig_user_data = pd.DataFrame(orig_user_data)
+
+    for k1 in assets_liquidation_data.keys():
+        plt.cla()
+        plt.suptitle(names[k1])
+        for k2 in assets_liquidation_data[k1].keys():
+            plt.plot(assets_liquidation_data[k1][k2].keys(), assets_liquidation_data[k1][k2].values(),
+                     label=names[k1] + "/" + k2)
+        plt.legend()
+        plt.plot()
+        plt.show()
+
+
 def print_account_information_graph(json_file):
     file = open(json_file)
     data = json.load(file)
@@ -200,6 +371,189 @@ def print_account_information_graph(json_file):
         plt.show()
 
 
+def create_current_simulation_risk(json_file):
+    assets_to_simulate = ["auETH", "auWBTC", "auWNEAR", "auSTNEAR", "auUSDC", "auUSDT"]
+    assets_aliases = {"auETH": "ETH", "auWBTC": "BTC", "auWNEAR": "NEAR", "auSTNEAR": "NEAR", "auUSDT": "USDT",
+                      "auUSDC": "USDT"}
+
+    file = open(json_file)
+    data = json.load(file)
+    last_update_time = data["lastUpdateTime"]
+    names = eval(data["names"])
+    inv_names = {v: k for k, v in names.items()}
+    decimals = eval(data["decimals"])
+    for x in decimals:
+        decimals[x] = int(decimals[x])
+    collateral_factors = eval(data["collateralFactors"])
+    borrow_caps = eval(data["borrowCaps"])
+    collateral_caps = eval(data["collateralCaps"])
+    prices = eval(data["prices"])
+    underlying = eval(data["underlying"])
+    inv_underlying = {v: k for k, v in underlying.items()}
+
+    liquidation_incentive = data["liquidationIncentive"]
+    totalAssetBorrow = eval(data["totalBorrows"])
+    totalAssetCollateral = eval(data["totalCollateral"])
+
+    for i_d in prices:
+        prices[i_d] = int(prices[i_d], 16) / 10 ** (36 - decimals[i_d])
+
+    for i_d in collateral_caps:
+        collateral_caps[i_d] = int(collateral_caps[i_d], 16) / 10 ** (decimals[i_d])
+
+    for i_d in borrow_caps:
+        borrow_caps[i_d] = int(borrow_caps[i_d], 16) / 10 ** (decimals[i_d])
+
+    for i_d in totalAssetCollateral:
+        totalAssetCollateral[i_d] = prices[i_d] * int(totalAssetCollateral[i_d], 16) / 10 ** (
+            decimals[i_d])
+
+    for i_d in totalAssetBorrow:
+        totalAssetBorrow[i_d] = prices[i_d] * int(totalAssetBorrow[i_d], 16) / 10 ** (decimals[i_d])
+
+    f1 = open("webserver" + os.path.sep + "0" + os.path.sep + "usd_volume_for_slippage.json")
+    jj1 = json.load(f1)
+
+    file = open("webserver" + os.path.sep + "0" + os.path.sep + "simulation_configs.json", "r")
+    jj = json.load(file)
+
+    users = data["users"]
+    users = users.replace("true", "True")
+    users = users.replace("false", "False")
+    users = eval(users)
+    users_data = []
+    orig_user_data = []
+    for user in users:
+        user_collateral = 0
+        uset_no_cf_collateral = 0
+        user_debt = 0
+        user_data = {"user": user}
+        collateral_balances = users[user]["collateralBalances"]
+        for asset_id in collateral_balances:
+            collateral_balances[asset_id] = int(collateral_balances[asset_id], 16) / 10 ** decimals[asset_id]
+            user_collateral += collateral_balances[asset_id] * prices[asset_id] * float(
+                collateral_factors[asset_id])
+
+            uset_no_cf_collateral += collateral_balances[asset_id] * prices[asset_id]
+            user_data["COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
+                asset_id] * float(collateral_factors[asset_id])
+            user_data["NO_CF_COLLATERAL_" + names[asset_id]] = collateral_balances[asset_id] * prices[
+                asset_id]
+
+        user_data["user_collateral"] = user_collateral
+        user_data["user_no_cf_collateral"] = uset_no_cf_collateral
+
+        borrow_balances = users[user]["borrowBalances"]
+        for asset_id in borrow_balances:
+            borrow_balances[asset_id] = int(borrow_balances[asset_id], 16) / 10 ** decimals[asset_id]
+            user_debt += borrow_balances[asset_id] * prices[asset_id]
+            user_data["DEBT_" + names[asset_id]] = borrow_balances[asset_id] * prices[asset_id]
+
+        user_data["user_debt"] = user_debt
+
+        users_data.append(user_data)
+
+    my_user_data = copy.deepcopy(pd.DataFrame(users_data))
+
+    for base_to_simulation in assets_to_simulate:
+        my_user_data["MIN_" + base_to_simulation] = my_user_data[
+            ["COLLATERAL_" + base_to_simulation, "DEBT_" + base_to_simulation]].min(axis=1)
+        my_user_data["COLLATERAL_" + base_to_simulation] -= my_user_data["MIN_" + base_to_simulation]
+        my_user_data["DEBT_" + base_to_simulation] -= my_user_data["MIN_" + base_to_simulation]
+
+    for base_to_simulation in assets_to_simulate:
+        for quote_to_simulation in jj1[base_to_simulation]:
+            if assets_aliases[base_to_simulation] != assets_aliases[quote_to_simulation]:
+                key = base_to_simulation + "-" + quote_to_simulation
+                result = []
+                for index, row in my_user_data.iterrows():
+                    user_collateral_asset_total_collateral_usd = row["COLLATERAL_" + base_to_simulation]
+                    user_debt_asset_total_debt_usd = row["DEBT_" + quote_to_simulation]
+
+                    user_collateral_total_usd = row["user_collateral"]
+                    user_debt_total_usd = row["user_debt"]
+                    over_collateral = user_collateral_total_usd - user_debt_total_usd
+                    if user_collateral_asset_total_collateral_usd > 0:
+                        liquidation_price_change = 1 - over_collateral / user_collateral_asset_total_collateral_usd
+                        result.append({
+                            "key": key,
+                            "user_id": row["user"],
+                            "liquidation_price_change": round(liquidation_price_change, 2),
+                            "user_collateral_total_usd": user_collateral_total_usd,
+                            "user_debt_total_usd": user_debt_total_usd,
+                            "over_collateral": over_collateral,
+                            "user_collateral_asset_total_collateral_usd": user_collateral_asset_total_collateral_usd,
+                            "liquidation_amount_usd": min(user_collateral_asset_total_collateral_usd / float(
+                                collateral_factors[inv_names[base_to_simulation]]),
+                                                          user_debt_asset_total_debt_usd)})
+
+                pd.DataFrame(result).to_csv("results\\" + base_to_simulation + "_" + quote_to_simulation + ".csv")
+
+
+def print_time_series(base_path, path, ETH_PRICE):
+    def animate(i):
+        if i <= 50:
+            i = i * 10
+        elif i >= 250:
+            i -= 180
+            i = i * 10
+        else:
+            i = 500 + i - 50
+
+        ax1.cla()  # clear the previous image
+        ax2.cla()
+        # ax1.set_xlim([min_ts, max_ts])  # fix the x axis
+        ax1.set_ylim([min_price, max_price])  # fix the y axis
+        #
+        # ax2.set_xlim([min_ts, max_ts])  # fix the x axis
+        ax2.set_ylim([0, 2])  # fix the y axis
+
+        ax1.plot(df.loc[:i]["ts"], df.loc[:i]["price"], 'g-', label="Price")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["market_volume"] * ETH_PRICE / 1_000_000, 'r-', label="Market Volume")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["stability_pool_available_volume"] * ETH_PRICE / 1_000_000, 'm-',
+                 label="Stability Pool Liquidity")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["open_liquidations"] * ETH_PRICE / 1_000_000, 'y-',
+                 label="open_liquidations")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["pnl"] / 1_000_000, 'c-', label="PNL")
+        ax2.plot(df.loc[:i]["ts"], df.loc[:i]["liquidation_volume"].rolling(30).sum() * ETH_PRICE / 1_000_000, 'b-',
+                 label="30 minutes Liquidation Volume")
+
+        ax1.set_label('Time')
+        ax1.set_ylabel('Price', color='g')
+        md = round(df.loc[:i]["max_drop"].max(), 2)
+        plt.title("Max Drop:" + str(md))
+        print(i, md)
+        plt.legend()
+
+    all_df = pd.read_csv(base_path + path)
+
+    for index, row in all_df.iterrows():
+        file_name = row["simulation_name"]
+        df = pd.read_csv(base_path + file_name + ".csv")
+        min_price = df["price"].min()
+        max_price = df["price"].max()
+        fig, ax1 = plt.subplots()
+        fig.set_size_inches(12.5, 8.5)
+        ax2 = ax1.twinx()
+
+        plt.plot()
+        anim = animation.FuncAnimation(fig, animate, frames=int(len(df) / 10) + 1 + 200, interval=0.1, blit=False)
+        anim.save('results\\' + file_name + '.gif', writer='imagemagick', fps=15)
+        # plt.show()
+
+
+def create_cefi_market_data():
+    # download_markets = [("binance-futures", "BTCUSDT"), ("binance-futures", "ETHUSDT"), ("binance-futures", "NEARUSDT")]
+    # download_dates = [("06", "2022"), ("05", "2022"), ("04", "2022"), ("03", "2022"), ("02", "2022"), ("01", "2022")]
+    download_markets = [("binance-spot", "ETHUSDT")]
+    download_dates = [("01", "2020"), ("02", "2020"), ("03", "2020"), ("01", "2021"), ("02", "2021"), ("03", "2021")]
+    dd = download_datasets.CefiDataDownloader()
+    for download_market in download_markets:
+        for download_date in download_dates:
+            dd.create_one_minute_liquidation_data(download_date[0], download_date[1], download_market[0],
+                                                  download_market[1])
+
+
 def get_site_id(SITE_ID):
     if str(os.path.sep) in SITE_ID:
         SITE_ID = SITE_ID.split(str(os.path.sep))[0]
@@ -208,24 +562,6 @@ def get_site_id(SITE_ID):
     SITE_ID = SITE_ID + os.path.sep + d
     os.makedirs("webserver" + os.path.sep + SITE_ID, exist_ok=True)
     return SITE_ID
-
-
-def get_latest_folder_name(SITE_ID):
-    # print(private_config.git_version_token)
-    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
-    repo_name = "Risk-DAO/simulation-results"
-    repo = gh.get_repo(repo_name)
-    folders = repo.get_contents("./" + SITE_ID)
-    max_folder_date = datetime.datetime(2000, 1, 1, 1, 1)
-    max_folder_name = ""
-
-    for folder in folders:
-        fields = folder.name.split("-")
-        folder_date = datetime.datetime(int(fields[0]), int(fields[1]), int(fields[2]), int(fields[3]), int(fields[4]))
-        if max_folder_date < folder_date:
-            max_folder_date = folder_date
-            max_folder_name = folder.name
-    return max_folder_name, max_folder_date
 
 
 def get_all_sub_folders(path, json_name):
@@ -247,307 +583,6 @@ def get_all_sub_folders(path, json_name):
     return results
 
 
-def convert_liquitiy_json_to_slippage(file):
-    new_file = {}
-    for j in file:
-        for x in j["slippage"]:
-            if x == 'json_time':
-                new_file[x] = j["slippage"][x]
-            else:
-                if x in new_file:
-                    for y in j["slippage"][x]:
-                        new_file[x][y] = j["slippage"][x][y]
-                else:
-                    new_file[x] = j["slippage"][x]
-    return new_file
-
-
-def get_formatted_number_clean(volume):
-    if volume >= 1e9:
-        return str(round(volume / 1e9, 2)) + 'B'
-    elif volume >= 1e6:
-        return str(round(volume / 1e6, 2)) + 'M'
-    elif volume >= 1e3:
-        return str(round(volume / 1e3, 2)) + 'K'
-
-
-def convert_tokens_json_to_oracle(file):
-    new_file = {}
-    for j in file:
-        symbol = j["symbol"]
-        new_file[symbol] = {}
-        new_file[symbol]["oracle"] = float(j["priceUSD18Decimals"]) / pow(10, 18)
-        new_file[symbol]["cex_price"] = float(j["cexPriceUSD18Decimals"]) / pow(10, 18)
-        new_file[symbol]["dex_price"] = float(j["dexPriceUSD18Decimals"]) / pow(10, 18)
-    return new_file
-
-
-def send_telegram_table(bot_id, chat_id, headers, rows):
-    table = pt.PrettyTable(headers)
-
-    for row in rows:
-        table.add_row(row)
-
-    # send the message as markdown
-    send_telegram_alert(bot_id, chat_id, f'```{table}```', is_markdown=True)
-
-
-def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, current_SITE_ID, client_chat_id,
-                                    slippage_threshold=5,
-                                    send_alerts=False, new_json=False, send_table=False,
-                                    ignore_gb_redundant_tokens=False):
-    print("comparing to prod", name)
-    prod_version = get_prod_version(name)
-    print(prod_version)
-    if new_json:
-        prod_file = convert_liquitiy_json_to_slippage(
-            json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json")))
-        file = json.load(open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "liquidity.json"))
-        last_file = convert_liquitiy_json_to_slippage(file)
-    else:
-        prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
-        file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
-        last_file = json.load(file)
-
-    time_from_now = datetime.datetime.now().timestamp() - data_time
-    time_from_now /= 60
-    time_from_now = str(round(time_from_now, 2)) + " Minutes (from last update)"
-
-    time_from_prod = last_file["json_time"] - prod_file["json_time"]
-    time_from_prod /= (60 * 60)
-    time_from_prod = str(round(time_from_prod, 2)) + " Hours (from publication)"
-
-    time_alert = time_from_now + "\n" + time_from_prod
-
-    liquidityAlerts = []
-
-    alert_sent = False
-    if send_alerts:
-        msg = "-------------------------------------------------"
-        if send_table:
-            msg += "\n"
-            msg += f'Liquidity check for {name}\n'
-            msg += time_alert
-        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
-    for key1 in prod_file:
-        if key1 == "json_time": continue
-
-        if ignore_gb_redundant_tokens:
-            if len(key1) > 3:  # this is checked to avoid ignoring CVX token but only the ones like 'cvxcrvFRAX'
-                # ignore stk... cvx... yv... tokens from gearbox as they share the same liquidity as their underlying
-                if str(key1).startswith('stk') or str(key1).startswith('cvx') or str(key1).startswith('yv'):
-                    print('Ignoring', key1)
-                    continue
-        for key2 in prod_file[key1]:
-            print(key1, key2)
-
-            last_volume = last_file[key1][key2]["volume"]
-            prod_volume = prod_file[key1][key2]["volume"]
-            change = 100 * (round((last_volume / prod_volume) - 1, 2))
-            if abs(change) > slippage_threshold:
-                # last_volume = "{:,}".format(round(last_volume, 0))
-                # prod_volume = "{:,}".format(round(prod_volume, 0))
-                message = f"{name} " \
-                          f"\n{time_alert}" \
-                          f"\n{key1}.{key2}" \
-                          f"\nLiquidity Change by {round(change, 2)}% " \
-                          f"\nCurrent Volume: {last_volume}" \
-                          f"\nLast Simulation Volume: {prod_volume}"
-                print(message)
-                alert_sent = True
-                if send_alerts:
-                    if send_table:
-                        alert = {'market': key1, 'debt': key2, 'change': round(change, 2), 'last': last_volume,
-                                 'prod': prod_volume}
-                        liquidityAlerts.append(alert)
-                    else:
-                        print("Sending To TG")
-                        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-
-                    if client_chat_id != "" and change < 0:
-                        message_key = f'{name}.slippage.{key1}.{key2}'
-                        last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                        if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(change) \
-                                or np.sign(old_alerts[message_key]) != np.sign(change):
-                            print("Sensing To TG to client", message_key)
-                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                                message + "\nLast value:" + str(round(last_value, 2)))
-                            if message_key not in old_alerts:
-                                old_alerts[message_key] = 0
-                            old_alerts[message_key] = change
-
-    ############ SEND LIQUIDITY MESSAGE AS TABLE #############
-    maxRowPerMsg = 40
-    if send_alerts and send_table and len(liquidityAlerts) > 0:
-        liquidityAlerts.sort(key=lambda x: abs(x['change']), reverse=True)
-        alreadyAddedTokens = []
-        rows = []
-        for alert in liquidityAlerts:
-            if alert['market'] not in alreadyAddedTokens:
-                alreadyAddedTokens.append(alert['market'])
-                change = alert['change']
-                lastVolumeClean = get_formatted_number_clean(alert['last'])
-                prodVolumeClean = get_formatted_number_clean(alert['prod'])
-                rows.append([alert['market'], f'{change}%', lastVolumeClean, prodVolumeClean])
-        if len(rows) > maxRowPerMsg:
-            callCount = math.ceil(len(rows) / maxRowPerMsg)
-            for cpt in range(callCount):
-                start = cpt * maxRowPerMsg
-                stop = (cpt + 1) * maxRowPerMsg
-                send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                                    ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows[start:stop])
-
-            # split
-        else:
-            send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                                ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows)
-    ############ END SEND LIQUIDITY MESSAGE AS TABLE #############
-
-    if not alert_sent:
-        message = f"{name}" \
-                  f"\n{time_alert}" \
-                  f"\nSlippage is fine."
-        print(message)
-        if send_alerts:
-            print("Sending To TG")
-            send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-    elif ignore_gb_redundant_tokens:
-        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                            'Please note that stkcvx*, cvx* and yearn-vault tokens have been ignored as they share the same liquidity as their underlying')
-
-    alert_sent = False
-    dexAlerts = []
-    cexAlerts = []
-
-    if new_json:
-        oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "token.json")
-        oracle_file = json.load(oracle_file)
-        oracle_file = convert_tokens_json_to_oracle(oracle_file)
-    else:
-        oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "oracles.json")
-        oracle_file = json.load(oracle_file)
-
-    for market in oracle_file:
-        if market == "json_time": continue
-        cex = float(oracle_file[market]["cex_price"])
-        oracle = float(oracle_file[market]["oracle"])
-        dex = float(oracle_file[market]["dex_price"])
-        diff = (100 * ((oracle / dex) - 1))
-        if abs(diff) > 3 and oracle > 0:
-            message = f"{name}" \
-                      f"\n{time_alert}" \
-                      f"\n{market}" \
-                      f"\nOracle<>Dex Price is off by: {round(diff, 2)}%" \
-                      f"\nOracle Price: {oracle} " \
-                      f"\nDex Price: {dex}"
-            print(message)
-            alert_sent = True
-            if send_alerts:
-                if send_table:
-                    newDexAlert = {'market': market, 'oracle': oracle, 'dex': dex, 'diff': round(diff, 2)}
-                    dexAlerts.append(newDexAlert)
-                else:
-                    print("Sending To TG")
-                    send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-                if client_chat_id != "":
-                    message_key = f'{name}.oracle.dex.diff.{market}'
-                    last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                    if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(diff) \
-                            or np.sign(old_alerts[message_key]) != np.sign(diff):
-                        print("Sensing To TG to client", message_key)
-                        send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                            message + "\nLast value:" + str(round(last_value, 2)))
-                        if message_key not in old_alerts:
-                            old_alerts[message_key] = 0
-                        old_alerts[message_key] = diff
-
-        if cex > 0 and oracle > 0:
-            diff = (100 * ((oracle / cex) - 1))
-            if abs(diff) > 3:
-                message = f"{name}" \
-                          f"\n{time_alert}" \
-                          f"\n{market} " \
-                          f"\nOracle<>Cex Price is off by: {round(diff, 2)}%" \
-                          f"\nOracle Price: {oracle} " \
-                          f"\nCex Price: {cex}"
-                print(message)
-                alert_sent = True
-                if send_alerts:
-                    if send_table:
-                        newCexAlert = {'market': market, 'oracle': oracle, 'cex': cex, 'diff': round(diff, 2)}
-                        cexAlerts.append(newCexAlert)
-                    else:
-                        print("Sending To TG")
-                        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-
-                    if client_chat_id != "":
-                        message_key = f'{name}.oracle.cex.diff.{market}'
-                        last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                        if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(diff) \
-                                or np.sign(old_alerts[message_key]) != np.sign(diff):
-                            print("Sensing To TG to client", message_key)
-                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                                message + "\nLast value:" + str(round(last_value, 2)))
-                            if message_key not in old_alerts:
-                                old_alerts[message_key] = 0
-                            old_alerts[message_key] = diff
-
-    if send_alerts and send_table and len(dexAlerts) > 0:
-        msg = "-------------------------------------------------"
-        msg += "\n"
-        msg += f'Oracle check for {name}\n'
-        msg += time_alert
-        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
-
-    if send_alerts and send_table and len(dexAlerts) > 0:
-        dexAlerts.sort(key=lambda x: abs(x['diff']))
-        rowsDex = []
-        for alert in dexAlerts:
-            diff = alert['diff']
-            rowsDex.append([alert['market'], alert['oracle'], alert['dex'], f'{diff}%'])
-
-        send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                            ['Market', 'Oracle', 'Dex', 'Diff'], rowsDex)
-
-    if send_alerts and send_table and len(cexAlerts) > 0:
-        cexAlerts.sort(key=lambda x: abs(x['diff']), reverse=True)
-        rowsCex = []
-        for alert in cexAlerts:
-            diff = alert['diff']
-            rowsCex.append([alert['market'], alert['oracle'], alert['cex'], f'{diff}%'])
-
-        send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                            ['Market', 'Oracle', 'Cex', 'Diff'], rowsCex)
-
-    if not alert_sent:
-        message = f"{name}" \
-                  f"\n{time_alert}" \
-                  f"\nOracle is fine."
-        print(message)
-        if send_alerts:
-            print("Sending To TG")
-            send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-
-    return old_alerts
-
-
-def get_prod_version(name):
-    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
-    repo_name = "Risk-DAO/version-control"
-    repo = gh.get_repo(repo_name)
-    contents = repo.get_contents("/" + name)
-    return str(contents.decoded_content).replace('b', '').replace("'", '')
-
-
-def get_git_json_file(name, key, json_name):
-    gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
-    repo_name = "Risk-DAO/simulation-results"
-    repo = gh.get_repo(repo_name)
-    file_path = name + "/" + key + "/" + json_name
-    contents = repo.get_contents(file_path)
-    return contents.decoded_content
-
-
 def move_to_prod(name, key):
     print(private_config.git_version_token)
     gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
@@ -557,15 +592,13 @@ def move_to_prod(name, key):
     repo.update_file(contents.path, "more tests", key, contents.sha)
 
 
-def publish_results(SITE_ID, target=None):
+def publish_results(SITE_ID):
     print("publish_results")
     if private_config.git_token == "":
         print("Git Upload Failed. no Token")
         exit()
 
-    if target is None:
-        target = SITE_ID
-    target = target.replace('\\', '/')
+    SITE_ID = SITE_ID.replace('\\', '/')
     gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com')
     repo_name = "Risk-DAO/simulation-results"
     repo = gh.get_repo(repo_name)
@@ -573,67 +606,9 @@ def publish_results(SITE_ID, target=None):
     print(files)
     for f in files:
         file = open(f)
-        git_file = target + "/" + os.path.basename(f)
+        git_file = SITE_ID + "/" + os.path.basename(f)
         print(git_file)
-        try:
-            oldFile = repo.get_contents(git_file)
-            print('will update old file: ', oldFile)
-            repo.update_file(git_file, 'Commit Comments', file.read(), oldFile.sha)
-            
-        except:
-            print('will create new file: ', git_file)
-            repo.create_file(git_file, "Commit Comments", file.read())
-
-
-lastTGCallDate = None
-
-
-def send_telegram_alert(bot_id, chat_id, message):
-    url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
-    print(url)
-    requests.get(url)
-
-
-def send_telegram_alert1(bot_id, chat_id, message, is_markdown=False):
-    callData = {
-        "chat_id": chat_id,
-        "text": message,
-    }
-
-    if is_markdown:
-        callData['parse_mode'] = 'MarkdownV2'
-    callDataJson = json.dumps(callData)
-
-    global lastTGCallDate
-    if lastTGCallDate == None:
-        lastTGCallDate = datetime.datetime.now()
-
-    # print('lastTGCallDate', lastTGCallDate)
-    url = f'https://api.telegram.org/bot{bot_id}/sendMessage'
-    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-
-    now = datetime.datetime.now()
-    secToWait = 3 - (now - lastTGCallDate).total_seconds()  # wait 3 seconds between each calls
-    if secToWait > 0:
-        print('Sleeping', secToWait, 'seconds before calling telegram')
-        time.sleep(secToWait)
-
-    mustResend = True
-    cptSleep = 1
-    while mustResend:
-        mustResend = False
-        lastTGCallDate = datetime.datetime.now()
-        # print('new lastTGCallDate', lastTGCallDate)
-        tgResponse = requests.post(url, data=callDataJson, headers=headers)
-        if tgResponse.status_code < 400:
-            mustResend = False
-        elif tgResponse.status_code == 429:
-            mustResend = True
-            print('Sleeping', cptSleep, 'seconds before re calling tg')
-            time.sleep(cptSleep)
-            cptSleep += cptSleep  # exponential backoff
-        else:
-            print('error when sending tg alert', tgResponse.status_code, tgResponse.reason)
+        repo.create_file(git_file, "Commit Comments", file.read())
 
 
 def copy_site():
@@ -648,7 +623,35 @@ def copy_site():
         with open("webserver\\2\\" + os.path.basename(file), "w") as the_file:
             the_file.write(contents)
 
-def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_base=None):
+
+def create_price_file(path, pair_name, target_month, decimals=1, eth_usdt_file=None):
+    total_days = 90
+    df = pd.read_csv(path)
+    if eth_usdt_file:
+        df1 = pd.read_csv(eth_usdt_file)
+        df = pd.merge(df, df1, on="block number")
+        df[" price"] = df[" price_x"] / df[" price_y"]
+    rows_for_minute = len(df) / (total_days * 24 * 60)
+    df = df.iloc[::int(rows_for_minute), :]
+    print(df.columns)
+    df.reset_index(drop=True, inplace=True)
+    df["timestamp_x"] = datetime.datetime.now()
+    df["ask_price"] = df[" price"] / decimals
+    df["bid_price"] = df[" price"] / decimals
+    df = df[["timestamp_x", "bid_price", "ask_price"]]
+    l = len(df)
+    rows_for_month = int(l / total_days) * 30
+    index = 0
+    for i in target_month:
+        df1 = df.iloc[index * rows_for_month:(index + 1) * rows_for_month]
+        df1.reset_index(drop=True, inplace=True)
+        start_date = datetime.datetime(int(i[1]), int(i[0]), 1).timestamp()
+        df1["timestamp_x"] = (start_date + df1.index * 60) * (1000 * 1000)
+        df1.to_csv("data\\data_unified_" + i[1] + "_" + i[0] + "_" + pair_name + ".csv", index=False)
+        index += 1
+
+
+def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_base = None):
     plt.cla()
     plt.close()
     json_name = "accounts.json"
@@ -663,7 +666,7 @@ def create_production_accounts_graph(SITE_ID, field_name, lending_name, single_b
                     xy[base] = {}
 
                 y = results[result][base][field_name]
-                xy[base][x] = y
+                xy[base][x] =y
         except Exception as e:
             print("Error")
 
@@ -726,8 +729,6 @@ def create_production_slippage_graph(SITE_ID, lending_name):
                 yy = [y / y_last for y in yy]
                 plt.scatter(xx, yy)
                 plt.plot(xx, yy, label=base + "-" + quote)
-            else:
-                print(base, quote, "is out!!!")
 
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
     plt.gca().xaxis.set_major_locator(mdates.DayLocator())
@@ -741,3 +742,48 @@ def create_production_slippage_graph(SITE_ID, lending_name):
 
     plt.legend(loc="lower left")
     plt.savefig("results\\" + lending_name + ".slippage.jpg")
+
+
+# create_price_file("..\\monitor-backend\\GLP\\glp.csv", "GLPUSDT",
+#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1, None)
+#
+#
+# create_price_file("..\\monitor-backend\\ArbitrumDEX\\ohm-dai-mainnet.csv", "OHMUSDT",
+#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1e9, None)
+
+# create_price_file("..\\monitor-backend\\ArbitrumDEX\\eth-gmx-arbitrum.csv", "GMXUSDT",
+#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1,
+#                   "..\\monitor-backend\\ArbitrumDEX\\eth-dai-arbitrum.csv")
+#
+# create_price_file("..\\monitor-backend\\ArbitrumDEX\\eth-dpx-arbitrum.csv", "DPXUSDT",
+#                   [("04", "2022"), ("05", "2022"), ("06", "2022")], 1,
+#                   "..\\monitor-backend\\ArbitrumDEX\\eth-dai-arbitrum.csv")
+
+# lending_platform_json_file = ".." + os.path.sep + "monitor-backend" + os.path.sep + "vesta" + os.path.sep + "data.json"
+# chain_id = "arbitrum"
+# kp = kyber_prices.KyberPrices(lending_platform_json_file, chain_id)
+# print(kp.get_price("VST", "renBTC", 1000))
+
+# lending_platform_json_file = "c:\\dev\\monitor-backend\\vesta\\data.json"
+# file = open(lending_platform_json_file)
+# data = json.load(file)
+# data["collateralFactors"] = data["collateralFactors"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':0}")
+# data["totalCollateral"] = data["totalCollateral"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
+# data["totalBorrows"] = data["totalBorrows"].replace("}", ",'0x64343594Ab9b56e99087BfA6F2335Db24c2d1F17':'0'}")
+# cp_parser = compound_parser.CompoundParser()
+# users_data, assets_liquidation_data, \
+# last_update_time, names, inv_names, decimals, collateral_factors, borrow_caps, collateral_caps, prices, \
+# underlying, inv_underlying, liquidation_incentive, orig_user_data, totalAssetCollateral, totalAssetBorrow = cp_parser.parse(
+#     data)
+
+
+#  get_usd_volume_for_slippage(lending_platform_json_file, "ETH", "VST", 1.1, prices)
+# create_current_simulation_risk(lending_platform_json_file)
+# create_liquidata_data_from_json(lending_platform_json_file)
+# print_account_information_graph("webserver\\0\\accounts.json")
+
+# copy_site()
+# get_gmx_price()
+# base_path = "C:\\dev\\monitor-backend\\simulations\\current_risk_results\\2\\"
+# print_time_series(base_path, "data_worst_day_data_unified_2020_03_ETHUSDT.csv_gOHM-VST_stability_report.csv", 1200)
+# publish_results("1000/2022-10-1-12-30")
