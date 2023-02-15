@@ -118,71 +118,61 @@ class Aave {
     }
 
     async initPrices() {
-        let redo = true;
-        while(redo) {
-            try {
-                redo = false;
-                const lendingPoolAddress = await this.lendingPoolAddressesProvider.methods.getLendingPool().call()
-                this.lendingPool = new this.web3.eth.Contract(Addresses.lendingPoolAbi, lendingPoolAddress)
+        
+        const lendingPoolAddress = await this.lendingPoolAddressesProvider.methods.getLendingPool().call()
+        this.lendingPool = new this.web3.eth.Contract(Addresses.lendingPoolAbi, lendingPoolAddress)
 
-                const oracleAddress = await this.lendingPoolAddressesProvider.methods.getPriceOracle().call()
-                this.oracle = new this.web3.eth.Contract(Addresses.aaveOracleAbi, oracleAddress)
+        const oracleAddress = await this.lendingPoolAddressesProvider.methods.getPriceOracle().call()
+        this.oracle = new this.web3.eth.Contract(Addresses.aaveOracleAbi, oracleAddress)
 
-                const allMarkets = await this.aaveUserInfo.methods.getReservesList(this.lendingPool.options.address).call()
-                this.frozen = await this.aaveUserInfo.methods.getFrozenList(this.lendingPool.options.address).call()
+        const allMarkets = await this.aaveUserInfo.methods.getReservesList(this.lendingPool.options.address).call()
+        this.frozen = await this.aaveUserInfo.methods.getFrozenList(this.lendingPool.options.address).call()
 
-                const unfrozenMarkets = []
-                for(let i = 0 ; i < allMarkets.length ; i++) {
-                    if(this.frozen[i]) continue;
-                    unfrozenMarkets.push(allMarkets[i])
-                }
+        const unfrozenMarkets = []
+        for(let i = 0 ; i < allMarkets.length ; i++) {
+            if(this.frozen[i]) continue;
+            unfrozenMarkets.push(allMarkets[i])
+        }
 
-                this.markets = allMarkets //unfrozenMarkets
+        this.markets = allMarkets //unfrozenMarkets
 
-                for(const market of this.markets) {
-                    const cfg = await this.lendingPool.methods.getConfiguration(market).call()
-                    const ltv = Number(this.getBits(cfg[0], 16, 31)) / 1e4
-                    const liquidationBonus = this.getBits(cfg[0], 32, 47) / 1e4
-                    const frozen = this.getBits(cfg[0], 57, 57)
+        for(const market of this.markets) {
+            const cfg = await this.lendingPool.methods.getConfiguration(market).call()
+            const ltv = Number(this.getBits(cfg[0], 16, 31)) / 1e4
+            const liquidationBonus = this.getBits(cfg[0], 32, 47) / 1e4
+            const frozen = this.getBits(cfg[0], 57, 57)
 
-                    this.liquidationIncentive[market] = liquidationBonus
-                    this.collateralFactors[market] = ltv
+            this.liquidationIncentive[market] = liquidationBonus
+            this.collateralFactors[market] = ltv
 
-                    const token = new this.web3.eth.Contract(Addresses.erc20Abi, market)
-                    const lastName = await token.methods.symbol().call()
-                    this.names[market] = lastName
-                    const tokenDecimals = await token.methods.decimals().call()
-                    this.decimals[market] = tokenDecimals
+            const token = new this.web3.eth.Contract(Addresses.erc20Abi, market)
+            const lastName = await token.methods.symbol().call()
+            this.names[market] = lastName
+            const tokenDecimals = await token.methods.decimals().call()
+            this.decimals[market] = tokenDecimals
 
-                    console.log("calling market price", {market}, {lastName})
-                    const price = await this.oracle.methods.getAssetPrice(market).call()
-                    this.prices[market] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(tokenDecimals))))
-                    console.log(price.toString())
-                    console.log("calling market price end")
+            console.log("calling market price", {market}, {lastName})
+            const price = await this.oracle.methods.getAssetPrice(market).call()
+            this.prices[market] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(tokenDecimals))))
+            console.log(price.toString())
+            console.log("calling market price end")
 
-                    this.underlying[market] = market 
-                    this.closeFactor[market] = 0.5
-                    
-                    const limits = await this.lendingPool.methods.getReserveLimits(market).call()
+            this.underlying[market] = market 
+            this.closeFactor[market] = 0.5
+            
+            const limits = await this.lendingPool.methods.getReserveLimits(market).call()
 
-                    const borrowCap = (Number(frozen) === 1) ? 1 : limits.borrowLimit
-                    const collateralCap = (Number(frozen) === 1) ? 1 : limits.depositLimit
+            const borrowCap = (Number(frozen) === 1) ? 1 : limits.borrowLimit
+            const collateralCap = (Number(frozen) === 1) ? 1 : limits.depositLimit
 
-                    this.borrowCaps[market] = toBN(borrowCap)
-                    this.collateralCaps[market] = toBN(collateralCap)
+            this.borrowCaps[market] = toBN(borrowCap)
+            this.collateralCaps[market] = toBN(collateralCap)
 
-                    this.totalCollateral[market] = "0"
-                    this.totalBorrows[market] = "0"            
+            this.totalCollateral[market] = "0"
+            this.totalBorrows[market] = "0"            
 
-                    console.log(lastName, borrowCap.toString(), collateralCap.toString(), cfg[0].toString())
-                    await sleep(3);
-                }
-            }
-            catch(err) {
-                console.log("initprices failed, trying again", err)
-                await sleep(5);
-                redo = true;
-            }
+            console.log(lastName, borrowCap.toString(), collateralCap.toString(), cfg[0].toString())
+            await sleep(3);
         }
     }
 
@@ -228,7 +218,18 @@ class Aave {
     async main(onlyOnce = false) {
         try {
             console.log("main: starting init price")
-            await this.initPrices()
+            let redo = true;
+            while(redo) {
+                redo = false;
+                try {
+                    await this.initPrices()
+                }
+                catch(err) {
+                    console.log("initprices failed, trying again", err)
+                    await sleep(5);
+                    redo = true;
+                }
+            }
 
             const currBlock = await retry(this.web3.eth.getBlockNumber, []) - 10
             await sleep(2);
