@@ -3,6 +3,10 @@ const fs = require('fs');
 const { toBN, toWei, fromWei } = Web3.utils
 const Addresses = require("./Addresses.js");
 
+const sleep = async seconds => {
+    return new Promise(resolve => setTimeout(resolve, seconds * 1000))
+  }
+
 /**
  * a small retry wrapper with an incrameting 5s sleep delay
  * @param {*} fn 
@@ -114,62 +118,72 @@ class Aave {
     }
 
     async initPrices() {
-        const lendingPoolAddress = await this.lendingPoolAddressesProvider.methods.getLendingPool().call()
-        this.lendingPool = new this.web3.eth.Contract(Addresses.lendingPoolAbi, lendingPoolAddress)
+        let redo = true;
+        while(redo) {
+            try {
+                redo = false;
+                const lendingPoolAddress = await this.lendingPoolAddressesProvider.methods.getLendingPool().call()
+                this.lendingPool = new this.web3.eth.Contract(Addresses.lendingPoolAbi, lendingPoolAddress)
 
-        const oracleAddress = await this.lendingPoolAddressesProvider.methods.getPriceOracle().call()
-        this.oracle = new this.web3.eth.Contract(Addresses.aaveOracleAbi, oracleAddress)
+                const oracleAddress = await this.lendingPoolAddressesProvider.methods.getPriceOracle().call()
+                this.oracle = new this.web3.eth.Contract(Addresses.aaveOracleAbi, oracleAddress)
 
-        const allMarkets = await this.aaveUserInfo.methods.getReservesList(this.lendingPool.options.address).call()
-        this.frozen = await this.aaveUserInfo.methods.getFrozenList(this.lendingPool.options.address).call()
+                const allMarkets = await this.aaveUserInfo.methods.getReservesList(this.lendingPool.options.address).call()
+                this.frozen = await this.aaveUserInfo.methods.getFrozenList(this.lendingPool.options.address).call()
 
-        const unfrozenMarkets = []
-        for(let i = 0 ; i < allMarkets.length ; i++) {
-            if(this.frozen[i]) continue;
-            unfrozenMarkets.push(allMarkets[i])
+                const unfrozenMarkets = []
+                for(let i = 0 ; i < allMarkets.length ; i++) {
+                    if(this.frozen[i]) continue;
+                    unfrozenMarkets.push(allMarkets[i])
+                }
+
+                this.markets = allMarkets //unfrozenMarkets
+
+                for(const market of this.markets) {
+                    const cfg = await this.lendingPool.methods.getConfiguration(market).call()
+                    const ltv = Number(this.getBits(cfg[0], 16, 31)) / 1e4
+                    const liquidationBonus = this.getBits(cfg[0], 32, 47) / 1e4
+                    const frozen = this.getBits(cfg[0], 57, 57)
+
+                    this.liquidationIncentive[market] = liquidationBonus
+                    this.collateralFactors[market] = ltv
+
+                    const token = new this.web3.eth.Contract(Addresses.erc20Abi, market)
+                    const lastName = await token.methods.symbol().call()
+                    this.names[market] = lastName
+                    const tokenDecimals = await token.methods.decimals().call()
+                    this.decimals[market] = tokenDecimals
+
+                    console.log("calling market price", {market}, {lastName})
+                    const price = await this.oracle.methods.getAssetPrice(market).call()
+                    this.prices[market] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(tokenDecimals))))
+                    console.log(price.toString())
+                    console.log("calling market price end")
+
+                    this.underlying[market] = market 
+                    this.closeFactor[market] = 0.5
+                    
+                    const limits = await this.lendingPool.methods.getReserveLimits(market).call()
+
+                    const borrowCap = (Number(frozen) === 1) ? 1 : limits.borrowLimit
+                    const collateralCap = (Number(frozen) === 1) ? 1 : limits.depositLimit
+
+                    this.borrowCaps[market] = toBN(borrowCap)
+                    this.collateralCaps[market] = toBN(collateralCap)
+
+                    this.totalCollateral[market] = "0"
+                    this.totalBorrows[market] = "0"            
+
+                    console.log(lastName, borrowCap.toString(), collateralCap.toString(), cfg[0].toString())
+                    await sleep(3);
+                }
+            }
+            catch(err) {
+                console.log("initprices failed, trying again", err)
+                await sleep(5);
+                redo = true;
+            }
         }
-
-        this.markets = allMarkets //unfrozenMarkets
-
-        for(const market of this.markets) {
-            const cfg = await this.lendingPool.methods.getConfiguration(market).call()
-            const ltv = Number(this.getBits(cfg[0], 16, 31)) / 1e4
-            const liquidationBonus = this.getBits(cfg[0], 32, 47) / 1e4
-            const frozen = this.getBits(cfg[0], 57, 57)
-
-            this.liquidationIncentive[market] = liquidationBonus
-            this.collateralFactors[market] = ltv
-
-            const token = new this.web3.eth.Contract(Addresses.erc20Abi, market)
-            const lastName = await token.methods.symbol().call()
-            this.names[market] = lastName
-            const tokenDecimals = await token.methods.decimals().call()
-            this.decimals[market] = tokenDecimals
-
-            console.log("calling market price", {market}, {lastName})
-            const price = await this.oracle.methods.getAssetPrice(market).call()
-            this.prices[market] = toBN(price).mul(toBN(10).pow(toBN(18 - Number(tokenDecimals))))
-            console.log(price.toString())
-            console.log("calling market price end")
-
-
-            this.underlying[market] = market 
-            this.closeFactor[market] = 0.5
-
-            const limits = await this.lendingPool.methods.getReserveLimits(market).call()
-
-            const borrowCap = (Number(frozen) === 1) ? 1 : limits.borrowLimit
-            const collateralCap = (Number(frozen) === 1) ? 1 : limits.depositLimit
-
-            this.borrowCaps[market] = toBN(borrowCap)
-            this.collateralCaps[market] = toBN(collateralCap)
-
-            this.totalCollateral[market] = "0"
-            this.totalBorrows[market] = "0"            
-
-            console.log(lastName, borrowCap.toString(), collateralCap.toString(), cfg[0].toString())
-
-        }        
     }
 
     async initPricesQuickly() {
@@ -213,10 +227,12 @@ class Aave {
 
     async main(onlyOnce = false) {
         try {
+            console.log("main: starting init price")
             await this.initPrices()
 
-            const currBlock = await this.web3.eth.getBlockNumber() - 10
-            const currTime = (await this.web3.eth.getBlock(currBlock)).timestamp
+            const currBlock = await retry(this.web3.eth.getBlockNumber, []) - 10
+            await sleep(2);
+            const currTime = (await retry(this.web3.eth.getBlock, [currBlock])).timestamp
 
             if(this.mainCntr % this.heavyUpdateInterval == 0) {
                 console.log("heavyUpdate start")
@@ -238,7 +254,7 @@ class Aave {
             console.log("main failed", {err})
         }
 
-        await this.getData()
+        this.getData()
 
         if(! onlyOnce) setTimeout(this.main.bind(this), 1000 * 60 * 60) // sleep for 1 hour
     }
@@ -282,6 +298,10 @@ class Aave {
                     console.log({field})
                     const a = e.returnValues[field]
                     console.log({a})
+                    if(a == undefined) {
+                        console.log('user address undefined, ignoring');
+                        continue;
+                    }
                     if(! accountsToUpdate.includes(a)) accountsToUpdate.push(a)
                 }
             }
@@ -312,15 +332,26 @@ class Aave {
             try {
                 // Try to run this code
                 events = await this.lendingPool.getPastEvents("Deposit", {fromBlock: startBlock, toBlock:endBlock})
+                if(events.code == 429) {
+                    throw new Error('rate limited')
+                }
+                if(events == undefined) {
+                    throw new Error('events undefined')
+                }
             }
             catch(err) {
                 // if any error, Code throws the error
                 console.log("call failed, trying again", err.toString())
                 startBlock -= this.blockStepInInit // try again
+                await sleep(5);
                 continue
             }
             for(const e of events) {
                 const a = e.returnValues.onBehalfOf
+                if(a == undefined ) {
+                    console.log('user address undefined, ignoring');
+                    continue;
+                }
                 if(! this.userList.includes(a)) this.userList.push(a)
             }
         }
@@ -339,6 +370,7 @@ class Aave {
             catch(err) {
                 console.log("update user failed, trying again", err)
                 i -= bulkSize
+                await sleep(5);
             }
         }
     }
@@ -354,6 +386,10 @@ class Aave {
         console.log("preparing getUserAccountCalls")
         for(const user of userAddresses) {
             const call = {}
+            if(user == undefined ) {
+                console.log('user address undefined, ignoring');
+                continue;
+            }
             call["target"] = this.aaveUserInfo.options.address
             call["callData"] = this.aaveUserInfo.methods.getUserInfoFlat(this.lendingPool.options.address, user).encodeABI()
             getUserAccountCalls.push(call)
@@ -419,6 +455,7 @@ class Aave {
 
             const paramType = ["address[]", "uint256[]", "uint256[]"]
 
+            // console.log('decoding return data for', user);
             const parsedResult = this.web3.eth.abi.decodeParameters(paramType,result.returnData)
             
             const assets = parsedResult["0"]
