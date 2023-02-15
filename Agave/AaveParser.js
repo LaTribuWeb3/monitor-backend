@@ -118,7 +118,6 @@ class Aave {
     }
 
     async initPrices() {
-        
         const lendingPoolAddress = await this.lendingPoolAddressesProvider.methods.getLendingPool().call()
         this.lendingPool = new this.web3.eth.Contract(Addresses.lendingPoolAbi, lendingPoolAddress)
 
@@ -159,7 +158,7 @@ class Aave {
 
             this.underlying[market] = market 
             this.closeFactor[market] = 0.5
-            
+
             const limits = await this.lendingPool.methods.getReserveLimits(market).call()
 
             const borrowCap = (Number(frozen) === 1) ? 1 : limits.borrowLimit
