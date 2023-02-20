@@ -252,7 +252,7 @@ if __name__ == '__main__':
     for a in data["liquidationIncentive"]:
         source_liquidation_incentive = data["liquidationIncentive"][a]
         data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - magic_number
-        print('liquidation incentives change from', source_liquidation_incentive, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
+        print('liquidation incentives change from', source_liquidation_incentive, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using magic_number:', magic_number)
 
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \
