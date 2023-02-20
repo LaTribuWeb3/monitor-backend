@@ -29,8 +29,8 @@ function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlipp
 
     // eslint-disable-next-line no-constant-condition
     while(true) {
-        // stops when we have found the min and max qty and when the difference
-        // between max and min is less than stopGap value
+        // stops when we have found the min and max qty and when 
+        // '(maxQty - minQty) * usdPrice' is less than 'stopConditionUSD'
         if(minQty && maxQty && (maxQty - minQty) * usdPrice  < stopConditionUSD) {
             break;
         }
