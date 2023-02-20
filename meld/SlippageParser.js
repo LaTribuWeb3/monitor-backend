@@ -25,8 +25,7 @@ function getLiquidityForSlippageWithBinarySearch(fromToken, toToken, targetSlipp
     let lastTry = 0;
     let foundSlippage = 0;
     let route = '';
-    // const stopCondition = 0.001; // define when we stop the loop, when minQty and maxQty are less than this value
-    const stopConditionUSD = 1; // define when we stop the loop, when minQty and maxQty are less than this value
+    const stopConditionUSD = 1; // define when we stop the loop, when '(maxQty - minQty) * usdPrice' is less than this value
 
     // eslint-disable-next-line no-constant-condition
     while(true) {
