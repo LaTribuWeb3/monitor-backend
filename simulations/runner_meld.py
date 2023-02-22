@@ -161,11 +161,7 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 elif quote_to_simulation in ["ADA", "iUSD", "iBTC"]:
                     new_c["volume_for_slippage_10_percents_price_drop"] = jj1[base_to_simulation]["ADA"]["volume"] / ETH_PRICE
 
-                new_c["collaterals"] = [5_0000 / ETH_PRICE, 10_000 / ETH_PRICE, 20_000 / ETH_PRICE,
-                                        30_000 / ETH_PRICE, 40_000 / ETH_PRICE,
-                                        50_000 / ETH_PRICE, 60_000 / ETH_PRICE, 70_000 / ETH_PRICE,
-                                        80_000 / ETH_PRICE, 90_000 / ETH_PRICE,
-                                        100_000 / ETH_PRICE, 250_000 / ETH_PRICE, 500_000 / ETH_PRICE,
+                new_c["collaterals"] = [100_000 / ETH_PRICE, 250_000 / ETH_PRICE, 500_000 / ETH_PRICE,
                                         750_000 / ETH_PRICE, 1_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
                                         10_000_000 / ETH_PRICE, 15_000_000 / ETH_PRICE, 20_000_000 / ETH_PRICE]
 
