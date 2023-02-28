@@ -1,6 +1,5 @@
 const { HadoukenParser } = require("./HadoukenParser.js");
 const { NervosLiquidityFetcher } = require("./NervosLiquidityFetcher.js");
-const {oracleUpdater} = require("./OracleParser.js")
 const fs = require('fs');
 const { hadoukenAddress } = require("./Addresses.js");
 
@@ -12,7 +11,6 @@ async function HadoukenRunner() {
 
         await NervosLiquidityFetcher();
         await HadoukenParser();
-        await oracleUpdater();
 
     }
 
@@ -28,4 +26,5 @@ async function HadoukenRunner() {
     }
  }
 
- HadoukenRunner()
+require("./OracleParser.js") // the oracle updater run itself every 10 minutes
+HadoukenRunner();
