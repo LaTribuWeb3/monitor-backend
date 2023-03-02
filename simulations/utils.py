@@ -594,14 +594,7 @@ def publish_results(SITE_ID, target=None):
 
 lastTGCallDate = None
 
-
-def send_telegram_alert(bot_id, chat_id, message):
-    url = f'https://api.telegram.org/bot{bot_id}/sendMessage?chat_id={chat_id}&text={message}'
-    print(url)
-    requests.get(url)
-
-
-def send_telegram_alert1(bot_id, chat_id, message, is_markdown=False):
+def send_telegram_alert(bot_id, chat_id, message, is_markdown=False):
     callData = {
         "chat_id": chat_id,
         "text": message,
