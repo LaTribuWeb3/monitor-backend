@@ -1,9 +1,12 @@
-const meldData = require('./dummy_user_data2.json');
+let meldData = undefined;
 const fs = require('fs');
 const { tokens } = require('./Addresses');
 const { BigNumber } = require('ethers');
 const { BNToHex } = require('../utils/TokenHelper');
+const { default: axios } = require('axios');
 require('dotenv').config();
+
+
 
 function getMarkets() {
     const markets = [];
@@ -56,7 +59,11 @@ function getBorrowCaps(marketMap) {
     const borrowCaps = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
-        borrowCaps[marketName] = assetStateMap.asRiskParameters.rpBorrowCap.toString();
+        if(assetStateMap.asRiskParameters.rpBorrowCap == 0) {
+            borrowCaps[marketName] = BNToHex('1');
+        } else {
+            borrowCaps[marketName] = BNToHex(assetStateMap.asRiskParameters.rpBorrowCap.toString());
+        }
     }
 
     return borrowCaps;
@@ -70,7 +77,11 @@ function getCollateralCaps(marketMap) {
     const collateralCaps = {};
     for (const [tokenId, marketName] of Object.entries(marketMap)) {
         const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
-        collateralCaps[marketName] = assetStateMap.asRiskParameters.rpSupplyCap.toString();
+        if(assetStateMap.asRiskParameters.rpSupplyCap == 0) {
+            collateralCaps[marketName] = BNToHex('1');
+        } else {
+            collateralCaps[marketName] = BNToHex(assetStateMap.asRiskParameters.rpSupplyCap.toString());
+        }
     }
 
     return collateralCaps;
@@ -102,10 +113,9 @@ function getPrices(marketMap, decimals) {
         const assetState = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
         const meldPrice = assetState.asPrice; // in USD
         console.log('meldPrice', meldPrice);
-        const meldPriceWith6Decimals = Math.round(meldPrice * 1e6);
-        console.log('meldPriceWith6Decimals', meldPriceWith6Decimals);
-        const meldPrice18Decimals = BigNumber.from(meldPriceWith6Decimals).mul(BigNumber.from(10).pow(12));
-
+        const meldPriceWith10Decimals = Math.round(meldPrice * 1e10);
+        console.log('meldPriceWith10Decimals', meldPriceWith10Decimals);
+        const meldPrice18Decimals = BigNumber.from(meldPriceWith10Decimals).mul(BigNumber.from(10).pow(8));
         console.log('meldPrice18Decimals', meldPrice18Decimals.toString());
 
         // now we must pad with a number of zeroes = 18 - decimals
@@ -120,20 +130,18 @@ function getPrices(marketMap, decimals) {
 }
 
 /**
- * 
  * @param {{[marketId: string]: string} marketMap 
  */
 function getTotalCollaterals(marketMap) {
     const tempCollaterals = {}; // used for sum
     for (let i = 0; i < meldData.qrdAccountList.length; i++) {
         const meldUser = meldData.qrdAccountList[i];
-        for (let j = 0; j < meldUser.asCollaterals.length; j++) {
-            const tokenId = meldUser.asCollaterals[j];
+        for (const [tokenId, tokenVal] of Object.entries(meldUser.asDeposits)) {
             const marketName = marketMap[tokenId];
             if (tempCollaterals[marketName] == undefined) {
-                tempCollaterals[marketName] = meldUser.asDeposits[tokenId]['avAmount'];
+                tempCollaterals[marketName] = tokenVal['avAmount'];
             } else {
-                tempCollaterals[marketName] += meldUser.asDeposits[tokenId]['avAmount'];
+                tempCollaterals[marketName] += tokenVal['avAmount'];
             }
         }
     }
@@ -171,7 +179,7 @@ function getUsers(markets, marketMap) {
                 userBorrow[marketName] = '0';
             }
 
-            if (meldUser.asCollaterals.includes(Number(tokenId))) {
+            if (meldUser.asDeposits[tokenId]) {
                 userCollateral[marketName] = BNToHex(meldUser.asDeposits[tokenId]['avAmount'].toString());
                 hasAnyBorrowOrCollateral = true;
             } else {
@@ -205,7 +213,7 @@ function getDecimals(markets) {
 
 function getDecimalForTokenHex(tokenHexKey) {
     let decimals = 6; // default for ADA
-    if(tokenHexKey != 'lovelace') {
+    if (tokenHexKey != 'lovelace') {
         const foundConfToken = tokens.find(t => t.hexKey.toLowerCase() == tokenHexKey.toLowerCase());
         if (!foundConfToken) {
             throw new Error('Cannot find symbol in configuration for hexKey: ' + tokenHexKey);
@@ -216,8 +224,8 @@ function getDecimalForTokenHex(tokenHexKey) {
     return decimals;
 }
 
-function getSymbolForTokenHex(tokenHexKey) {    
-    if (tokenHexKey== 'lovelace') {
+function getSymbolForTokenHex(tokenHexKey) {
+    if (tokenHexKey == 'lovelace') {
         return 'ADA';
     } else {
         // find the token with the hex key
@@ -241,6 +249,14 @@ function getNames(markets) {
 }
 
 async function TranslateMeldData() {
+    // get MeldData
+    try {
+        const meldResponse = await axios.get(process.env.MELD_APIURL);
+        meldData = meldResponse.data;
+    } catch (error) {
+        console.log('could not fetch meld data');
+        console.error(error);
+    }
     // get markets
     const { markets, marketMap } = getMarkets();
     console.log('markets', markets);
@@ -324,7 +340,5 @@ async function TranslateMeldData() {
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
     return true;
 }
-
 // TranslateMeldData();
-
 module.exports = { TranslateMeldData };

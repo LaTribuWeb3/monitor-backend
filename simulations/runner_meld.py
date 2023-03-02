@@ -227,7 +227,7 @@ if __name__ == '__main__':
     SITE_ID = "5"
     SITE_ID = utils.get_site_id(SITE_ID)
 
-    assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "INDY", "HOSKY", "COPI", "C3", "WMT"]
+    assets_to_simulate = ["ADA", "WRT", "MIN", "MELD", "iUSD", "iBTC", "HOSKY", "COPI", "C3", "WMT"]
     ETH_PRICE = 1600
     total_jobs = 5
     assets_aliases = {}
@@ -247,12 +247,12 @@ if __name__ == '__main__':
     protocol_fees = data['protocolFees']
     magic_number = private_config.meld_magic_number
 
-    # substract protocol fees for each liquidation incentives
+    # substract magic number for each liquidation incentives
     source_liquidation_incentive = 0
     for a in data["liquidationIncentive"]:
         source_liquidation_incentive = data["liquidationIncentive"][a]
         data["liquidationIncentive"][a] = float(data["liquidationIncentive"][a]) - magic_number
-        print('liquidation incentives change from', source_liquidation_incentive, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using protocol fees:', protocol_fees)
+        print('liquidation incentives change from', source_liquidation_incentive, 'to', data["liquidationIncentive"][a], 'for asset', a, 'using magic_number:', magic_number)
 
     cp_parser = compound_parser.CompoundParser()
     users_data, assets_liquidation_data, \
