@@ -61,9 +61,9 @@ async function hadoukenUSDLiquidityFetcher() {
         const CkbEth = '0x7538c85cae4e4673253ffd2568c1f1b48a71558a_0x9e858a7aaedf9fdb1026ab1f77f627be2791e98a'
         const CkbWbtc = '0x7538c85cae4e4673253ffd2568c1f1b48a71558a_0x82455018f2c32943b3f12f4e59d0da2faf2257ef'
         const WbtcCkb = '0x82455018f2c32943b3f12f4e59d0da2faf2257ef_0x7538c85cae4e4673253ffd2568c1f1b48a71558a'
-        const WbtcLqty = liquidity['1'][1].slice(0, -2);
-        const EthLqty = liquidity['1'][2].slice(0, -12);
-        const CkbLqty = liquidity['1'][0].slice(0, -12);
+        const WbtcLqty = liquidity['1'][1];
+        const EthLqty = liquidity['1'][2];
+        const CkbLqty = liquidity['1'][0];
         formattedOutput['lastUpdate'] = Math.floor(Date.now() / 1000);
         
         formattedOutput[WbtcEth] = {
@@ -109,6 +109,4 @@ async function hadoukenUSDLiquidityFetcher() {
     }
  }
 
- hadoukenWBTCLiquidityFetcher();
-
- module.exports = {hadoukenUSDLiquidityFetcher}
+ module.exports = {hadoukenUSDLiquidityFetcher, hadoukenWBTCLiquidityFetcher}
