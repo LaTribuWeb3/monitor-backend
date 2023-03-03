@@ -31,7 +31,8 @@ async function hadoukenUSDLiquidityFetcher() {
             };
         
 
-        return formattedOutput;
+        console.log(formattedOutput)
+        // return formattedOutput;
         }
     catch (e) {
         console.log('Error occured:', e);
@@ -42,5 +43,42 @@ async function hadoukenUSDLiquidityFetcher() {
         console.log('============================================');
     }
  }
+
+ async function hadoukenWBTCLiquidityFetcher() {
+    const web3 = new Web3("https://v1.mainnet.godwoken.io/rpc");
+    try {
+        console.log('============================================');
+        console.log(`Started fetching WBTC/ETH/CKB liquidity at ${new Date()}`);
+        pool = new web3.eth.Contract(hadoukenUSDPoolABI, hadoukenUSDPoolAddress);
+        ampParameters = await pool.methods.getAmplificationParameter().call();
+        ampFactor = Number(ampParameters["value"]) / Number(ampParameters["precision"]);
+        vault = new web3.eth.Contract(hadoukenVaultAbi, hadoukenVaultAddress);
+        liquidity = await vault.methods.getPoolTokens('0xd0b29dda7bf9ba85f975170e31040a959e4c59e1000100000000000000000004').call();
+        formattedOutput = {}
+        console.log(liquidity)
+        // const UsdcUsdt = liquidity['0'][0] + '_' + liquidity['0'][1];
+        // const UsdtUsdc = liquidity['0'][1] + '_' + liquidity['0'][0];
+        const WbtcEth = '0x82455018f2c32943b3f12f4e59d0da2faf2257ef_0x9e858a7aaedf9fdb1026ab1f77f627be2791e98a'
+        const EthWbtc = '0x9e858a7aaedf9fdb1026ab1f77f627be2791e98a_0x82455018f2c32943b3f12f4e59d0da2faf2257ef'
+        const EthCkb = '0x9e858a7aaedf9fdb1026ab1f77f627be2791e98a_0x7538c85cae4e4673253ffd2568c1f1b48a71558a'
+        const CkbEth = '0x7538c85cae4e4673253ffd2568c1f1b48a71558a_0x9e858a7aaedf9fdb1026ab1f77f627be2791e98a'
+        const CkbWbtc = '0x7538c85cae4e4673253ffd2568c1f1b48a71558a_0x82455018f2c32943b3f12f4e59d0da2faf2257ef'
+        const WbtcCkb = '0x82455018f2c32943b3f12f4e59d0da2faf2257ef_0x7538c85cae4e4673253ffd2568c1f1b48a71558a'
+        formattedOutput['lastUpdate'] = Math.floor(Date.now() / 1000);
+        
+
+        return formattedOutput;
+        }
+    catch (e) {
+        console.log('Error occured:', e);
+        return false;
+    }
+    finally {
+        console.log(`Ended fetching WBTC/ETH/CKB liquidity at ${new Date()}`);
+        console.log('============================================');
+    }
+ }
+
+ hadoukenUSDLiquidityFetcher();
 
  module.exports = {hadoukenUSDLiquidityFetcher}
