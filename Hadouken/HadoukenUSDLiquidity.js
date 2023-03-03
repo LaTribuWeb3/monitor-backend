@@ -29,10 +29,7 @@ async function hadoukenUSDLiquidityFetcher() {
                 token1: liquidity['1'][0].slice(0, -12),
                 ampFactor: ampFactor
             };
-        
-
-        console.log(formattedOutput)
-        // return formattedOutput;
+        return formattedOutput;
         }
     catch (e) {
         console.log('Error occured:', e);
@@ -66,7 +63,36 @@ async function hadoukenUSDLiquidityFetcher() {
         const WbtcCkb = '0x82455018f2c32943b3f12f4e59d0da2faf2257ef_0x7538c85cae4e4673253ffd2568c1f1b48a71558a'
         formattedOutput['lastUpdate'] = Math.floor(Date.now() / 1000);
         
-
+        formattedOutput[WbtcEth] = {
+            token0: liquidity['1'][1].slice(0, -8),
+            token1: liquidity['1'][2].slice(0, -12),
+            ampFactor: ampFactor
+        }
+        formattedOutput[EthWbtc] ={
+            token0: liquidity['1'][2].slice(0, -12),
+            token1: liquidity['1'][1].slice(0, -8),
+            ampFactor: ampFactor
+        }
+        formattedOutput[EthCkb] = {
+            token0: liquidity['1'][2].slice(0, -12),
+            token1: liquidity['1'][0].slice(0, -12),
+            ampFactor: ampFactor
+        }
+        formattedOutput[CkbEth] = {
+            token0: liquidity['1'][1].slice(0, -12),
+            token1: liquidity['1'][2].slice(0, -12),
+            ampFactor: ampFactor
+        }
+        formattedOutput[CkbWbtc] = {
+            token0: liquidity['1'][1].slice(0, -12),
+            token1: liquidity['1'][1].slice(0, -8),
+            ampFactor: ampFactor
+        }
+        formattedOutput[WbtcCkb] = {
+            token0: liquidity['1'][1].slice(0, -8),
+            token1: liquidity['1'][0].slice(0, -12),
+            ampFactor: ampFactor
+        }
         return formattedOutput;
         }
     catch (e) {
@@ -78,7 +104,5 @@ async function hadoukenUSDLiquidityFetcher() {
         console.log('============================================');
     }
  }
-
- hadoukenUSDLiquidityFetcher();
 
  module.exports = {hadoukenUSDLiquidityFetcher}
