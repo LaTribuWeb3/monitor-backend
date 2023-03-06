@@ -64,9 +64,6 @@ async function hadoukenUSDLiquidityFetcher() {
     try {
         console.log('============================================');
         console.log(`Started fetching WBTC/ETH/CKB liquidity at ${new Date()}`);
-        const pool = new web3.eth.Contract(hadoukenUSDPoolABI, hadoukenUSDPoolAddress);
-        const ampParameters = await pool.methods.getAmplificationParameter().call();
-        const ampFactor = Number(ampParameters["value"]) / Number(ampParameters["precision"]);
         const vault = new web3.eth.Contract(hadoukenVaultAbi, hadoukenVaultAddress);
         const liquidity = await vault.methods.getPoolTokens('0xd0b29dda7bf9ba85f975170e31040a959e4c59e1000100000000000000000004').call();
         const formattedOutput = {}
@@ -95,36 +92,30 @@ async function hadoukenUSDLiquidityFetcher() {
         formattedOutput[WbtcEth] = {
             token0: WbtcLqty,
             token1: EthLqty,
-            ampFactor: ampFactor
         }
         formattedOutput[EthWbtc] ={
             token0: EthLqty,
             token1: WbtcLqty,
-            ampFactor: ampFactor
         }
         formattedOutput[EthCkb] = {
             token0: EthLqty,
             token1: CkbLqty,
-            ampFactor: ampFactor
         }
         formattedOutput[CkbEth] = {
             token0: CkbLqty,
             token1: EthLqty,
-            ampFactor: ampFactor
         }
         formattedOutput[CkbWbtc] = {
             token0: CkbLqty,
             token1: WbtcLqty,
-            ampFactor: ampFactor
         }
         formattedOutput[WbtcCkb] = {
             token0: WbtcLqty,
             token1: CkbLqty,
-            ampFactor: ampFactor
         }
         console.log(formattedOutput);
         return formattedOutput;
-        }
+    }
     catch (e) {
         console.log('Error occured:', e);
         return false;

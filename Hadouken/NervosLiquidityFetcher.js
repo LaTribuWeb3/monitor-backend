@@ -28,7 +28,7 @@ async function NervosLiquidityFetcher() {
             }
             else{
                 aggregated_liquidity[entry] = WBTCLiquidity[entry]
-                aggregated_liquidity[entry]['type'] = 'curve'
+                aggregated_liquidity[entry]['type'] = 'uniswap'
             }
         }
         for(entry in GeneralLiquidity){
