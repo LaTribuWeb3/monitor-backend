@@ -1,5 +1,5 @@
-const { getTokaiLiquidity } = require("../yokaiswap/univ2Parser.js");
-const { hadoukenUSDLiquidityFetcher } = require("./HadoukenUSDLiquidity.js");
+const { getTokaiLiquidity } = require("../yokaiswap/univ2Parser");
+const { hadoukenUSDLiquidityFetcher, hadoukenWBTCLiquidityFetcher } = require("./HadoukenSpecificLiquidity");
 const fs = require('fs');
 
 
@@ -9,6 +9,7 @@ async function NervosLiquidityFetcher() {
         console.log(`Started Nervos liquidity fetcher at ${new Date()}`);
 
         const USDLiquidity = await hadoukenUSDLiquidityFetcher();
+        const WBTCLiquidity = await hadoukenWBTCLiquidityFetcher();
         const GeneralLiquidity = await getTokaiLiquidity();
         
 
@@ -22,12 +23,25 @@ async function NervosLiquidityFetcher() {
                 aggregated_liquidity[entry]['type'] = 'curve'
             }
         }
+        for(entry in WBTCLiquidity){
+            if(entry === "lastUpdate"){
+            }
+            else{
+                aggregated_liquidity[entry] = WBTCLiquidity[entry]
+                aggregated_liquidity[entry]['type'] = 'uniswap'
+            }
+        }
         for(entry in GeneralLiquidity){
             if(entry === "lastUpdate"){
             }
             else{
-                aggregated_liquidity[entry] = GeneralLiquidity[entry]
-                aggregated_liquidity[entry]['type'] = 'uniswap'
+                // only add liquidity from yokai swap if we don't already have it
+                if(!aggregated_liquidity[entry]) {
+                    aggregated_liquidity[entry] = GeneralLiquidity[entry]
+                    aggregated_liquidity[entry]['type'] = 'uniswap'
+                } else {
+                    console.log(`Liquidity for ${entry} already exists`);
+                }
             }
         }
 
