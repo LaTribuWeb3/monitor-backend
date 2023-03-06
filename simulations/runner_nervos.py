@@ -161,8 +161,9 @@ if __name__ == '__main__':
         WCKB = "0xC296F806D15e97243A08334256C705bA5C5754CD"
         USDT = "0x8E019acb11C7d17c26D334901fA2ac41C1f44d50"
         BTC = "0x82455018F2c32943b3f12F4e59D0DA2FAf2257Ef"
-
-        allTokens = [ETH, BNB, USDC, WCKB, USDT, BTC]
+        CKB = "0x7538C85caE4E4673253fFd2568c1F1b48A71558a"
+        
+        allTokens = [ETH, BNB, USDC, WCKB, USDT, BTC, CKB]
         ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals, allTokens)
         base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
         base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
