@@ -33,16 +33,6 @@ class KyberPrices:
     def get_gas_price(self, chain_id):
         print('getting gas price for chainid', chain_id)
         rpcUrl = ''
-        if chain_id == '100': # gnosis
-            rpcUrl = 'https://rpc.ankr.com/gnosis'
-        elif chain_id == '1313161554': # aurora
-            rpcUrl = 'https://mainnet.aurora.dev'
-        elif chain_id == '42161': # arbitrum
-            rpcUrl = 'https://rpc.ankr.com/arbitrum'
-        else: 
-            raise Exception("get_gast_price: unknown chain id: " + self.chain_id)
-    
-
         callDataJson = json.dumps({
             "jsonrpc": "2.0",
             "method": "eth_feeHistory",
@@ -53,18 +43,40 @@ class KyberPrices:
             ],
             "id": 1
         })
+        modeFeeHistory = True
+        if chain_id == '100': # gnosis
+            # for gnosis, fee history does not work, get the value from history
+            rpcUrl = 'https://rpc.ankr.com/gnosis'
+            modeFeeHistory = False
+            callDataJson = json.dumps({
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": "eth_gasPrice",
+                            "params": []
+                        })
+            
+        elif chain_id == '1313161554': # aurora
+            rpcUrl = 'https://mainnet.aurora.dev'
+        elif chain_id == '42161': # arbitrum
+            rpcUrl = 'https://rpc.ankr.com/arbitrum'
+        else: 
+            raise Exception("get_gast_price: unknown chain id: " + self.chain_id)
+    
 
-        feeHistoryResponse = requests.post(rpcUrl, data=callDataJson)
-        feeHistoryResponseData = feeHistoryResponse.json()
-        fees = feeHistoryResponseData['result']['baseFeePerGas']
-
-        avgFee = 0
-        for fee in fees:
-            print('fee', fee,  int(fee, 16))
-            avgFee += int(fee, 16)
-        
-        avgFee = avgFee / len(fees)
-        return int(avgFee)
+        feeReponse = requests.post(rpcUrl, data=callDataJson)
+        feeReponseData = feeReponse.json()
+        fees = None
+        if modeFeeHistory:
+            fees = feeReponseData['result']['baseFeePerGas']
+            avgFee = 0
+            for fee in fees:
+                print('fee', fee,  int(fee, 16))
+                avgFee += int(fee, 16)
+            
+            avgFee = avgFee / len(fees)
+            return int(avgFee)
+        else:
+            return int(feeReponseData['result'], 16)
     
     def get_price(self, base, quote, volume_in_base):
         fnName = 'getPrice['+ base + '/' + quote + ']:'
