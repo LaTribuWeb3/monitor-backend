@@ -29,7 +29,7 @@ class KyberPrices:
         self.inv_names = inv_names
         self.chain_id = network
 
-    # get gas price from rpc fee history
+    # get gas price from rpc
     def get_gas_price(self, chain_id):
         print('getting gas price for chainid', chain_id)
         rpcUrl = ''
