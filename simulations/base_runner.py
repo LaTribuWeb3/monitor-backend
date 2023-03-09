@@ -116,7 +116,8 @@ def create_oracle_information(SITE_ID, prices, chain_id, names, assets_cex_alias
             elif chain_id == "yokaiswap" or chain_id == "og":
                 if asset_name != "USDC":
                     dex_price = dex_get_price_function("USDC", asset_name, 1000) if asset_name not in dex_ignore_list else 'NaN'
-                    print(dex_price)
+        
+        print('dex price:', asset_name, dex_price)
 
         data[asset_name] = {"oracle": prices[asset_id], "cex_price": cex_price, "dex_price": dex_price}
 
