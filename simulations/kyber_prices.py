@@ -32,13 +32,16 @@ class KyberPrices:
     # get gas price from rpc fee history
     def get_gas_price(self, chain_id):
         print('getting gas price for chainid', chain_id)
-        rpcUrl = 'https://www.ankr.com/rpc/'
+        rpcUrl = ''
         if chain_id == '100': # gnosis
             rpcUrl = 'https://rpc.ankr.com/gnosis'
         elif chain_id == '1313161554': # aurora
             rpcUrl = 'https://mainnet.aurora.dev'
         elif chain_id == '42161': # arbitrum
             rpcUrl = 'https://rpc.ankr.com/arbitrum'
+        else: 
+            raise Exception("get_gast_price: unknown chain id: " + self.chain_id)
+    
 
         callDataJson = json.dumps({
             "jsonrpc": "2.0",
