@@ -11,7 +11,7 @@ def update_site(SITE_ID, name):
         print(SITE_ID, "Git updated")
 
 update = True
-update_site("0", "aurigami")
+#update_site("0", "aurigami")
 update_site("1", "nervos")
 update_site("2", "vesta")
 update_site("gearbox/main", "gearbox")

@@ -1,21 +1,21 @@
 import matplotlib.pyplot as plt
 import random
+
 random.seed(3)
 
-class curve_lion:
 
-    def __init__(self, A, ebtc_balance, wbtc_balance, liquidation_incentive, eth_volume_for_slippage, eth_slippage, recovery_halflife):
+class curve_lion:
+    def __init__(self, A, ebtc_balance, wbtc_balance, liquidation_incentive, eth_slippage, recovery_halflife):
         self.A = A
         self.initail_ebtc_balance = ebtc_balance
         self.initial_wbtc_balance = wbtc_balance
-        self.ebtc_balance = ebtc_balance
-        self.wbtc_balance = wbtc_balance
         self.ebtc_index = 0
         self.wbtc_index = 1
         self.liquidation_incentive = liquidation_incentive
         self.recovery_halflife = recovery_halflife
-        self.eth_volume_for_slippage = eth_volume_for_slippage
         self.eth_slippage = eth_slippage
+        self.ebtc_balance = self.initail_ebtc_balance
+        self.wbtc_balance = self.initial_wbtc_balance
 
     def get_y(self, i, j, x, _xp, N_COINS, A):
         # x in the input is converted to the same price/precision
@@ -55,15 +55,15 @@ class curve_lion:
 
     def do_tick(self):
 
-        missing_wbtc_balance = self.wbtc_balance - self.initial_wbtc_balance
-        next_missing_wbtc_balance = missing_wbtc_balance * pow(0.5, 1 / (self.recovery_halflife * 24 * 60))
-        current_recovery_volume_retail = missing_wbtc_balance - next_missing_wbtc_balance
-        recovery_volume_wbtc = min(current_recovery_volume_retail, missing_wbtc_balance)
-
+        missing_ebtc_balance = self.initail_ebtc_balance - self.ebtc_balance
+        next_missing_ebtc_balance = missing_ebtc_balance * pow(0.5, 1 / (self.recovery_halflife * 24 * 60))
+        current_recovery_volume_retail = missing_ebtc_balance - next_missing_ebtc_balance
+        recovery_volume_ebtc = min(current_recovery_volume_retail, missing_ebtc_balance)
         # get return
-        self.ebtc_balance += self.get_return(self.wbtc_index,self.ebtc_index, recovery_volume_wbtc,
-                                             [self.ebtc_balance, self.wbtc_balance])
-        self.wbtc_balance -= recovery_volume_wbtc
+        self.wbtc_balance -= self.get_return(self.ebtc_index, self.wbtc_index, recovery_volume_ebtc,
+                                             [self.wbtc_balance, self.ebtc_balance])
+
+        self.ebtc_balance += recovery_volume_ebtc
 
     def get_return(self, i, j, x, balances):
         return self.get_y(i, j, x + balances[i], balances, len(balances), self.A)
@@ -95,58 +95,78 @@ class curve_lion:
 
     def get_price(self, ebtc_balance, wbtc_balance):
         qty = 1e8
-        # wbtc => ebtc
-        return qty / self.get_return(self.wbtc_index, self.ebtc_index, qty, [ebtc_balance, wbtc_balance])
+        xx = self.get_return(self.wbtc_index, self.ebtc_index, qty, [ebtc_balance, wbtc_balance])
+        if xx == 0:
+            print(ebtc_balance, wbtc_balance)
+        return qty / xx
 
-    def get_buy_sell_qty(self, liquidation_size_in_ebtc, update_balance):
-        max_price = 1 + self.liquidation_incentive
+    def get_buy_sell_qty(self, liquidation_size_in_ebtc, eth_volume_for_slippage, CR, update_balance):
+
+        # print("liquidation_size_in_ebtc", liquidation_size_in_ebtc,
+        #       "eth_volume_for_slippage", eth_volume_for_slippage,
+        #       "CR", CR,
+        #       "A", self.A,
+        #     "eth_slippage", self.eth_slippage,
+        #     "ebtc_balance", self.ebtc_balance,
+        #     "wbtc_balance", self.wbtc_balance)
+
+        max_price = CR
         upper_bound = liquidation_size_in_ebtc * 2
         lower_bound = 0
         wbtc_sell_qty = 0
         ebtc_return_qty = 0
+        effective_slippage = 0
         while (upper_bound - lower_bound > 2):
             wbtc_sell_qty = (upper_bound + lower_bound) / 2
             ebtc_return_qty = self.get_return(self.wbtc_index, self.ebtc_index, wbtc_sell_qty,
                                               [self.ebtc_balance, self.wbtc_balance])
             new_price = self.get_price(self.ebtc_balance - ebtc_return_qty, self.wbtc_balance + wbtc_sell_qty)
             # adjust to slippage
-            effective_slippage = self.eth_slippage * wbtc_sell_qty / self.eth_volume_for_slippage
+            effective_slippage = (CR - 1) * wbtc_sell_qty / eth_volume_for_slippage
             new_price = new_price * (1 + effective_slippage)
 
             if (new_price > max_price) or (ebtc_return_qty > liquidation_size_in_ebtc):
                 upper_bound = (wbtc_sell_qty + upper_bound) / 2
             else:
                 lower_bound = (wbtc_sell_qty + lower_bound) / 2
-            #print(new_price, upper_bound / 1e14, lower_bound / 1e14, wbtc_sell_qty / 1e14, "M", effective_slippage)
+            # print(new_price, upper_bound / 1e14, lower_bound / 1e14, wbtc_sell_qty / 1e14, "M", effective_slippage)
 
-        if update_balance:
+        if update_balance and ebtc_return_qty > 0:
             self.wbtc_balance += wbtc_sell_qty
             self.ebtc_balance -= ebtc_return_qty
-        return ebtc_return_qty
+
+        result = {"return_qty": ebtc_return_qty, "uniswap_slippage": effective_slippage,
+                "curve_slippage": 0 if wbtc_sell_qty == 0 else ebtc_return_qty / wbtc_sell_qty - effective_slippage}
+        return result
+        # return ebtc_return_qty
+
+# A = 200
+# initial_balance = 1_000_000e8
+# liquidation_incentive = 0.1
+# slippage_for_volume = (100000e8, 0.1)
+# trade_volume = 100_000e8
+# recovery_halflife = 1
+#
+# cl = curve_lion(200, initial_balance, initial_balance, liquidation_incentive, slippage_for_volume[0],
+#                 slippage_for_volume[1], recovery_halflife)
+#
+# #cl.get_buy_sell_qty(trade_volume / 3, True)
+# x = []
+# y = []
+#
+# for i in range(24 * 60 * 10 * 10):
+#     cl.do_tick()
+#     price = cl.get_price(cl.ebtc_balance, cl.wbtc_balance)
+#     x.append(i)
+#     y.append(price)
+#     if i % random.randint(900, 1100) == 0:
+#         qty = ((i * 7) % 77) * trade_volume
+#         cl.get_buy_sell_qty(qty, True)
+#
+# plt.plot(x, y)
+# plt.show()
 
 
-A = 200
-initial_balance = 1_000_000e8
-liquidation_incentive = 0.1
-slippage_for_volume = (100000e8, 0.1)
-trade_volume = 100_000e8
-recovery_halflife = 1
-
-cl = curve_lion(200, initial_balance, initial_balance, liquidation_incentive, slippage_for_volume[0],
-                slippage_for_volume[1], recovery_halflife)
-
-#cl.get_buy_sell_qty(trade_volume / 3, True)
-x = []
-y = []
-
-for i in range(24 * 60 * 10 * 10):
-    cl.do_tick()
-    price = cl.get_price(cl.ebtc_balance, cl.wbtc_balance)
-    x.append(i)
-    y.append(price)
-    if i % random.randint(900, 1100) == 0:
-        qty = ((i * 7) % 77) * trade_volume
-        cl.get_buy_sell_qty(qty, True)
-
-plt.plot(x, y)
-plt.show()
+# cl = curve_lion(200, 2508418864.6128497, 29099217398.889412, "xxx", "xxx","xxx")
+# xx = cl.get_buy_sell_qty(888930531.7551273,221845205935.76663,1.1,False)["return_qty"]
+# print(xx)

@@ -4,6 +4,7 @@ import os
 import json
 import time
 import copy
+import curve_lion
 
 
 def create_simulation_config(SITE_ID, c, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names):
@@ -28,17 +29,25 @@ def create_simulation_config(SITE_ID, c, assets_to_simulate, assets_aliases, liq
     json.dump(data, fp)
 
 
-print_time_series = False
 fast_mode = False
+print_time_series = True
 ETH_PRICE = 1600
-total_jobs = 1
+total_jobs = 6
 assets_to_simulate = ["ETH"]
 quote_to_simulate = "BTC"
 
-l_factors = [0.25, 0.5, 1, 1.5, 2]
+l_factors = [0.25, 0.5, 1, 2]
 
-collaterals = [100_000_000 * (i + 1) / ETH_PRICE for i in range(10)]
-slippages = [10_000_000 * (i + 1) / ETH_PRICE for i in range(10)]
+inv_names = {}
+liquidation_incentive = {}
+inv_underlying = {}
+underlying = {}
+decimals = {}
+assets_aliases = {}
+collateral_factors = {}
+
+collaterals = [50_000_000 / ETH_PRICE]
+slippages = [50_000_000 / ETH_PRICE]
 
 c = {
     "series_std_ratio": 1,
@@ -50,17 +59,12 @@ c = {
     'share_institutionals': [0],
     'recovery_halflife_retails': [0],
     "price_recovery_times": [0],
-    "l_factors": [0.25, 0.5, 1, 1.5, 2],
-    "collateral_factor": 0
+    "l_factors": l_factors,
+    "collateral_factor": 0,
+    "const_crs": [0, 1.05, 1.1],
+    "box_initial_balances": [0.1, 0.25, 0.5, 0.75, 1],
+    "box_recovery_halflifes": [1, 2, 4, 5]
 }
-
-inv_names = {}
-liquidation_incentive = {}
-inv_underlying = {}
-underlying = {}
-decimals = {}
-assets_aliases = {}
-collateral_factors = {}
 
 for a in assets_to_simulate:
     inv_names[a] = a
@@ -74,9 +78,10 @@ for a in assets_to_simulate:
 SITE_ID = "badger"
 SITE_ID = utils.get_site_id(SITE_ID)
 
-base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BTC"],
+base_runner.create_assets_std_rס;atio_information(SITE_ID, ["ETH", "BTC"],
                                                 [("09", "2022"), ("10", "2022"), ("11", "2022")])
 
 create_simulation_config(SITE_ID, c, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
-base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series, fast_mode)
-base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
+base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series,
+                                      fast_mode)
+# base_runner.create_risk_params(SITE_ID, ETH_PRICE, total_jobs, l_factors, print_time_series)
