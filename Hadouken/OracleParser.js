@@ -5,6 +5,7 @@ const Addresses = require("./Addresses.js")
 let iter = 0
 let aave
 async function updateOracle() {
+    console.log('updateOracle: starting');
     try {
         aave.lastUpdateTime = Math.floor(+new Date() / 1000)  
 
@@ -14,10 +15,10 @@ async function updateOracle() {
         aave.getData()
     }
     catch(error) {
-        console.log(error, "will try again in 10 minutes")
+        console.log(error, "updateOracle: will try again in 10 minutes")
     }
 
-    console.log("sleeping for 10 minute")
+    console.log("updateOracle: sleeping for 10 minute")
     setTimeout(updateOracle, 1000 * 60 * 10)
 }
 
@@ -28,5 +29,6 @@ async function oracleUpdater() {
     await updateOracle(aave)
  }
 
+module.exports = {oracleUpdater}
 
- module.exports = {oracleUpdater}
+oracleUpdater();
