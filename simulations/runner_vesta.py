@@ -102,8 +102,16 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                     (2 * stability_pool_initial_balance) / current_debt]
                 # new_c["stability_pool_initial_balances"] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 
-            share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
-                base_id_to_simulation]) / stability_pool_initial_balance
+            print(
+                bprotocolVstBalance[base_id_to_simulation],
+                bprotocolGemBalance[base_id_to_simulation],
+                stability_pool_initial_balance)
+
+            if stability_pool_initial_balance > 0:
+                share_institutional = (bprotocolVstBalance[base_id_to_simulation] + bprotocolGemBalance[
+                    base_id_to_simulation]) / stability_pool_initial_balance
+            else:
+                share_institutional = 0
 
             new_c["share_institutionals"] = [
                 1 * share_institutional,

@@ -12,6 +12,7 @@ import utils
 from joblib import Parallel, delayed
 import shutil
 import stability_report
+import stability_report_badger
 import glob
 import sliipage_utils
 import traceback
@@ -345,9 +346,15 @@ def run_simulation_on_dir(ETH_PRICE, source_data, output_folder, collateral_fact
         try:
             n = name.split('-')[0] if len(name.split('-')) == 2 else name.split('-')[0] + "-" + name.split('-')[1]
             config["collateral_factor"] = collateral_factors[inv_names[n]]
-            sr = stability_report.stability_report()
-            sr.ETH_PRICE = ETH_PRICE
-            sr.run_simulation(output_folder, file, name, config, print_time_series, liquidation_df, skip, calc_pnl)
+            if not "badger" in output_folder:
+                sr = stability_report.stability_report()
+                sr.ETH_PRICE = ETH_PRICE
+                sr.run_simulation(output_folder, file, name, config, print_time_series, liquidation_df, skip, calc_pnl)
+            else:
+                sr = stability_report_badger.stability_report()
+                sr.ETH_PRICE = ETH_PRICE
+                sr.run_simulation(output_folder, file, name, config, print_time_series, liquidation_df, skip, calc_pnl)
+
         except Exception as e:
             print("Exception !!!!!!!!!!!!!!!", str(e))
             traceback.print_exc()

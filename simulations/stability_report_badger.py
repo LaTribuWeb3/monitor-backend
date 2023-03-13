@@ -279,7 +279,7 @@ class stability_report:
                 print("Skipping")
                 return ""
 
-            series_std_ratio = confiס;["series_std_ratio"]
+            series_std_ratio = config["series_std_ratio"]
             trade_every = config["trade_every"]
             report = []
             print(file_name)

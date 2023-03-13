@@ -78,8 +78,7 @@ for a in assets_to_simulate:
 SITE_ID = "badger"
 SITE_ID = utils.get_site_id(SITE_ID)
 
-base_runner.create_assets_std_rס;atio_information(SITE_ID, ["ETH", "BTC"],
-                                                [("09", "2022"), ("10", "2022"), ("11", "2022")])
+base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BTC"],[("09", "2022"), ("10", "2022"), ("11", "2022")])
 
 create_simulation_config(SITE_ID, c, assets_to_simulate, assets_aliases, liquidation_incentive, inv_names)
 base_runner.create_simulation_results(SITE_ID, ETH_PRICE, total_jobs, collateral_factors, inv_names, print_time_series,
