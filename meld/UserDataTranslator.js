@@ -381,5 +381,5 @@ async function TranslateMeldData() {
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
     return true;
 }
-TranslateMeldData();
+// TranslateMeldData();
 module.exports = { TranslateMeldData };
