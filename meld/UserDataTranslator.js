@@ -6,8 +6,6 @@ const { BNToHex } = require('../utils/TokenHelper');
 const { default: axios } = require('axios');
 require('dotenv').config();
 
-
-
 function getMarkets() {
     const markets = [];
     const marketMap = {};
@@ -49,6 +47,39 @@ function getCollateralFactors(marketMap) {
     }
 
     return collateralFactors;
+}
+
+/**
+ * 
+ * @param {{[marketId: string]: string} marketMap 
+ */
+function getLTV(marketMap) {
+    const ltv = {};
+    for (const [tokenId, marketName] of Object.entries(marketMap)) {
+        const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
+        ltv[marketName] = assetStateMap.asRiskParameters.rpMaxLoanToValue.toString();
+    }
+
+    return ltv;
+}
+
+/**
+ * 
+ * @param {{[marketId: string]: string} marketMap 
+ */
+function getAdditionalRiskParams(marketMap) {
+    const additionnalRiskParams = {};
+    for (const [tokenId, marketName] of Object.entries(marketMap)) {
+        const assetStateMap = meldData.qrdGlobalState.gsAssetStateMap[tokenId];
+        additionnalRiskParams[marketName] = {
+            rpBaseBorrowingRate: assetStateMap.asRiskParameters.rpBaseBorrowingRate,
+            rpInterestRateSlope1: assetStateMap.asRiskParameters.rpInterestRateSlope1,
+            rpInterestRateSlope2: assetStateMap.asRiskParameters.rpInterestRateSlope2,
+            rpTargetUtilizationRate: assetStateMap.asRiskParameters.rpTargetUtilizationRate,
+        };
+    }
+
+    return additionnalRiskParams;
 }
 
 /**
@@ -315,6 +346,14 @@ async function TranslateMeldData() {
     const users = getUsers(markets, marketMap);
     console.log('users', users);
 
+    // get ltv
+    const ltv = getLTV(marketMap);
+    console.log('ltv', ltv);
+
+    // get additionnal risk params
+    const additionalRiskParams = getAdditionalRiskParams(marketMap);
+    console.log('additionnalRiskParams', additionalRiskParams);
+
     const data = {
         markets: markets,
         prices: prices,
@@ -328,6 +367,8 @@ async function TranslateMeldData() {
         underlying: underlying,
         closeFactor: closeFactor,
         protocolFees: protocolFees,
+        ltv: ltv,
+        additionalRiskParams:additionalRiskParams,
         totalBorrows: totalBorrows,
         totalCollateral: totalCollaterals,
         users: users
@@ -340,5 +381,5 @@ async function TranslateMeldData() {
     fs.writeFileSync('./user-data/data.json', JSON.stringify(data, null, 2));
     return true;
 }
-// TranslateMeldData();
+TranslateMeldData();
 module.exports = { TranslateMeldData };
