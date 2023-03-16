@@ -1,12 +1,14 @@
 const { tokens } = require('./Addresses');
 const fs = require('fs');
 
-const POINT_PER_GRAPH = 48; // 1 point per 30 min = 48 point per 24h
-const INTERVAL_BETWEEN_POINTS_SEC = 24 * 3600 / POINT_PER_GRAPH;
+const DAYS_TO_FETCH = 30;
+const POINT_PER_GRAPH = 60;
+const INTERVAL_BETWEEN_POINTS_SEC = DAYS_TO_FETCH * 24 * 3600 / POINT_PER_GRAPH;
 
 async function GraphDataExporter() {
     console.log('Creating Last Day Volume data from history src');
-    const since = Math.floor(Date.now()/1000) - 24 * 60 * 60;
+    console.log(`Will fetch ${DAYS_TO_FETCH} days, with 1 points every ${INTERVAL_BETWEEN_POINTS_SEC} seconds`);
+    const since = Math.floor(Date.now()/1000) - DAYS_TO_FETCH * 24 * 60 * 60;
     const reserveData = {};
     for(const token of tokens) {
         console.log(`[${token.symbol}] Working on token ${token.symbol}`);
