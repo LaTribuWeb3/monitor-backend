@@ -35,7 +35,7 @@ def create_simulation_config(SITE_ID, c, assets_to_simulate, assets_aliases, liq
 fast_mode = False
 print_time_series = True
 ETH_PRICE = 1600
-total_jobs = 8
+total_jobs = 12
 assets_to_simulate = ["ETH"]
 quote_to_simulate = "BTC"
 
