@@ -23,7 +23,7 @@ async function retry(fn, params, retries = 0, maxRetries = 50) {
         } 
         console.log(`retry #${retries}`);
         await new Promise(resolve => setTimeout(resolve, 1000 * 5 * retries));
-        return retry(fn, params, retries);
+        return retry(fn, params, retries, maxRetries);
     }
 }
 module.exports = { retry };
