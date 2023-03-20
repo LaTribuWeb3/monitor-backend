@@ -55,3 +55,17 @@ meld/.env
 meld/**/*.csv
 meld/**/*.json
 .vscode
+simulations/forex/DAT_XLSX_EURUSD_M1_2022.xlsx
+simulations/forex/DAT_XLSX_EURUSD_M1_2019.xlsx
+simulations/forex/DAT_XLSX_EURUSD_M1_2018.xlsx
+simulations/forex/DAT_XLSX_EURUSD_M1_2020.xlsx
+simulations/forex/DAT_XLSX_EURUSD_M1_2021.xlsx
+simulations/forex/DAT_XLSX_EURUSD_M1_202301.xlsx
+simulations/forex/real_euro_usd.csv
+simulations/forex/EURS.csv
+*.csv
+simulations/tester.py
+simulations/move_to_prod.py
+simulations/move_to_prod.py
+simulations/runner_meld-ori.py
+simulations/move_to_prod.py

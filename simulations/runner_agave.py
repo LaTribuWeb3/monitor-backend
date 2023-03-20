@@ -128,9 +128,9 @@ def fix_usd_volume_for_slippage():
 lending_platform_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "oracle.json"
 
-assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX', "USDT"]
+assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX', "USDT", "EURe"]
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
-                  'FOX': 'FOX', "USDT":"USDC"}
+                  'FOX': 'FOX', "USDT":"USDC", "EURe":"EUR"}
 
 ETH_PRICE = 1600
 print_time_series = False
