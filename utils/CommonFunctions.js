@@ -8,8 +8,8 @@
  */
 async function retry(fn, params, retries = 0, maxRetries = 50) {
     try {
-        const res = await  fn(...params);
-        if(retries){
+        const res = await fn(...params);
+        if (retries) {
             console.log(`retry success after ${retries} retries`);
         } else {
             console.log('success on first try');
@@ -18,12 +18,16 @@ async function retry(fn, params, retries = 0, maxRetries = 50) {
     } catch (e) {
         console.error(e);
         retries++;
-        if(retries >= maxRetries){
+        if (retries >= maxRetries) {
             throw e;
-        } 
+        }
         console.log(`retry #${retries}`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * 5 * retries));
+        await sleep(1000 * 5 * retries);
         return retry(fn, params, retries, maxRetries);
     }
 }
-module.exports = { retry };
+
+async function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+module.exports = { retry, sleep };
