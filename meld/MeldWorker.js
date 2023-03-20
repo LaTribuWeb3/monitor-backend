@@ -2,9 +2,8 @@ const { FetchMinswapData } = require('./MinSwapFetcher');
 const { ParseLiquidityAndSlippage } = require('./SlippageParser');
 const { TranslateMeldData } = require('./UserDataTranslator');
 const { FetchWingrindersData } = require('./WingridersLiquidityFetcher');
-const processExecutor = require('child_process');
+const { GraphDataExporter } = require('./GraphDataExporter');
 
-const pythonCommand = process.env.PYTHON_CMD ? process.env.PYTHON_CMD : 'python';
 
 async function main() {
     let success = false;
@@ -32,14 +31,11 @@ async function main() {
         if(!success) {
             return;
         }
-        
-        // processExecutor.execSync(`cd ../simulations && ${pythonCommand} runner_meld.py 1`, {stdio: 'inherit'});
 
-        // TODO CHECK FILES ARE UPDATED
-
-        // prepare other files needed
-        
-
+        success = await GraphDataExporter();
+        if(!success) {
+            return;
+        }
     }
     catch(e) {
         console.log('Error occured:', e);
