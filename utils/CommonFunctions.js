@@ -19,7 +19,7 @@ async function retry(fn, params, retries = 0, maxRetries = 50) {
         console.error(e);
         retries++;
         if(retries >= maxRetries){
-            throw(e);
+            throw e;
         } 
         console.log(`retry #${retries}`);
         await new Promise(resolve => setTimeout(resolve, 1000 * 5 * retries));
