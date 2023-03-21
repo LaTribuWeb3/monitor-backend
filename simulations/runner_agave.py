@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
         if os.path.exists(oracle_json_file):
             file = open(oracle_json_file)
-            oracle = json.load(file)
+            oracle = json.load(file)`
             data["prices"] = copy.deepcopy(oracle["prices"])
             print("FAST ORACLE")
 
