@@ -167,12 +167,13 @@ if __name__ == '__main__':
         if os.path.sep in SITE_ID:
             SITE_ID = SITE_ID.split(os.path.sep)[0]
         SITE_ID = utils.get_site_id(SITE_ID)
+        SITE_ID = "4/2023-3-21-8-40"
         file = open(lending_platform_json_file)
         data = json.load(file)
 
         if os.path.exists(oracle_json_file):
             file = open(oracle_json_file)
-            oracle = json.load(file)`
+            oracle = json.load(file)
             data["prices"] = copy.deepcopy(oracle["prices"])
             print("FAST ORACLE")
 
@@ -229,8 +230,8 @@ if __name__ == '__main__':
             
             print('new value for inv_names', inv_names)
 
-        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
-                                                    False)
+        # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
+        #                                             False)
         # fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
