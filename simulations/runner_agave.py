@@ -100,7 +100,9 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                                         900_000 / ETH_PRICE, 1_000_000 / ETH_PRICE,
                                         1_500_000 / ETH_PRICE, 2_000_000 / ETH_PRICE, 2_500_000 / ETH_PRICE,
                                         3_000_000 / ETH_PRICE,
-                                        4_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE]
+                                        4_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
+                                        6_000_000 / ETH_PRICE, 7_000_000 / ETH_PRICE, 8_000_000 / ETH_PRICE,
+                                        9_000_000 / ETH_PRICE, 10_000_000 / ETH_PRICE, 15_000_000 / ETH_PRICE]
                 if 0 in new_c["collaterals"]:
                     print(new_c)
                 new_c["current_debt"] = current_debt / ETH_PRICE
