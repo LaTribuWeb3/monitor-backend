@@ -329,17 +329,17 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
             prod_volume = prod_file[key1][key2]["volume"]
             change = 100 * (round((last_volume / prod_volume) - 1, 2))
 
-            # alert_params: 
+            # alert_params is an array of: 
             # {
-            #     "is_default": True, # is default mean it's the risk dao general channel where all msg are sent
-            #     "tg_bot_id": private_config.risk_dao_bot,
-            #     "tg_channel_id": private_config.risk_dao_channel,
-            #     "oracle_threshold": 3, # oracle threshold is always in absolute
-            #     "slippage_threshold": 10, # liquidity threshold before sending alert
-            #     "only_negative": False, # only send liquidity alert if the new volume < old volume
+            #     "is_default": boolean, # is default mean it's the risk dao general channel where all msg are sent
+            #     "tg_bot_id": string,
+            #     "tg_channel_id": string,
+            #     "oracle_threshold": number, # oracle threshold is always in absolute
+            #     "slippage_threshold": number, # liquidity threshold before sending alert
+            #     "only_negative": boolean, # only send liquidity alert if the new volume < old volume
             # }
             for alert_param in alert_params:
-                # send alert only if change > slippage threshold or if, when param only_negative == true and change is negative and change > param.slippage_threshold
+                # send alert only if change > slippage threshold or if, when param only_negative == true, and change is negative and abs(change) > param.slippage_threshold
                 must_send_alert = (not alert_param['only_negative'] and abs(change) > alert_param['slippage_threshold']) \
                                     or \
                                     (alert_param['only_negative'] and change < 0 and abs(change) > alert_param['slippage_threshold'])
@@ -355,7 +355,7 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
                     print(message)
                     alert_sent = True
                     if send_alerts:
-                        # for default channel, send alert
+                        # for default channel, send alert every time
                         if alert_param['is_default']:
                             print("Sending To TG")
                             send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], message)

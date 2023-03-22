@@ -267,14 +267,14 @@ if __name__ == '__main__':
             
             print('new value for inv_names', inv_names)
 
-        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, 
+                                                    False)
         # fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
 
             alert_params = get_alert_params()
-
             old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID, alert_params, send_alerts, ignore_list= ignore_list)
             print('old_alerts', old_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
