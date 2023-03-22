@@ -287,8 +287,9 @@ if __name__ == '__main__':
             d2 = utils.get_file_time(stnear_stash)
             d1 = min(d1, d2)
             d1 = min(last_update_time, d1)
+            
             alert_params = get_alert_params()
-
+            print('alert_params', alert_params)
             old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "aurigami", "0", SITE_ID, alert_params, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)

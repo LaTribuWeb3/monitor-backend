@@ -154,7 +154,7 @@ def get_alert_params():
     alert_params.append({
         "is_default": False, # is default mean it's the risk dao general channel where all msg are sent
         "tg_bot_id": private_config.risk_dao_bot,
-        "tg_channel_id": private_config.private_agave_channel,
+        "tg_channel_id": private_config.agave_channel_internal,
         "oracle_threshold": 3, # oracle threshold is always in absolute
         "slippage_threshold": 10, # liquidity threshold before sending alert
         "only_negative": True, # only send liquidity alert if the new volume < old volume
@@ -275,6 +275,7 @@ if __name__ == '__main__':
             d1 = min(last_update_time, d1)
 
             alert_params = get_alert_params()
+            print('alert_params', alert_params)
             old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID, alert_params, send_alerts, ignore_list= ignore_list)
             print('old_alerts', old_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")

@@ -205,7 +205,9 @@ if __name__ == '__main__':
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
+            
             alert_params = get_alert_params()
+            print('alert_params', alert_params)
             old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "nervos", "1", SITE_ID, alert_params, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
