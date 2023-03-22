@@ -127,6 +127,41 @@ def fix_usd_volume_for_slippage():
     fp.close()
 
 
+def get_alert_params():
+    alert_params = []
+    
+    # RISK DAO CHANNEL: send all alerts to risk_dao_channel
+    alert_params.append({
+        "is_default": True, # is default mean it's the risk dao general channel where all msg are sent
+        "tg_bot_id": private_config.risk_dao_bot,
+        "tg_channel_id": private_config.risk_dao_channel,
+        "oracle_threshold": 3, # oracle threshold is always in absolute
+        "slippage_threshold": 10, # liquidity threshold before sending alert
+        "only_negative": False, # only send liquidity alert if the new volume < old volume
+    })
+
+    # REAL AGAVE ALERT CHANNEL: send only oracle > 3% and liquidity alerts where <-50%
+    alert_params.append({
+        "is_default": False, # is default mean it's the risk dao general channel where all msg are sent
+        "tg_bot_id": private_config.risk_dao_bot,
+        "tg_channel_id": private_config.agave_channel,
+        "oracle_threshold": 3, # oracle threshold is always in absolute
+        "slippage_threshold": 50, # liquidity threshold before sending alert
+        "only_negative": True, # only send liquidity alert if the new volume < old volume
+    })
+    
+    # PRIVATE AGAVE CHANNEL: alerts when liquidity <-10%
+    alert_params.append({
+        "is_default": False, # is default mean it's the risk dao general channel where all msg are sent
+        "tg_bot_id": private_config.risk_dao_bot,
+        "tg_channel_id": private_config.private_agave_channel,
+        "oracle_threshold": 3, # oracle threshold is always in absolute
+        "slippage_threshold": 10, # liquidity threshold before sending alert
+        "only_negative": True, # only send liquidity alert if the new volume < old volume
+    })
+
+    return alert_params
+
 lending_platform_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "oracle.json"
 
@@ -232,14 +267,17 @@ if __name__ == '__main__':
             
             print('new value for inv_names', inv_names)
 
-        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
-                                                    False)
+        shutil.copyfile("usd_volume_for_slippage.json", "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
+        # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
         # fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
-            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID,
-                                                               private_config.agave_channel, 10, send_alerts, ignore_list= ignore_list)
+
+            alert_params = get_alert_params()
+
+            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "agave", "4", SITE_ID, alert_params, send_alerts, ignore_list= ignore_list)
+            print('old_alerts', old_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:

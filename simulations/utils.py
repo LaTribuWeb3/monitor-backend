@@ -292,21 +292,13 @@ def send_telegram_table(bot_id, chat_id, headers, rows):
     send_telegram_alert(bot_id, chat_id, f'```{table}```', is_markdown=True)
 
 
-def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, current_SITE_ID, client_chat_id,
-                                    slippage_threshold=5, send_alerts=False, new_json=False, send_table=False,
-                                    ignore_gb_redundant_tokens=False, ignore_list=[]):
+def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, current_SITE_ID, alert_params, send_alerts=False, ignore_list=[]):
     print("comparing to prod", name)
     prod_version = get_prod_version(name)
     print(prod_version)
-    if new_json:
-        prod_file = convert_liquitiy_json_to_slippage(
-            json.loads(get_git_json_file(base_SITE_ID, prod_version, "liquidity.json")))
-        file = json.load(open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "liquidity.json"))
-        last_file = convert_liquitiy_json_to_slippage(file)
-    else:
-        prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
-        file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
-        last_file = json.load(file)
+    prod_file = json.loads(get_git_json_file(base_SITE_ID, prod_version, "usd_volume_for_slippage.json"))
+    file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
+    last_file = json.load(file)
 
     time_from_now = datetime.datetime.now().timestamp() - data_time
     time_from_now /= 60
@@ -318,26 +310,17 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
 
     time_alert = time_from_now + "\n" + time_from_prod
 
-    liquidityAlerts = []
-
     alert_sent = False
     if send_alerts:
-        msg = "-------------------------------------------------"
-        if send_table:
-            msg += "\n"
-            msg += f'Liquidity check for {name}\n'
-            msg += time_alert
-        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
+        for alert_param in alert_params:
+            if alert_param['is_default']:
+                msg = "-------------------------------------------------"
+                send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], msg)
+    
     for key1 in prod_file:
         if key1 == "json_time": continue
         if key1 in ignore_list: continue
 
-        if ignore_gb_redundant_tokens:
-            if len(key1) > 3:  # this is checked to avoid ignoring CVX token but only the ones like 'cvxcrvFRAX'
-                # ignore stk... cvx... yv... tokens from gearbox as they share the same liquidity as their underlying
-                if str(key1).startswith('stk') or str(key1).startswith('cvx') or str(key1).startswith('yv'):
-                    print('Ignoring', key1)
-                    continue
         for key2 in prod_file[key1]:
             print(key1, key2)
             if key2 in ignore_list: continue
@@ -345,198 +328,152 @@ def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, c
             last_volume = last_file[key1][key2]["volume"]
             prod_volume = prod_file[key1][key2]["volume"]
             change = 100 * (round((last_volume / prod_volume) - 1, 2))
-            if abs(change) > slippage_threshold:
-                # last_volume = "{:,}".format(round(last_volume, 0))
-                # prod_volume = "{:,}".format(round(prod_volume, 0))
-                message = f"{name} " \
-                          f"\n{time_alert}" \
-                          f"\n{key1}.{key2}" \
-                          f"\nLiquidity Change by {round(change, 2)}% " \
-                          f"\nCurrent Volume: {last_volume}" \
-                          f"\nLast Simulation Volume: {prod_volume}"
-                print(message)
-                alert_sent = True
-                if send_alerts:
-                    if send_table:
-                        alert = {'market': key1, 'debt': key2, 'change': round(change, 2), 'last': last_volume,
-                                 'prod': prod_volume}
-                        liquidityAlerts.append(alert)
-                    else:
-                        print("Sending To TG")
-                        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
 
-                    if client_chat_id != "" and change < 0:
-                        message_key = f'{name}.slippage.{key1}.{key2}'
-                        last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                        if message_key not in old_alerts or abs(change) - abs(old_alerts[message_key]) > 10  \
-                                or np.sign(old_alerts[message_key]) != np.sign(change):
-                            print("Sensing To TG to client", message_key)
-                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                                message + "\nLast value:" + str(round(last_value, 2)))
-                            if message_key not in old_alerts:
-                                old_alerts[message_key] = 0
-                            old_alerts[message_key] = change
+            # alert_params: 
+            # {
+            #     "is_default": True, # is default mean it's the risk dao general channel where all msg are sent
+            #     "tg_bot_id": private_config.risk_dao_bot,
+            #     "tg_channel_id": private_config.risk_dao_channel,
+            #     "oracle_threshold": 3, # oracle threshold is always in absolute
+            #     "slippage_threshold": 10, # liquidity threshold before sending alert
+            #     "only_negative": False, # only send liquidity alert if the new volume < old volume
+            # }
+            for alert_param in alert_params:
+                # send alert only if change > slippage threshold or if, when param only_negative == true and change is negative and change > param.slippage_threshold
+                must_send_alert = (not alert_param['only_negative'] and abs(change) > alert_param['slippage_threshold']) \
+                                    or \
+                                    (alert_param['only_negative'] and change < 0 and abs(change) > alert_param['slippage_threshold'])
+                if must_send_alert:
+                    # last_volume = "{:,}".format(round(last_volume, 0))
+                    # prod_volume = "{:,}".format(round(prod_volume, 0))
+                    message = f"{name} " \
+                            f"\n{time_alert}" \
+                            f"\n{key1}.{key2}" \
+                            f"\nLiquidity Change by {round(change, 2)}% " \
+                            f"\nCurrent Volume: {last_volume}" \
+                            f"\nLast Simulation Volume: {prod_volume}"
+                    print(message)
+                    alert_sent = True
+                    if send_alerts:
+                        # for default channel, send alert
+                        if alert_param['is_default']:
+                            print("Sending To TG")
+                            send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], message)
 
-    ############ SEND LIQUIDITY MESSAGE AS TABLE #############
-    maxRowPerMsg = 40
-    if send_alerts and send_table and len(liquidityAlerts) > 0:
-        liquidityAlerts.sort(key=lambda x: abs(x['change']), reverse=True)
-        alreadyAddedTokens = []
-        rows = []
-        for alert in liquidityAlerts:
-            if alert['market'] not in alreadyAddedTokens:
-                alreadyAddedTokens.append(alert['market'])
-                change = alert['change']
-                lastVolumeClean = get_formatted_number_clean(alert['last'])
-                prodVolumeClean = get_formatted_number_clean(alert['prod'])
-                rows.append([alert['market'], f'{change}%', lastVolumeClean, prodVolumeClean])
-        if len(rows) > maxRowPerMsg:
-            callCount = math.ceil(len(rows) / maxRowPerMsg)
-            for cpt in range(callCount):
-                start = cpt * maxRowPerMsg
-                stop = (cpt + 1) * maxRowPerMsg
-                send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                                    ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows[start:stop])
+                        # for non-default channels, check and record alerts
+                        # to not send alerts at each runs
+                        else:
+                            message_key = f'{alert_param["tg_channel_id"]}.{name}.slippage.{key1}.{key2}'
+                            last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
+                            if message_key not in old_alerts or abs(change) - abs(old_alerts[message_key]) > 10  \
+                                    or np.sign(old_alerts[message_key]) != np.sign(change):
+                                print("Sensing To TG to client", message_key)
+                                send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'],
+                                                    message + "\nLast value:" + str(round(last_value, 2)))
+                                if message_key not in old_alerts:
+                                    old_alerts[message_key] = 0
+                                old_alerts[message_key] = change
 
-            # split
-        else:
-            send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                                ['Token', 'Change', 'Last ($)', 'Prod ($)'], rows)
-    ############ END SEND LIQUIDITY MESSAGE AS TABLE #############
-
+    # if no alerts sent, send "slippage is fine" to the default alert_param
     if not alert_sent:
-        message = f"{name}" \
-                  f"\n{time_alert}" \
-                  f"\nSlippage is fine."
-        print(message)
-        if send_alerts:
-            print("Sending To TG")
-            send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-    elif ignore_gb_redundant_tokens:
-        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                            'Please note that stkcvx*, cvx* and yearn-vault tokens have been ignored as they share the same liquidity as their underlying')
-
+        for alert_param in alert_params:
+            if alert_param['is_default']:
+                message = f"{name}" \
+                        f"\n{time_alert}" \
+                        f"\nSlippage is fine."
+                print(message)
+                if send_alerts:
+                    print("Sending To TG")
+                    send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], message)
+    
     alert_sent = False
-    dexAlerts = []
-    cexAlerts = []
 
-    if new_json:
-        oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "token.json")
-        oracle_file = json.load(oracle_file)
-        oracle_file = convert_tokens_json_to_oracle(oracle_file)
-    else:
-        oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "oracles.json")
-        oracle_file = json.load(oracle_file)
+    oracle_file = open("webserver" + os.path.sep + current_SITE_ID + os.path.sep + "oracles.json")
+    oracle_file = json.load(oracle_file)
 
     for market in oracle_file:
         if market == "json_time": continue
+        oracle = float(oracle_file[market]["oracle"])
+        # if oracle is 0 (or less?), don't need to check
+        if oracle <= 0: continue
 
         cex = float(oracle_file[market]["cex_price"])
-        oracle = float(oracle_file[market]["oracle"])
         dex = float(oracle_file[market]["dex_price"])
-        diff = (100 * ((oracle / dex) - 1))
-        oracleThreshold = 3
-        if market in ignore_list:
-            print('changing oracleThreshold to 20 for', market, 'because it is in the ignore list')
-            oracleThreshold = 20
-        
-        if abs(diff) > oracleThreshold and oracle > 0:
-            message = f"{name}" \
-                      f"\n{time_alert}" \
-                      f"\n{market}" \
-                      f"\nOracle<>Dex Price is off by: {round(diff, 2)}%" \
-                      f"\nOracle Price: {oracle} " \
-                      f"\nDex Price: {dex}"
-            print(message)
-            alert_sent = True
-            if send_alerts:
-                if send_table:
-                    newDexAlert = {'market': market, 'oracle': oracle, 'dex': dex, 'diff': round(diff, 2)}
-                    dexAlerts.append(newDexAlert)
-                else:
-                    print("Sending To TG")
-                    send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-                if client_chat_id != "":
-                    message_key = f'{name}.oracle.dex.diff.{market}'
-                    last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                    if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(diff) \
-                            or np.sign(old_alerts[message_key]) != np.sign(diff):
-                        print("Sensing To TG to client", message_key)
-                        send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
-                                            message + "\nLast value:" + str(round(last_value, 2)))
-                        if message_key not in old_alerts:
-                            old_alerts[message_key] = 0
-                        old_alerts[message_key] = diff
-
-        if cex > 0 and oracle > 0:
-            diff = (100 * ((oracle / cex) - 1))
-            if abs(diff) > oracleThreshold:
+        dexDiff = (100 * ((oracle / dex) - 1))
+        for alert_param in alert_params:
+            oracleThreshold = alert_param['oracle_threshold']
+            if market in ignore_list:
+                print('changing oracleThreshold to 20 for', market, 'because it is in the ignore list')
+                oracleThreshold = 20
+            
+            if abs(dexDiff) > oracleThreshold:
                 message = f"{name}" \
-                          f"\n{time_alert}" \
-                          f"\n{market} " \
-                          f"\nOracle<>Cex Price is off by: {round(diff, 2)}%" \
-                          f"\nOracle Price: {oracle} " \
-                          f"\nCex Price: {cex}"
+                        f"\n{time_alert}" \
+                        f"\n{market}" \
+                        f"\nOracle<>Dex Price is off by: {round(dexDiff, 2)}%" \
+                        f"\nOracle Price: {oracle} " \
+                        f"\nDex Price: {dex}"
                 print(message)
                 alert_sent = True
                 if send_alerts:
-                    if send_table:
-                        newCexAlert = {'market': market, 'oracle': oracle, 'cex': cex, 'diff': round(diff, 2)}
-                        cexAlerts.append(newCexAlert)
+                    # for default channel, send alert
+                    if alert_param['is_default']:
+                        print("Sending to default TG")
+                        send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], message)
+                        
+                    # for non-default channels, check and record alerts
+                    # to not send alerts at each runs
                     else:
-                        print("Sending To TG")
-                        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
-
-                    if client_chat_id != "":
-                        message_key = f'{name}.oracle.cex.diff.{market}'
+                        message_key = f'{alert_param["tg_channel_id"]}.{name}.oracle.dex.diff.{market}'
                         last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
-                        if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(diff) \
-                                or np.sign(old_alerts[message_key]) != np.sign(diff):
-                            print("Sensing To TG to client", message_key)
-                            send_telegram_alert(private_config.risk_dao_bot, client_chat_id,
+                        if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(dexDiff) \
+                                or np.sign(old_alerts[message_key]) != np.sign(dexDiff):
+                            print(f"Sending to {alert_param['tg_channel_id']} TG", message_key)
+                            send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'],
                                                 message + "\nLast value:" + str(round(last_value, 2)))
                             if message_key not in old_alerts:
                                 old_alerts[message_key] = 0
-                            old_alerts[message_key] = diff
+                            old_alerts[message_key] = dexDiff
 
-    if send_alerts and send_table and len(dexAlerts) > 0:
-        msg = "-------------------------------------------------"
-        msg += "\n"
-        msg += f'Oracle check for {name}\n'
-        msg += time_alert
-        send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, msg)
-
-    if send_alerts and send_table and len(dexAlerts) > 0:
-        dexAlerts.sort(key=lambda x: abs(x['diff']))
-        rowsDex = []
-        for alert in dexAlerts:
-            diff = alert['diff']
-            rowsDex.append([alert['market'], alert['oracle'], alert['dex'], f'{diff}%'])
-
-        send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                            ['Market', 'Oracle', 'Dex', 'Diff'], rowsDex)
-
-    if send_alerts and send_table and len(cexAlerts) > 0:
-        cexAlerts.sort(key=lambda x: abs(x['diff']), reverse=True)
-        rowsCex = []
-        for alert in cexAlerts:
-            diff = alert['diff']
-            rowsCex.append([alert['market'], alert['oracle'], alert['cex'], f'{diff}%'])
-
-        send_telegram_table(private_config.risk_dao_bot, private_config.risk_dao_channel,
-                            ['Market', 'Oracle', 'Cex', 'Diff'], rowsCex)
-
+                if cex > 0:
+                    cexDiff = (100 * ((oracle / cex) - 1))
+                    if abs(cexDiff) > oracleThreshold:
+                        message = f"{name}" \
+                                f"\n{time_alert}" \
+                                f"\n{market} " \
+                                f"\nOracle<>Cex Price is off by: {round(cexDiff, 2)}%" \
+                                f"\nOracle Price: {oracle} " \
+                                f"\nCex Price: {cex}"
+                        print(message)
+                        alert_sent = True
+                        if send_alerts:
+                            if alert_param['is_default']:
+                                print("Sending to Default TG")
+                                send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], message)
+                            else:
+                                message_key = f'{alert_param["tg_channel_id"]}.{name}.oracle.cex.diff.{market}'
+                                last_value = 0 if message_key not in old_alerts else old_alerts[message_key]
+                                if message_key not in old_alerts or abs(old_alerts[message_key]) * 1.1 < abs(cexDiff) \
+                                        or np.sign(old_alerts[message_key]) != np.sign(cexDiff):
+                                    print(f"Sending to {alert_param['tg_channel_id']} TG", message_key)
+                                    send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'],
+                                                        message + "\nLast value:" + str(round(last_value, 2)))
+                                    if message_key not in old_alerts:
+                                        old_alerts[message_key] = 0
+                                    old_alerts[message_key] = cexDiff
+    
     if not alert_sent:
-        message = f"{name}" \
-                  f"\n{time_alert}" \
-                  f"\nOracle is fine."
-        print(message)
-        if send_alerts:
-            print("Sending To TG")
-            send_telegram_alert(private_config.risk_dao_bot, private_config.risk_dao_channel, message)
+        for alert_param in alert_params:
+            if alert_param['is_default']:
+                message = f"{name}" \
+                        f"\n{time_alert}" \
+                        f"\nOracle is fine."
+                print(message)
+                if send_alerts:
+                    print("Sending To TG")
+                    send_telegram_alert(alert_param['tg_bot_id'], alert_param['tg_channel_id'], message)
 
     return old_alerts
-
 
 def get_prod_version(name):
     gh = Github(login_or_token=private_config.git_version_token, base_url='https://api.github.com')
