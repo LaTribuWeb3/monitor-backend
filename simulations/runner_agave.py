@@ -267,8 +267,7 @@ if __name__ == '__main__':
             
             print('new value for inv_names', inv_names)
 
-        shutil.copyfile("usd_volume_for_slippage.json", "webserver" + os.path.sep + SITE_ID + os.path.sep + 'usd_volume_for_slippage.json')
-        # base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
+        base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price, False)
         # fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
