@@ -13,10 +13,15 @@ import shutil
 import datetime
 
 def create_dex_information(SITE_ID):
-    src = 'webserver' + os.path.sep + '2' + os.path.sep + 'dex_liquidity.json'
-    dst = SITE_ID
-    print(src, dst)
-    shutil.copyfile(src, 'webserver' + os.path.sep + dst + os.path.sep + 'dex_liquidity.json')
+    print("create_dex_information")
+    data = {"json_time": time.time()}
+    for market in assets_to_simulate:
+        data[market] = {"count": 0, "total": 0, "avg": 0, "med": 0,
+                        "top_10": 0,
+                        "top_5": 0, "top_1": 0, "users": []}
+
+    fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "dex_liquidity.json", "w")
+    json.dump(data, fp)
 
 
 def create_usd_volumes_for_slippage(SITE_ID):
@@ -374,7 +379,9 @@ if __name__ == '__main__':
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
+
             alert_params = get_alert_params()
+            print('alert_params', alert_params)
             old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "vesta", "2", SITE_ID, alert_params, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
