@@ -81,7 +81,7 @@ def get_alert_params():
         "only_negative": False, # only send liquidity alert if the new volume < old volume
     })
 
-    # REAL NERVOS ALERT CHANNEL: send only oracle > 3% and liquidity alerts where <-50%
+    # REAL NERVOS ALERT CHANNEL: send only oracle > 3% and liquidity alerts where <-10%
     alert_params.append({
         "is_default": False, # is default mean it's the risk dao general channel where all msg are sent
         "tg_bot_id": private_config.risk_dao_bot,
