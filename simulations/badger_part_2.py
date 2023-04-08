@@ -1,4 +1,5 @@
 import glob
+import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -147,10 +148,9 @@ price_power_factors = [0, 1, 2, 3, 4, 5]
 redemption_frequencys = [2 ** 100, box_initial_balance / 1000, box_initial_balance / 100, box_initial_balance / 10]
 ponzi_delays = [0, 12, 24, 24 * 7, 24 * 30]
 timeseries_stds = [1, 0.5, 2]
-all_results = []
-
-ponzi_box = {}
-for random_seed in np.arange(1000, 2000, 10):
+start = int(sys.argv[1])
+for random_seed in np.arange(start, start + 1000, 20):
+    all_results = []
     print(random_seed)
     random.seed(random_seed)
     for timeseries_std in timeseries_stds:
@@ -158,6 +158,7 @@ for random_seed in np.arange(1000, 2000, 10):
         for price_power_factor in price_power_factors:
             for redemption_frequency in redemption_frequencys:
                 for ponzi_delay in ponzi_delays:
+                    ponzi_box = {}
                     total_ponzi_volume = 0
                     total_unminted_volume = 0
                     total_buy = 0
@@ -219,5 +220,5 @@ for random_seed in np.arange(1000, 2000, 10):
                     #print(results)
                     all_results.append(results)
 
-    pd.DataFrame(all_results).to_csv("redemption" + str(random_seed) + ".csv")
+    pd.DataFrame(all_results).to_csv("badger_results/redemption" + str(random_seed) + ".csv")
 # create_graphs()
