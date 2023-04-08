@@ -203,10 +203,13 @@ for random_seed in np.arange(1000, 2000, 10):
                     results["total_ponzi_volume"] = total_ponzi_volume
                     results["unminted/minted"] = last_row["total_unminted_volume"] / last_row["total_mint"]
                     results["redemption/minted"] = last_row["total_redemption"] / last_row["total_mint"]
-                    results["(redemption+unminted)/minted"] = (last_row["total_unminted_volume"] + last_row[
-                        "total_redemption"]) / last_row[
-                                                                  "total_mint"]
-                    results["redemption/total_ponzi_volume"] = last_row["total_redemption"] / last_row["total_ponzi_volume"]
+                    results["(redemption+unminted)/minted"] = (last_row["total_unminted_volume"] + last_row["total_redemption"]) / last_row["total_mint"]
+
+                    if last_row["total_ponzi_volume"] != 0:
+                        results["redemption/total_ponzi_volume"] = last_row["total_redemption"] / last_row["total_ponzi_volume"]
+                    else:
+                        results["redemption/total_ponzi_volume"] = "err"
+
                     results["timeseries_std"] = timeseries_std
                     results["ponzi_delay"] = ponzi_delay
                     results["price_power_factor"] = price_power_factor
