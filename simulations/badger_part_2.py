@@ -7,8 +7,9 @@ import curve_lion
 import random
 import numpy as np
 import os
+import sys
 
-random.seed(1001)
+
 
 
 def get_random_trades1(curve_liquidity, total_trades, timeseries_std):
@@ -153,67 +154,71 @@ timeseries_stds = [1, 0.5, 2]
 all_results = []
 
 ponzi_box = {}
-for timeseries_std in timeseries_stds:
-    trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
-    for price_power_factor in price_power_factors:
-        for redemption_frequency in redemption_frequencys:
-            for ponzi_delay in ponzi_delays:
-                total_ponzi_volume = 0
-                total_unminted_volume = 0
-                total_buy = 0
-                total_mint = 0
-                total_redemption = 0
-                oracle_to_asset_depeg = curve_lion.curve_lion(box_A, box_initial_balance, box_initial_balance,
-                                                              box_le, 0.1,
-                                                              box_recovery_halflife)
-                index = 0
-                timeseries_data = []
-                for trade in trade_list:
-                    price = oracle_to_asset_depeg.get_price(oracle_to_asset_depeg.ebtc_balance,
-                                                            oracle_to_asset_depeg.wbtc_balance)
+for i in range(100):
+    seed = random.randrange(sys.maxsize)
+    random.seed(seed)
+    for timeseries_std in timeseries_stds:
+        trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
+        for price_power_factor in price_power_factors:
+            for redemption_frequency in redemption_frequencys:
+                for ponzi_delay in ponzi_delays:
+                    total_ponzi_volume = 0
+                    total_unminted_volume = 0
+                    total_buy = 0
+                    total_mint = 0
+                    total_redemption = 0
+                    oracle_to_asset_depeg = curve_lion.curve_lion(box_A, box_initial_balance, box_initial_balance,
+                                                                  box_le, 0.1,
+                                                                  box_recovery_halflife)
+                    index = 0
+                    timeseries_data = []
+                    for trade in trade_list:
+                        price = oracle_to_asset_depeg.get_price(oracle_to_asset_depeg.ebtc_balance,
+                                                                oracle_to_asset_depeg.wbtc_balance)
 
-                    current_ponzi_volume = sum(ponzi_box.values())
-                    timeseries_data.append({"trade_volume": trade,
-                                            "total_unminted_volume": total_unminted_volume / 1e8,
-                                            "total_buy": total_buy / 1e8,
-                                            "total_mint": total_mint / 1e8,
-                                            "total_ponzi_volume": total_ponzi_volume / 1e8,
-                                            "total_redemption": total_redemption / 1e8,
-                                            "price": price,
-                                            "current_ponzi_volume": current_ponzi_volume / 1e8})
+                        current_ponzi_volume = sum(ponzi_box.values())
+                        timeseries_data.append({"trade_volume": trade,
+                                                "total_unminted_volume": total_unminted_volume / 1e8,
+                                                "total_buy": total_buy / 1e8,
+                                                "total_mint": total_mint / 1e8,
+                                                "total_ponzi_volume": total_ponzi_volume / 1e8,
+                                                "total_redemption": total_redemption / 1e8,
+                                                "price": price,
+                                                "current_ponzi_volume": current_ponzi_volume / 1e8})
 
-                    index += 1
-                    do_trade(trade)
-                    if ponzi_delay > 0:
-                        do_check_ponzi_box(index)
-                    else:
-                        do_check_redemption(redemption_frequency)
+                        index += 1
+                        do_trade(trade)
+                        if ponzi_delay > 0:
+                            do_check_ponzi_box(index)
+                        else:
+                            do_check_redemption(redemption_frequency)
 
-                df = pd.DataFrame(timeseries_data)
-                df["unminted/minted"] = df["total_unminted_volume"] / df["total_mint"]
-                df["redemption/minted"] = df["total_redemption"] / df["total_mint"]
-                df["(redemption+unminted)/minted"] = (df["total_unminted_volume"] + df["total_redemption"]) / df[
-                    "total_mint"]
-                df["redemption/total_ponzi_volume"] = df["total_redemption"] / df["total_ponzi_volume"]
-                if print_time_series:
-                    df.to_csv(f"results\\{ponzi_delay}.{price_power_factor}.{redemption_frequency}.csv")
+                    df = pd.DataFrame(timeseries_data)
+                    df["unminted/minted"] = df["total_unminted_volume"] / df["total_mint"]
+                    df["redemption/minted"] = df["total_redemption"] / df["total_mint"]
+                    df["(redemption+unminted)/minted"] = (df["total_unminted_volume"] + df["total_redemption"]) / df[
+                        "total_mint"]
+                    df["redemption/total_ponzi_volume"] = df["total_redemption"] / df["total_ponzi_volume"]
+                    if print_time_series:
+                        df.to_csv(f"results\\{ponzi_delay}.{price_power_factor}.{redemption_frequency}.csv")
 
-                results = get_results()
-                last_row = df.iloc[-1]
-                results["total_ponzi_volume"] = total_ponzi_volume
-                results["unminted/minted"] = last_row["total_unminted_volume"] / last_row["total_mint"]
-                results["redemption/minted"] = last_row["total_redemption"] / last_row["total_mint"]
-                results["(redemption+unminted)/minted"] = (last_row["total_unminted_volume"] + last_row[
-                    "total_redemption"]) / last_row[
-                                                              "total_mint"]
-                results["redemption/total_ponzi_volume"] = last_row["total_redemption"] / last_row["total_ponzi_volume"]
-                results["timeseries_std"] = timeseries_std
-                results["ponzi_delay"] = ponzi_delay
-                results["price_power_factor"] = price_power_factor
-                results["redemption_frequency"] = redemption_frequency
+                    results = get_results()
+                    last_row = df.iloc[-1]
+                    results["total_ponzi_volume"] = total_ponzi_volume
+                    results["unminted/minted"] = last_row["total_unminted_volume"] / last_row["total_mint"]
+                    results["redemption/minted"] = last_row["total_redemption"] / last_row["total_mint"]
+                    results["(redemption+unminted)/minted"] = (last_row["total_unminted_volume"] + last_row[
+                        "total_redemption"]) / last_row[
+                                                                  "total_mint"]
+                    results["redemption/total_ponzi_volume"] = last_row["total_redemption"] / last_row["total_ponzi_volume"]
+                    results["timeseries_std"] = timeseries_std
+                    results["ponzi_delay"] = ponzi_delay
+                    results["price_power_factor"] = price_power_factor
+                    results["redemption_frequency"] = redemption_frequency
+                    results["random_seed"] = seed
 
-                print(results)
-                all_results.append(results)
+                    print(results)
+                    all_results.append(results)
 
 pd.DataFrame(all_results).to_csv("redemption.csv")
 # create_graphs()
