@@ -7,10 +7,6 @@ import curve_lion
 import random
 import numpy as np
 import os
-import sys
-
-
-
 
 def get_random_trades1(curve_liquidity, total_trades, timeseries_std):
     std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
@@ -154,9 +150,9 @@ timeseries_stds = [1, 0.5, 2]
 all_results = []
 
 ponzi_box = {}
-for i in range(100):
-    seed = random.randrange(sys.maxsize)
-    random.seed(seed)
+for random_seed in np.arange(1000, 2000, 10):
+    print(random_seed)
+    random.seed(random_seed)
     for timeseries_std in timeseries_stds:
         trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
         for price_power_factor in price_power_factors:
@@ -215,10 +211,10 @@ for i in range(100):
                     results["ponzi_delay"] = ponzi_delay
                     results["price_power_factor"] = price_power_factor
                     results["redemption_frequency"] = redemption_frequency
-                    results["random_seed"] = seed
+                    results["random_seed"] = random_seed
 
-                    print(results)
+                    #print(results)
                     all_results.append(results)
 
-pd.DataFrame(all_results).to_csv("redemption.csv")
+    pd.DataFrame(all_results).to_csv("redemption" + str(random_seed) + ".csv")
 # create_graphs()
