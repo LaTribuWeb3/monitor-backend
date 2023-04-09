@@ -1,5 +1,6 @@
 import glob
 import sys
+import time
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -200,7 +201,7 @@ for i in range(50):
         for price_power_factor in price_power_factors:
             for redemption_frequency in redemption_frequencys:
                 for ponzi_delay in ponzi_delays:
-                    print("XXXX")
+                    print("XXXX", time.time())
                     ponzi_box = {}
                     total_ponzi_volume = 0
                     total_unminted_volume = 0
