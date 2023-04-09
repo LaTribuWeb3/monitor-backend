@@ -9,6 +9,7 @@ import random
 import numpy as np
 import os
 
+
 def get_random_trades1(curve_liquidity, total_trades, timeseries_std):
     std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
     std *= timeseries_std
@@ -144,7 +145,8 @@ def do_check_ponzi_box(index):
 
 def merge_results(path):
     df = pd.concat([pd.read_csv(file) for file in glob.glob(path)])
-    configs = df.groupby(["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency"]).size().reset_index()
+    configs = df.groupby(
+        ["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency"]).size().reset_index()
     report = []
     for index, row in configs.iterrows():
         timeseries_std = row["timeseries_std"]
@@ -157,19 +159,20 @@ def merge_results(path):
                            & (df["redemption_frequency"] == redemption_frequency)]
 
         scores = config_df["(redemption+unminted)/minted"].describe([0.5, 0.9])
-        report.append({"timeseries_std":timeseries_std,
-                       "ponzi_delay":ponzi_delay,
-                       "price_power_factor":price_power_factor,
-                       "redemption_frequency":redemption_frequency,
+        report.append({"timeseries_std": timeseries_std,
+                       "ponzi_delay": ponzi_delay,
+                       "price_power_factor": price_power_factor,
+                       "redemption_frequency": redemption_frequency,
                        "max": scores["max"],
-                       "mean":scores["mean"],
-                       "std":scores["std"],
+                       "mean": scores["mean"],
+                       "std": scores["std"],
                        "50": scores["50%"],
-                       "90":scores["90%"]})
+                       "90": scores["90%"]})
 
     pd.DataFrame(report).to_csv("badger_report.csv")
 
-# path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\*.*"
+
+# path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
 # merge_results(path)
 # exit()
 
@@ -181,17 +184,17 @@ box_recovery_halflife = 1
 total_trades = 24 * 30 * 12
 redemption_price = 0.98
 
-price_power_factors = [0]#, 1, 2, 3, 4, 5]
-#redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initial_balance / 100) / 24, (box_initial_balance / 10) / 24]
-redemption_frequencys = [2 ** 100, (box_initial_balance / 10) / 24]
-#ponzi_delays = [0, 12, 24, 24 * 7, 24 * 30]
-ponzi_delays = [0,  12, 24 * 30]
+price_power_factors = [0, 1, 2, 3, 4, 5]
+redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initial_balance / 100) / 24, (box_initial_balance / 10) / 24]
+ponzi_delays = [0, 12, 24, 24 * 7, 24 * 30]
 timeseries_stds = [10]
-start = 1000#int(sys.argv[1])
-for random_seed in np.arange(start, start + 1000, 20):
+
+start = int(sys.argv[1])
+
+for i in range(50):
+    random_seed = start + i
+    np.random.seed(random_seed)
     all_results = []
-    print(random_seed)
-    random.seed(random_seed)
     for timeseries_std in timeseries_stds:
         trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
         for price_power_factor in price_power_factors:
@@ -215,6 +218,8 @@ for random_seed in np.arange(start, start + 1000, 20):
                         current_ponzi_volume = sum(ponzi_box.values())
                         timeseries_data.append({"trade_volume": trade,
                                                 "total_unminted_volume": total_unminted_volume / 1e8,
+                                                "ebtc_balance":oracle_to_asset_depeg.ebtc_balance,
+                                                "wbtc_balance": oracle_to_asset_depeg.wbtc_balance,
                                                 "total_buy": total_buy / 1e8,
                                                 "total_mint": total_mint / 1e8,
                                                 "total_ponzi_volume": total_ponzi_volume / 1e8,
@@ -223,7 +228,8 @@ for random_seed in np.arange(start, start + 1000, 20):
                                                 "current_ponzi_volume": current_ponzi_volume / 1e8})
 
                         index += 1
-                        do_trade(trade)
+                        if price < 1.1 or trade > 0:
+                            do_trade(trade)
                         if ponzi_delay > 0:
                             do_check_ponzi_box(index)
                         else:
@@ -236,17 +242,20 @@ for random_seed in np.arange(start, start + 1000, 20):
                         "total_mint"]
                     df["redemption/total_ponzi_volume"] = df["total_redemption"] / df["total_ponzi_volume"]
                     if print_time_series:
-                        df.to_csv(f"badger_results{os.path.sep}{random_seed}.{timeseries_std}.{ponzi_delay}.{price_power_factor}.{redemption_frequency}.csv")
+                        df.to_csv(
+                            f"badger_results{os.path.sep}{random_seed}.{timeseries_std}.{ponzi_delay}.{price_power_factor}.{redemption_frequency}.csv")
 
                     results = get_results()
                     last_row = df.iloc[-1]
                     results["total_ponzi_volume"] = total_ponzi_volume
                     results["unminted/minted"] = last_row["total_unminted_volume"] / last_row["total_mint"]
                     results["redemption/minted"] = last_row["total_redemption"] / last_row["total_mint"]
-                    results["(redemption+unminted)/minted"] = (last_row["total_unminted_volume"] + last_row["total_redemption"]) / last_row["total_mint"]
+                    results["(redemption+unminted)/minted"] = (last_row["total_unminted_volume"] + last_row[
+                        "total_redemption"]) / last_row["total_mint"]
 
                     if last_row["total_ponzi_volume"] != 0:
-                        results["redemption/total_ponzi_volume"] = last_row["total_redemption"] / last_row["total_ponzi_volume"]
+                        results["redemption/total_ponzi_volume"] = last_row["total_redemption"] / last_row[
+                            "total_ponzi_volume"]
                     else:
                         results["redemption/total_ponzi_volume"] = "err"
 
@@ -256,7 +265,7 @@ for random_seed in np.arange(start, start + 1000, 20):
                     results["redemption_frequency"] = redemption_frequency
                     results["random_seed"] = random_seed
 
-                    #print(results)
+                    # print(results)
                     all_results.append(results)
 
     pd.DataFrame(all_results).to_csv("badger_results" + os.path.sep + "redemption" + str(random_seed) + ".csv")
