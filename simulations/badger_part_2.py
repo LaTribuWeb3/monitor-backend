@@ -13,7 +13,13 @@ def get_random_trades1(curve_liquidity, total_trades, timeseries_std):
     std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
     std *= timeseries_std
     numbers = np.random.normal(loc=0, scale=std, size=total_trades)
-    return numbers
+    # injection_size = curve_liquidity / 3
+    # for i in range(12):
+    #     midpoint = (len(numbers) / 12) * i + (24 if i == 0 else 0)
+    #     np.insert(numbers, int(midpoint), injection_size)
+
+    # numbers -= (injection_size * 12) / len(numbers)
+    return numbers * 1e8
 
 
 def get_random_trades0(min, max, total_trades):
@@ -136,7 +142,38 @@ def do_check_ponzi_box(index):
         do_check_redemption(2 ** 100)
 
 
-print_time_series = False
+def merge_results(path):
+    df = pd.concat([pd.read_csv(file) for file in glob.glob(path)])
+    configs = df.groupby(["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency"]).size().reset_index()
+    report = []
+    for index, row in configs.iterrows():
+        timeseries_std = row["timeseries_std"]
+        ponzi_delay = row["ponzi_delay"]
+        price_power_factor = row["price_power_factor"]
+        redemption_frequency = row["redemption_frequency"]
+        config_df = df.loc[(df["timeseries_std"] == timeseries_std)
+                           & (df["ponzi_delay"] == ponzi_delay)
+                           & (df["price_power_factor"] == price_power_factor)
+                           & (df["redemption_frequency"] == redemption_frequency)]
+
+        scores = config_df["(redemption+unminted)/minted"].describe([0.5, 0.9])
+        report.append({"timeseries_std":timeseries_std,
+                       "ponzi_delay":ponzi_delay,
+                       "price_power_factor":price_power_factor,
+                       "redemption_frequency":redemption_frequency,
+                       "max": scores["max"],
+                       "mean":scores["mean"],
+                       "std":scores["std"],
+                       "50": scores["50%"],
+                       "90":scores["90%"]})
+
+    pd.DataFrame(report).to_csv("badger_report.csv")
+
+# path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\*.*"
+# merge_results(path)
+# exit()
+
+print_time_series = True
 box_initial_balance = 1_000 * 1e8
 box_A = 200
 box_le = 0.1
@@ -144,10 +181,12 @@ box_recovery_halflife = 1
 total_trades = 24 * 30 * 12
 redemption_price = 0.98
 
-price_power_factors = [0, 1, 2, 3, 4, 5]
-redemption_frequencys = [2 ** 100, box_initial_balance / 1000, box_initial_balance / 100, box_initial_balance / 10]
-ponzi_delays = [0, 12, 24, 24 * 7, 24 * 30]
-timeseries_stds = [1, 0.5, 2]
+price_power_factors = [0]#, 1, 2, 3, 4, 5]
+#redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initial_balance / 100) / 24, (box_initial_balance / 10) / 24]
+redemption_frequencys = [2 ** 100, (box_initial_balance / 10) / 24]
+#ponzi_delays = [0, 12, 24, 24 * 7, 24 * 30]
+ponzi_delays = [0,  12, 24 * 30]
+timeseries_stds = [10]
 start = int(sys.argv[1])
 for random_seed in np.arange(start, start + 1000, 20):
     all_results = []
@@ -197,7 +236,7 @@ for random_seed in np.arange(start, start + 1000, 20):
                         "total_mint"]
                     df["redemption/total_ponzi_volume"] = df["total_redemption"] / df["total_ponzi_volume"]
                     if print_time_series:
-                        df.to_csv(f"results\\{ponzi_delay}.{price_power_factor}.{redemption_frequency}.csv")
+                        df.to_csv(f"badger_results{os.path.sep}{random_seed}.{timeseries_std}.{ponzi_delay}.{price_power_factor}.{redemption_frequency}.csv")
 
                     results = get_results()
                     last_row = df.iloc[-1]
@@ -220,5 +259,5 @@ for random_seed in np.arange(start, start + 1000, 20):
                     #print(results)
                     all_results.append(results)
 
-    pd.DataFrame(all_results).to_csv("badger_results/redemption" + str(random_seed) + ".csv")
+    pd.DataFrame(all_results).to_csv("badger_results" + os.path.sep + "redemption" + str(random_seed) + ".csv")
 # create_graphs()
