@@ -13,13 +13,13 @@ def get_random_trades1(curve_liquidity, total_trades, timeseries_std):
     std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
     std *= timeseries_std
     numbers = np.random.normal(loc=0, scale=std, size=total_trades)
-    # injection_size = curve_liquidity / 3
-    # for i in range(12):
-    #     midpoint = (len(numbers) / 12) * i + (24 if i == 0 else 0)
-    #     np.insert(numbers, int(midpoint), injection_size)
+    injection_size = curve_liquidity / 3
+    for i in range(12):
+        midpoint = (len(numbers) / 12) * i + (24 if i == 0 else 0)
+        numbers = np.insert(numbers, int(midpoint), injection_size)
 
-    # numbers -= (injection_size * 12) / len(numbers)
-    return numbers * 1e8
+    numbers -= (injection_size * 12) / len(numbers)
+    return numbers
 
 
 def get_random_trades0(min, max, total_trades):
@@ -187,7 +187,7 @@ redemption_frequencys = [2 ** 100, (box_initial_balance / 10) / 24]
 #ponzi_delays = [0, 12, 24, 24 * 7, 24 * 30]
 ponzi_delays = [0,  12, 24 * 30]
 timeseries_stds = [10]
-start = int(sys.argv[1])
+start = 1000#int(sys.argv[1])
 for random_seed in np.arange(start, start + 1000, 20):
     all_results = []
     print(random_seed)
