@@ -24,8 +24,18 @@ def get_random_trades1(curve_liquidity, total_trades, timeseries_std):
     return numbers
 
 
-def get_random_trades0(min, max, total_trades):
-    return [random.randint(min, max) for i in range(total_trades)]
+def get_random_trades0(curve_liquidity, total_trades, timeseries_std):
+    std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
+    std *= timeseries_std
+    std = int(std)
+    numbers =  [random.randint(-std, std) for i in range(total_trades)]
+    injection_size = curve_liquidity / 3
+    for i in range(12):
+        midpoint = (len(numbers) / 12) * i + (24 if i == 0 else 0)
+        numbers = np.insert(numbers, int(midpoint), injection_size)
+
+    numbers -= int(injection_size * 12 / len(numbers))
+    return numbers
 
 
 def do_trade(trade_volume):
@@ -197,7 +207,8 @@ for i in range(50):
     np.random.seed(random_seed)
     all_results = []
     for timeseries_std in timeseries_stds:
-        trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
+        #trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
+        trade_list = get_random_trades0(box_initial_balance, total_trades, timeseries_std)
         for price_power_factor in price_power_factors:
             for redemption_frequency in redemption_frequencys:
                 for ponzi_delay in ponzi_delays:
