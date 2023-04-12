@@ -165,15 +165,18 @@ def do_check_ponzi_box(index):
 def merge_results(path):
     df = pd.concat([pd.read_csv(file) for file in glob.glob(path)])
     configs = df.groupby(
-        ["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency"]).size().reset_index()
+        ["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency", 'mean_reversion']).size().reset_index()
     report = []
     for index, row in configs.iterrows():
         timeseries_std = row["timeseries_std"]
         ponzi_delay = row["ponzi_delay"]
         price_power_factor = row["price_power_factor"]
         redemption_frequency = row["redemption_frequency"]
+        mean_reversion = row["mean_reversion"]
+
         config_df = df.loc[(df["timeseries_std"] == timeseries_std)
                            & (df["ponzi_delay"] == ponzi_delay)
+                           & (df["mean_reversion"] == mean_reversion)
                            & (df["price_power_factor"] == price_power_factor)
                            & (df["redemption_frequency"] == redemption_frequency)]
 
@@ -182,6 +185,7 @@ def merge_results(path):
                        "ponzi_delay": ponzi_delay,
                        "price_power_factor": price_power_factor,
                        "redemption_frequency": redemption_frequency,
+                       "mean_reversion": mean_reversion,
                        "max": scores["max"],
                        "mean": scores["mean"],
                        "std": scores["std"],
@@ -191,9 +195,9 @@ def merge_results(path):
     pd.DataFrame(report).to_csv("badger_report.csv")
 
 
-# path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
-# merge_results(path)
-# exit()
+path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
+merge_results(path)
+exit()
 
 print_time_series = True
 box_initial_balance = 1_000 * 1e8
