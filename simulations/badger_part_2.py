@@ -248,7 +248,7 @@ for i in range(100):
                 if series_type == 0:
                     trade_list = get_random_trades0(box_initial_balance, total_trades, timeseries_std, mean_reversion)
                 else:
-                    trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
+                    trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std, mean_reversion)
 
                 for price_power_factor in price_power_factors:
                     for redemption_frequency in redemption_frequencys:
