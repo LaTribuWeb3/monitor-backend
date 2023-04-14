@@ -53,6 +53,10 @@ class curve_lion:
 
         return _xp[j] - y
 
+    def close_arb(self, max_qty, target_price):
+        #(self, liquidation_size_in_ebtc, eth_volume_for_slippage, CR, update_balance)
+        return self.get_buy_sell_qty(min(max_qty, max(self.wbtc_balance,self.ebtc_balance)) , 2**100,  target_price, True)
+
     def do_tick(self):
 
         missing_ebtc_balance = self.initail_ebtc_balance - self.ebtc_balance

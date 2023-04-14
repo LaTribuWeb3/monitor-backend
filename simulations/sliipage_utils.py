@@ -10,6 +10,8 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
     base_price = get_price_function(base, quote, 1000 / asset_usdc_price[base])
     max_price_volume = 1000
     min_price_volume = 1000 * 1000 * 1000
+    if base == "EURe":
+        min_price_volume = 1000 * 1000
     avg_slippage = 0
 
     while True:
