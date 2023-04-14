@@ -175,7 +175,7 @@ def do_check_ponzi_box(index):
 def merge_results(path):
     df = pd.concat([pd.read_csv(file) for file in glob.glob(path)])
     configs = df.groupby(
-        ["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency", 'mean_reversion']).size().reset_index()
+        ["timeseries_std", "ponzi_delay", "price_power_factor", "redemption_frequency", 'mean_reversion', 'series_type']).size().reset_index()
     report = []
     for index, row in configs.iterrows():
         timeseries_std = row["timeseries_std"]
@@ -183,11 +183,13 @@ def merge_results(path):
         price_power_factor = row["price_power_factor"]
         redemption_frequency = row["redemption_frequency"]
         mean_reversion = row["mean_reversion"]
+        series_type = row["series_type"]
 
         config_df = df.loc[(df["timeseries_std"] == timeseries_std)
                            & (df["ponzi_delay"] == ponzi_delay)
                            & (df["mean_reversion"] == mean_reversion)
                            & (df["price_power_factor"] == price_power_factor)
+                           & (df["series_type"] == series_type)
                            & (df["redemption_frequency"] == redemption_frequency)]
         config_df["(redemption+unminted)/minted"] *= config_df["Minted"]
         config_df["(redemption+unminted)/minted"] /= (box_initial_balance / 1e8)
@@ -195,6 +197,7 @@ def merge_results(path):
         scores = config_df["(redemption+unminted)/minted"].describe([0.5, 0.9])
 
         report.append({"timeseries_std": timeseries_std,
+                       "series_type": series_type,
                        "ponzi_delay": ponzi_delay,
                        "price_power_factor": price_power_factor,
                        "redemption_frequency": redemption_frequency,
@@ -317,6 +320,7 @@ for i in range(100):
                             results["redemption_frequency"] = redemption_frequency
                             results["random_seed"] = random_seed
                             results["mean_reversion"] = mean_reversion
+                            results["series_type"] = series_type
 
                             print('ponzi delay', str(ponzi_delay).ljust(10),
                                   "ponzi volume", str(int(last_row["total_ponzi_volume"])).ljust(10),
