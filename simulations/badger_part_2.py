@@ -233,7 +233,7 @@ ponzi_delays = [0, 24 * 30]
 price_power_factors = [0]
 mean_reversions = [0]
 timeseries_stds = [10]
-series_type = [0,1]
+series_types = [0,1]
 
 start = int(sys.argv[1])
 
