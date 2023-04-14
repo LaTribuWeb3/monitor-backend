@@ -245,7 +245,7 @@ for i in range(100):
     for mean_reversion in mean_reversions:
         for series_type in series_types:
             for timeseries_std in timeseries_stds:
-                if series_type == 0
+                if series_type == 0:
                     trade_list = get_random_trades0(box_initial_balance, total_trades, timeseries_std, mean_reversion)
                 else:
                     trade_list = get_random_trades1(box_initial_balance, total_trades, timeseries_std)
