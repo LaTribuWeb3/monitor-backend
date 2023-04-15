@@ -10,6 +10,9 @@ import random
 import numpy as np
 import os
 
+def get_random_trades2(curve_liquidity, total_trades, timeseries_std, mean_reversion):
+    numbers = [900 * 1e8,900 * 1e8, -800 * 1e8, -1000 * 1e8]
+    return numbers
 
 def get_random_trades1(curve_liquidity, total_trades, timeseries_std, mean_reversion):
     std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
@@ -55,12 +58,16 @@ def do_trade(trade_volume):
         if price > 1:
             trade_volume /= price ** price_power_factor
         total_buy += trade_volume
-        oracle_to_asset_depeg.ebtc_balance -= oracle_to_asset_depeg.get_return(oracle_to_asset_depeg.wbtc_index,
-                                                                               oracle_to_asset_depeg.ebtc_index,
-                                                                               -trade_volume,
-                                                                               [oracle_to_asset_depeg.ebtc_balance,
-                                                                                oracle_to_asset_depeg.wbtc_balance])
-        oracle_to_asset_depeg.wbtc_balance += -trade_volume
+
+        if price < 0.97:
+            oracle_to_asset_depeg.get_buy_sell_qty(-trade_volume, 2 ** 100, 2 ** 100, True)
+        else:
+            oracle_to_asset_depeg.ebtc_balance -= oracle_to_asset_depeg.get_return(oracle_to_asset_depeg.wbtc_index,
+                                                                                   oracle_to_asset_depeg.ebtc_index,
+                                                                                   -trade_volume,
+                                                                                   [oracle_to_asset_depeg.ebtc_balance,
+                                                                                    oracle_to_asset_depeg.wbtc_balance])
+            oracle_to_asset_depeg.wbtc_balance += -trade_volume
 
     elif trade_volume > 0:
         if price < 1:
@@ -217,7 +224,7 @@ box_initial_balance = 1_000 * 1e8
 # merge_results(path)
 # exit()
 
-print_time_series = True
+print_time_series = False
 box_A = 200
 box_le = 0.1
 box_recovery_halflife = 1
@@ -231,12 +238,12 @@ redemption_price = 0.98
 # timeseries_stds = [10]
 
 
-redemption_frequencys = [2 ** 100]
-ponzi_delays = [0, 24 * 30]
-price_power_factors = [0]
+redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initial_balance / 100) / 24, (box_initial_balance / 10) / 24]
+ponzi_delays = [0,  24, 24 * 7, 24 * 30]
+price_power_factors = [0, 1, 2, 3, 4, 5]
 mean_reversions = [0]
 timeseries_stds = [10]
-series_types = [0,1]
+series_types = [1]
 
 start = int(sys.argv[1])
 
@@ -256,11 +263,15 @@ for i in range(100):
                 for price_power_factor in price_power_factors:
                     for redemption_frequency in redemption_frequencys:
                         for ponzi_delay in ponzi_delays:
+                            is_bad = False
                             ponzi_box = {}
                             total_ponzi_volume = 0
                             total_unminted_volume = 0
                             total_buy = 0
                             total_mint = 0
+                            total_buy_before_bad = 0
+                            total_mint_before_bad = 0
+
                             total_redemption = 0
                             oracle_to_asset_depeg = curve_lion.curve_lion(box_A, box_initial_balance, box_initial_balance,
                                                                           box_le, 0.1,
@@ -283,8 +294,14 @@ for i in range(100):
                                                         "current_ponzi_volume": current_ponzi_volume / 1e8})
 
                                 index += 1
-                                #if price < 1.1 or trade > 0:
-                                do_trade(trade)
+                                if price < 0.5:
+                                    if is_bad == False:
+                                        total_buy_before_bad = total_buy
+                                        total_mint_before_bad = total_mint
+
+                                    is_bad = True
+                                if price < 1.1 or trade > 0:
+                                    do_trade(trade)
                                 if ponzi_delay > 0:
                                     do_check_ponzi_box(index)
                                 else:
@@ -322,11 +339,24 @@ for i in range(100):
                             results["mean_reversion"] = mean_reversion
                             results["series_type"] = series_type
 
-                            print('ponzi delay', str(ponzi_delay).ljust(10),
+                            total_buy_after_bad = total_buy - total_buy_before_bad
+                            total_mint_after_bad = total_mint - total_mint_before_bad
+
+                            price = oracle_to_asset_depeg.get_price(oracle_to_asset_depeg.ebtc_balance,
+                                                                    oracle_to_asset_depeg.wbtc_balance)
+                            print(
+                                'price', round(price,3),
+                                'ponzi delay', str(ponzi_delay).ljust(10),
                                   "ponzi volume", str(int(last_row["total_ponzi_volume"])).ljust(10),
                                   "redemption", str(int(last_row["total_redemption"])).ljust(10),
                                   "last ponzi volume", str(int(sum(ponzi_box.values()) / 1e8)).ljust(10),
-                                  round(last_row["total_redemption"] / last_row["total_mint"], 3))
+                                  round(last_row["total_redemption"] / last_row["total_mint"], 3),
+                                  "id bad", is_bad,
+                                "unminted", round(total_unminted_volume / 1e8, 2),
+                                   "mint diff", round(total_mint_after_bad / total_buy_after_bad,2),
+                                    "balancee diff", round(oracle_to_asset_depeg.ebtc_balance / oracle_to_asset_depeg.wbtc_balance,2)
+                                    )
+
                             # print(results)
                             all_results.append(results)
 
