@@ -241,8 +241,8 @@ redemption_price = 0.98
 redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initial_balance / 100) / 24, (box_initial_balance / 10) / 24]
 ponzi_delays = [0,  24, 24 * 7, 24 * 30]
 price_power_factors = [0, 1, 2, 3, 4, 5]
-mean_reversions = [0]
-timeseries_stds = [10]
+mean_reversions = [0, 1]
+timeseries_stds = [3]
 series_types = [1]
 
 start = int(sys.argv[1])
