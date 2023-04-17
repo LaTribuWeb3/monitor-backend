@@ -223,9 +223,9 @@ def merge_results(path):
 
 box_initial_balance = 1_000 * 1e8
 
-# path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
-# merge_results(path)
-# exit()
+path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
+merge_results(path)
+exit()
 
 print_time_series = False
 box_A = 200
@@ -245,7 +245,7 @@ redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initi
 ponzi_delays = [0,  24, 24 * 7, 24 * 30]
 price_power_factors = [0, 1, 2, 3, 4, 5]
 mean_reversions = [1]
-timeseries_stds = [3]
+timeseries_stds = [10]
 series_types = [1]
 
 start = int(sys.argv[1])
