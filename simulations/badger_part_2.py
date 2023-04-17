@@ -223,9 +223,9 @@ def merge_results(path):
 
 box_initial_balance = 1_000 * 1e8
 
-path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
-merge_results(path)
-exit()
+# path = "c:\\dev\\monitor-backend\\simulations\\badger_results\\redemption*.csv"
+# merge_results(path)
+# exit()
 
 print_time_series = False
 box_A = 200
