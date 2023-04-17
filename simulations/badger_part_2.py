@@ -227,7 +227,7 @@ box_initial_balance = 1_000 * 1e8
 # merge_results(path)
 # exit()
 
-print_time_series = True
+print_time_series = False
 box_A = 200
 box_le = 0.1
 box_recovery_halflife = 1
