@@ -17,17 +17,20 @@ def get_random_trades2(curve_liquidity, total_trades, timeseries_std, mean_rever
 def get_random_trades1(curve_liquidity, total_trades, timeseries_std, mean_reversion):
     std = (((curve_liquidity / 2) ** 2) / total_trades) ** 0.5
     std *= timeseries_std
-    numbers = np.random.normal(loc=0, scale=std, size=total_trades)
-    # injection_size = curve_liquidity / 3
-    #
-    # total_injections = 12
-    # for i in range(total_injections):
-    #     midpoint = (len(numbers) / total_injections) * i + (24 if i == 0 else 0)
-    #     numbers = np.insert(numbers, int(midpoint), injection_size)
-    #
-    # numbers -= (injection_size * total_injections) / len(numbers)
-    if mean_reversion == 1:
-        numbers -= np.sum(numbers) / len(numbers)
+    numbers = []
+    for i in range(12):
+        numbers1 = np.random.normal(loc=0, scale=std, size=int(total_trades / 12))
+        # injection_size = curve_liquidity / 3
+        #
+        # total_injections = 12
+        # for i in range(total_injections):
+        #     midpoint = (len(numbers) / total_injections) * i + (24 if i == 0 else 0)
+        #     numbers = np.insert(numbers, int(midpoint), injection_size)
+        #
+        # numbers -= (injection_size * total_injections) / len(numbers)
+        if mean_reversion == 1:
+            numbers1 -= np.sum(numbers1) / len(numbers1)
+        numbers += list(numbers1)
 
     return numbers
 
@@ -224,7 +227,7 @@ box_initial_balance = 1_000 * 1e8
 # merge_results(path)
 # exit()
 
-print_time_series = False
+print_time_series = True
 box_A = 200
 box_le = 0.1
 box_recovery_halflife = 1
@@ -241,7 +244,7 @@ redemption_price = 0.98
 redemption_frequencys = [2 ** 100, (box_initial_balance / 1000) / 24, (box_initial_balance / 100) / 24, (box_initial_balance / 10) / 24]
 ponzi_delays = [0,  24, 24 * 7, 24 * 30]
 price_power_factors = [0, 1, 2, 3, 4, 5]
-mean_reversions = [0, 1]
+mean_reversions = [1]
 timeseries_stds = [3]
 series_types = [1]
 
