@@ -3,6 +3,12 @@ const Web3 = require('web3')
 const fs = require('fs');
 const {hadoukenVaultAbi, linearPoolABI, hadoukenVaultAddress, hadoukenUSDPoolABI, hadoukenUSDPoolAddress } = require("./Addresses.js");
 const { retry } = require("../utils/CommonFunctions.js");
+const { BigNumber } = require("ethers");
+const USDCAddress = '0x186181e225dc1Ad85a4A94164232bD261e351C33';
+const boostedUSDCAddress = "0x149916D7128C36bbcebD04F794217Baf51085fB9"
+
+const USDTAddress = '0x8E019acb11C7d17c26D334901fA2ac41C1f44d50';
+const boostedUSDTAddress = "0xa0430F122fb7E4F6F509c9cb664912C2f01db3e2"
 
 async function hadoukenUSDLiquidityFetcher() {
     const web3 = new Web3("https://v1.mainnet.godwoken.io/rpc");
@@ -14,37 +20,33 @@ async function hadoukenUSDLiquidityFetcher() {
         const ampFactor = Number(ampParameters["value"]) / Number(ampParameters["precision"]);
         const vault = new web3.eth.Contract(hadoukenVaultAbi, hadoukenVaultAddress);
 
-        const USDCAddress = '0x186181e225dc1Ad85a4A94164232bD261e351C33';
-        const linearUSDCPoolAddress = '0x149916d7128c36bbcebd04f794217baf51085fb9';
-        const USDCPoolContract = new web3.eth.Contract(linearPoolABI, linearUSDCPoolAddress);
-        const USDCPoolId = await retry(USDCPoolContract.methods.getPoolId().call, []);
-        const LinearUSDCliquidity = await retry(vault.methods.getPoolTokens(USDCPoolId).call, []);
-        const indexOfUSDC = LinearUSDCliquidity.tokens.indexOf(USDCAddress);
-        const balanceOfUSDC = LinearUSDCliquidity.balances[indexOfUSDC];
-        console.log('balanceOfUSDC', balanceOfUSDC);
+        const liquidity = await retry(vault.methods.getPoolTokens('0xaf9d4028272f750dd2d028990fd664dc223479b1000000000000000000000013').call, []);
 
-        const USDTAddress = '0x8E019acb11C7d17c26D334901fA2ac41C1f44d50';
-        const linearUSDTPoolAddress = '0xa0430f122fb7e4f6f509c9cb664912c2f01db3e2';
-        const USDTPoolContract = new web3.eth.Contract(linearPoolABI, linearUSDTPoolAddress);
-        const USDTPoolId = await retry(USDTPoolContract.methods.getPoolId().call, []);
-        const LinearUSDTliquidity = await retry(vault.methods.getPoolTokens(USDTPoolId).call, []);
-        const indexOfUSDT = LinearUSDTliquidity.tokens.indexOf(USDTAddress);
-        const balanceOfUSDT = LinearUSDTliquidity.balances[indexOfUSDT];
-        console.log('balanceOfUSDT', balanceOfUSDT);
+        const indexOfBoostedUSDC = liquidity.tokens.indexOf(boostedUSDCAddress);
+        const indexOfBoostedUSDT = liquidity.tokens.indexOf(boostedUSDTAddress);
 
+        const balanceOfBoostedUSDC = liquidity.balances[indexOfBoostedUSDC];
+        const balanceOfBoostedUSDT = liquidity.balances[indexOfBoostedUSDT];
+        
+        // boosted liquidity have 18 decimals, need to short it to 6 like USDC and USDT
+        const _1e12 = BigNumber.from(10).pow(12);
+        const usdcBalance = BigNumber.from(balanceOfBoostedUSDC).div(_1e12).toString()
+        console.log(usdcBalance)
+        const usdtBalance = BigNumber.from(balanceOfBoostedUSDT).div(_1e12).toString()
+        console.log(usdtBalance)
 
         formattedOutput = {}
         const UsdcUsdt = `${USDCAddress}_${USDTAddress}`;
         const UsdtUsdc = `${USDTAddress}_${USDCAddress}`;
         formattedOutput['lastUpdate'] = Math.floor(Date.now() / 1000);
         formattedOutput[UsdcUsdt] = {
-            token0: balanceOfUSDC,
-            token1: balanceOfUSDT,
+            token0: usdcBalance,
+            token1: usdtBalance,
             ampFactor: ampFactor
         };
         formattedOutput[UsdtUsdc] = {
-            token0: balanceOfUSDT,
-            token1: balanceOfUSDC,
+            token0: usdtBalance,
+            token1: usdcBalance,
             ampFactor: ampFactor
         };
 
@@ -127,6 +129,6 @@ async function hadoukenUSDLiquidityFetcher() {
     }
  }
 
-//  hadoukenUSDLiquidityFetcher();
+hadoukenUSDLiquidityFetcher();
 
  module.exports = {hadoukenUSDLiquidityFetcher, hadoukenWBTCLiquidityFetcher}
