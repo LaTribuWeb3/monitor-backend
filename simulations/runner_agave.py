@@ -113,15 +113,21 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
 
 
 def fix_usd_volume_for_slippage():
-    file = open("webserver" + os.sep + '4\\2022-11-27-17-29' + os.sep + "usd_volume_for_slippage.json")
-    data = json.load(file)
-    for d in data:
-        if d == 'json_time': continue
-        for a in data[d]:
-            if d == "WXDAI" or a == "WXDAI":
-                print("----------------------------------------")
-                data[d][a]["volume"] *= 2
-    file.close()
+    balancer_file = open(balancer_volume_json_file)
+    balancer_data = json.load(balancer_file)
+
+    current_file = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json")
+    current_data = json.load(current_file)
+
+    for base_symbol in balancer_data: 
+        if base_symbol == 'json_time': continue
+        for quote_symbol in balancer_data[base_symbol]:
+            # overwrite current data with balancer data
+            print("overwritting volume for", base_symbol, quote_symbol, current_data[base_symbol][quote_symbol], "with", balancer_data[base_symbol][quote_symbol])
+            current_data[base_symbol][quote_symbol] = balancer_data[base_symbol][quote_symbol]
+            
+    balancer_file.close()
+    current_file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
     json.dump(data, fp)
     fp.close()
@@ -129,6 +135,7 @@ def fix_usd_volume_for_slippage():
 
 lending_platform_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "oracle.json"
+balancer_volume_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "balancer_volume_for_slippage.json"
 
 assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX', "USDT", "EURe"]
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
@@ -234,7 +241,7 @@ if __name__ == '__main__':
 
         base_runner.create_usd_volumes_for_slippage(SITE_ID, chain_id, inv_names, liquidation_incentive, kp.get_price,
                                                     False)
-        # fix_usd_volume_for_slippage()
+        fix_usd_volume_for_slippage()
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
