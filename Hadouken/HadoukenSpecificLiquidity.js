@@ -10,6 +10,7 @@ const boostedUSDCAddress = "0x149916D7128C36bbcebD04F794217Baf51085fB9"
 const USDTAddress = '0x8E019acb11C7d17c26D334901fA2ac41C1f44d50';
 const boostedUSDTAddress = "0xa0430F122fb7E4F6F509c9cb664912C2f01db3e2"
 
+const BoostedUSDPoolId = '0xaf9d4028272f750dd2d028990fd664dc223479b1000000000000000000000013';
 async function hadoukenUSDLiquidityFetcher() {
     const web3 = new Web3("https://v1.mainnet.godwoken.io/rpc");
     try {
@@ -20,15 +21,17 @@ async function hadoukenUSDLiquidityFetcher() {
         const ampFactor = Number(ampParameters["value"]) / Number(ampParameters["precision"]);
         const vault = new web3.eth.Contract(hadoukenVaultAbi, hadoukenVaultAddress);
 
-        const liquidity = await retry(vault.methods.getPoolTokens('0xaf9d4028272f750dd2d028990fd664dc223479b1000000000000000000000013').call, []);
+        const liquidity = await retry(vault.methods.getPoolTokens(BoostedUSDPoolId).call, []);
 
+        // we will consider boostedUSDC and boostedUSDT to be USDC and USDT
         const indexOfBoostedUSDC = liquidity.tokens.indexOf(boostedUSDCAddress);
         const indexOfBoostedUSDT = liquidity.tokens.indexOf(boostedUSDTAddress);
 
         const balanceOfBoostedUSDC = liquidity.balances[indexOfBoostedUSDC];
         const balanceOfBoostedUSDT = liquidity.balances[indexOfBoostedUSDT];
         
-        // boosted liquidity have 18 decimals, need to short it to 6 like USDC and USDT
+        // boosted liquidity have 18 decimals, need to short it to 6 like USDC and USDT,
+        // so we divide by 1e12 (18 - 6)
         const _1e12 = BigNumber.from(10).pow(12);
         const usdcBalance = BigNumber.from(balanceOfBoostedUSDC).div(_1e12).toString()
         console.log(usdcBalance)
@@ -129,6 +132,6 @@ async function hadoukenUSDLiquidityFetcher() {
     }
  }
 
-hadoukenUSDLiquidityFetcher();
+// hadoukenUSDLiquidityFetcher();
 
  module.exports = {hadoukenUSDLiquidityFetcher, hadoukenWBTCLiquidityFetcher}
