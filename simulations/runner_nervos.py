@@ -68,6 +68,31 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
     json.dump(data, fp)
 
 
+def get_alert_params():
+    alert_params = []
+    
+    # RISK DAO CHANNEL: send all alerts to risk_dao_channel
+    alert_params.append({
+        "is_default": True, # is default mean it's the risk dao general channel where all msg are sent
+        "tg_bot_id": private_config.risk_dao_bot,
+        "tg_channel_id": private_config.risk_dao_channel,
+        "oracle_threshold": 3, # oracle threshold is always in absolute
+        "slippage_threshold": 10, # liquidity threshold before sending alert
+        "only_negative": False, # only send liquidity alert if the new volume < old volume
+    })
+
+    # REAL NERVOS ALERT CHANNEL: send only oracle > 3% and liquidity alerts where <-10%
+    alert_params.append({
+        "is_default": False, # is default mean it's the risk dao general channel where all msg are sent
+        "tg_bot_id": private_config.risk_dao_bot,
+        "tg_channel_id": private_config.nervos_channel,
+        "oracle_threshold": 3, # oracle threshold is always in absolute
+        "slippage_threshold": 10, # liquidity threshold before sending alert
+        "only_negative": True, # only send liquidity alert if the new volume < old volume
+    })
+
+    return alert_params
+
 lending_platform_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "data.json"
 oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "oracle.json"
 # aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
@@ -180,8 +205,10 @@ if __name__ == '__main__':
         if alert_mode:
             d1 = utils.get_file_time(oracle_json_file)
             d1 = min(last_update_time, d1)
-            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "nervos", "1", SITE_ID,
-                                                               private_config.nervos_channel, 10, send_alerts)
+            
+            alert_params = get_alert_params()
+            print('alert_params', alert_params)
+            old_alerts = utils.compare_to_prod_and_send_alerts(old_alerts, d1, "nervos", "1", SITE_ID, alert_params, send_alerts)
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
