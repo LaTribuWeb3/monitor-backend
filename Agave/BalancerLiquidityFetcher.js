@@ -92,7 +92,7 @@ async function GetLiquidityForSlippage(baseConfig, quoteConfig, targetSlippage, 
         const priceInOut = normalizedAmountOut / normalizedTryAmount;
         const priceUSD = priceInOut * quoteConfig.priceUSD;
 
-        console.log(`[${normalizedMinAmount} ${baseConfig.symbol} <-> ${normalizedMaxAmount} ${baseConfig.symbol}] | Trying with${normalizedTryAmount} ${baseConfig.symbol} = $${priceUSD} (${normalizedTryAmount} ${baseConfig.symbol} = ${normalizedAmountOut} ${quoteConfig.symbol})`);
+        console.log(`[${normalizedMinAmount} ${baseConfig.symbol} <-> ${normalizedMaxAmount} ${baseConfig.symbol}] | Trying with ${normalizedTryAmount} ${baseConfig.symbol} = $${priceUSD} (${normalizedTryAmount} ${baseConfig.symbol} = ${normalizedAmountOut} ${quoteConfig.symbol})`);
 
         if(priceUSD > targetPriceUSD) {
             // current price is too high, need to try with a superior try amount
