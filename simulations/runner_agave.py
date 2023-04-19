@@ -129,7 +129,7 @@ def fix_usd_volume_for_slippage():
     balancer_file.close()
     current_file.close()
     fp = open("webserver" + os.path.sep + SITE_ID + os.path.sep + "usd_volume_for_slippage.json", "w")
-    json.dump(data, fp)
+    json.dump(current_data, fp)
     fp.close()
 
 
