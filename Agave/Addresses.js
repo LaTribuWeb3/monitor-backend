@@ -30,7 +30,24 @@ const agaveAddress =
       "multicallSize" : 200 }
 }
 
+const balancerLiquidityConfig = {
+    "WETH": {
+        address: "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1",
+        decimals: 18,
+        quotes: [
+            "USDC"
+        ]
+    },
+    "USDC": {
+        address: "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83",
+        decimals: 6,
+        quotes: [
+            "WETH"
+        ]
+    }
+}
+
 module.exports = {
     multicallAbi, erc20Abi: erc20Abi, lendingPoolAbi, aaveUserInfoAbi, aaveOracleAbi,
-    multicallAddress, agaveAddress, aaveUserInfoAddress, lendingPoolAddressesProviderAbi
+    multicallAddress, agaveAddress, aaveUserInfoAddress, lendingPoolAddressesProviderAbi, balancerLiquidityConfig
 }
