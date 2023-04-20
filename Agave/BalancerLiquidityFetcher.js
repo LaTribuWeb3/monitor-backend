@@ -6,7 +6,6 @@ const { normalize } = require('../utils/TokenHelper.js');
 const fs = require("fs");
 const { roundTo } = require('../utils/NumberHelper.js');
 
-const _1e18 = BigNumber.from(10).pow(18);
 const MAX_POOLS = 10;
 const gasPrice = BigNumber.from(0);
 
