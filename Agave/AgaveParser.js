@@ -2,10 +2,9 @@ const Web3 = require('web3')
 const Aave = require("./AaveParser.js")
 const Addresses = require("./Addresses.js")
 const { FetchBalancerLiquidity } = require('./BalancerLiquidityFetcher.js')
-const fs = require("fs");
 const { sleep } = require('../utils/CommonFunctions.js');
 
-async function test() {
+async function AgaveParser() {
     const rpcUrl = "https://rpc.gnosis.gateway.fm";
     const web3 = new Web3(rpcUrl)    
     const aave = new Aave(Addresses.agaveAddress, "GNOSIS", web3, "data.json")
@@ -26,4 +25,4 @@ async function test() {
     }
  }
 
- test()
+ AgaveParser()
