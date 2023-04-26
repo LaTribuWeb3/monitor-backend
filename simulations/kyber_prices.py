@@ -100,21 +100,14 @@ class KyberPrices:
 
         if private_config.use_one_inch_pathfinder: 
             now = datetime.datetime.now()
-            print(fnName, 'using openocean')
+            print(fnName, 'using 1inch pathfinder')
             if last_gas_price_fetch == None or (now - last_gas_price_fetch).total_seconds() > 120 : # fetch gas price every 2 minutes
-                current_gas_price = int(self.get_gas_price(self.chain_id) / 10**9)
-                if current_gas_price == 0:
-                    current_gas_price = 1
-
+                current_gas_price = self.get_gas_price(self.chain_id)
                 last_gas_price_fetch = datetime.datetime.now()
                 print(fnName, 'updated gas price to', current_gas_price)
 
-            chain_str = "xdai"
-            if self.chain_id == "42161":
-                chain_str = "arbitrum"
-
-            url_to_send = 'https://open-api.openocean.finance/v3/'+chain_str + '/quote?inTokenAddress='+ str(token_in) \
-                            + '&outTokenAddress='+str(token_out)+'&amount='+str(int(volume_in_base))+'&gasPrice='+str(current_gas_price)
+            url_to_send = 'https://pathfinder.1inch.io/v1.4/chain/'+str(self.chain_id)+'/router/v5/quotes?fromTokenAddress='+ str(token_in) + \
+                            '&toTokenAddress='+str(token_out)+'&amount='+str(int(amount_in))+'&preset=maxReturnResult&gasPrice='+ str(current_gas_price)
         else:
             url_to_send = "https://api.1inch.io/v4.0/" + str(self.chain_id) + "/quote?" \
                 "fromTokenAddress=" + str(token_in) + "&" \
@@ -132,7 +125,7 @@ class KyberPrices:
 
                 response_amount_out = 0
                 if private_config.use_one_inch_pathfinder: 
-                    response_amount_out = int(data['data']['outAmount']) / 10 ** self.decimals[self.inv_names[quote]]
+                    response_amount_out = int(data['bestResult']['toTokenAmount']) / 10 ** self.decimals[self.inv_names[quote]]
                 else:
                     response_amount_out = int(data["toTokenAmount"]) / 10 ** self.decimals[self.inv_names[quote]]
 
