@@ -725,39 +725,15 @@ def run_ml_on_cf_data(file_name):
 def create_cf_data_generic(SITE_ID):
     df = pd.concat([pd.read_csv(file) for file in glob.glob(SITE_ID + "\\*.csv")])
     df["volume"] = df["collateral"] / df["volume_for_slippage_10_percents"]
+    df["score"] = df["volume"] * df["series_std_ratio"]
+    df.to_csv("report.csv")
     files = df["file_name"].unique()
     for file in files:
-        print(file)
-        data = df.loc[df["file_name"] == file]
-        data.reset_index(drop=True, inplace=True)
-        X = data[["volume", "series_std_ratio"]]
-        y = data["max_drop"]
-        model = LinearRegression()
-        scores = cross_val_score(model, X, y, cv=5, scoring='r2')
-        print("Cross validation scores: ", scores)
-        print("Mean score: ", scores.mean())
-        print("Standard deviation: ", scores.std())
         plt.cla()
         plt.close()
-
-        x = data['volume'].to_numpy()
-        y = data['series_std_ratio'].to_numpy()
-        z = data['max_drop'].to_numpy()
-
-        # Create a meshgrid from the x and y arrays
-        X, Y = np.meshgrid(x, y)
-
-        # Reshape the z array into a 2D grid to match X and Y
-        Z = z.reshape((len(y), len(x)))
-
-        # Create a 3D plot object
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        # Plot the surface
-        ax.plot_surface(X, Y, Z)
-
-        # Show the plot
+        data = df.loc[df["file_name"] == file]
+        data.reset_index(drop=True, inplace=True)
+        plt.scatter(data["score"], data["max_drop"])
         plt.show()
 
 
@@ -814,4 +790,4 @@ def create_cf_data(SITE_ID):
 # move_to_prod("vesta", "2023-4-16-20-27")
 # create_cf_data("4")
 # run_ml_on_cf_data("4.csv")
-# create_cf_data_generic("simulation_results\\generic\\2023-4-22-21-58")
+# create_cf_data_generic("simulation_results\\generic\\2023-4-27-21-58")
