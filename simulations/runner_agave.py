@@ -62,11 +62,11 @@ def create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_a
                 new_c["series_std_ratio"] = std_ratio
                 new_c["volume_for_slippage_10_percentss"] = [slippage]
                 new_c["json_time"] = now_time
-                if "DAI" in base_to_simulation or "DAI" in quote_to_simulation:
-                    new_c["volume_for_slippage_10_percents_price_drop"] = 50_000 / ETH_PRICE
-                    new_c["price_recovery_times"] = [2]
-                else:
-                    new_c["price_recovery_times"] = [0]
+                # if "DAI" in base_to_simulation or "DAI" in quote_to_simulation:
+                #     new_c["volume_for_slippage_10_percents_price_drop"] = 50_000 / ETH_PRICE
+                #     new_c["price_recovery_times"] = [2]
+                # else:
+                #     new_c["price_recovery_times"] = [0]
 
                 max_collateral = collateral_caps[inv_names[base_to_simulation]]
                 max_debt = borrow_caps[inv_names[quote_to_simulation]]
