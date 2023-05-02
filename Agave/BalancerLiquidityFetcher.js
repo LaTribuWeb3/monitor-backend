@@ -5,6 +5,7 @@ const { balancerLiquidityConfig } = require('./Addresses.js');
 const { normalize } = require('../utils/TokenHelper.js');
 const fs = require("fs");
 const { roundTo } = require('../utils/NumberHelper.js');
+const { sleep } = require('../utils/CommonFunctions.js');
 
 const MAX_POOLS = 10;
 const gasPrice = BigNumber.from(0);
@@ -16,7 +17,8 @@ const gasPrice = BigNumber.from(0);
  * @param {string} rpcUrl 
  */
 async function FetchBalancerLiquidity(aave, rpcUrl) {
-
+    console.log('Deleting old balancer_volume_for_slippage.json file');
+    fs.rmSync('balancer_volume_for_slippage.json');
     const balancer = new BalancerSDK({
         network: 100, // gnosis
         rpcUrl: rpcUrl,
@@ -24,7 +26,21 @@ async function FetchBalancerLiquidity(aave, rpcUrl) {
 
     const swapsService = balancer.swaps; // Swaps module
 
-    await swapsService.fetchPools();
+    let poolsFetchSuccess = false;
+    let attempt = 0;
+    while(!poolsFetchSuccess) {
+        if(attempt >= 25) {
+            throw new Error('Could not fetch balancer pools after 25 tries');
+        }
+        attempt++;
+        console.log(`Fetching balancer pools, try #${attempt}`);
+        poolsFetchSuccess = await swapsService.fetchPools();
+
+        if(!poolsFetchSuccess) {
+            console.log('Could not fetch balancer pools, will retry in 5 seconds');
+            await sleep(5000);
+        }
+    }
 
     const liquidityForSlippage = {};
     for(const [baseSymbol, config] of Object.entries(balancerLiquidityConfig)) {
