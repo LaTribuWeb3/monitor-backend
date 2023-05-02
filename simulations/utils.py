@@ -299,7 +299,7 @@ def send_telegram_table(bot_id, chat_id, headers, rows):
 
 def compare_to_prod_and_send_alerts(old_alerts, data_time, name, base_SITE_ID, current_SITE_ID, alert_params, send_alerts=False, ignore_list=[]):
     print("comparing to prod", name)
-    prod_version = get_prod_version(name).strip('\n')
+    prod_version = get_prod_version(name)
     print('retrieved prod_version:', prod_version)
     prod_version = prod_version.strip('\n')
     print('stripped prod_version:', prod_version)
