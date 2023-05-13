@@ -26,8 +26,8 @@ fast_mode = False
 ETH_PRICE = 1600
 total_jobs = 6
 
-series_std_ratios = [round(i,2)  for i in np.arange(0.1, 2, 0.1)]
-volume_for_slippage_10_percentss = [i / ETH_PRICE for i in np.arange(100_000, 2_000_000 , 100_000)]
+series_std_ratios = [round(i,2)  for i in np.arange(0.1, 4, 0.1)]
+volume_for_slippage_10_percentss = [i / ETH_PRICE for i in np.arange(100_000, 20_000_000 , 100_000)]
 l_factors =  [1]
 c = {
     "series_std_ratio": [],
