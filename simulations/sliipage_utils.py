@@ -12,6 +12,8 @@ def get_usd_volume_for_slippage(base, quote, slippage, asset_usdc_price, get_pri
     min_price_volume = 1000 * 1000 * 1000
     if base == "EURe":
         min_price_volume = 1000 * 1000
+    if quote == "EURe":
+        min_price_volume = 1000 * 1000
     avg_slippage = 0
 
     while True:
