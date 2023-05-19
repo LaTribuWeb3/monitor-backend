@@ -223,13 +223,15 @@ def get_latest_folder_name(SITE_ID):
     folders = repo.get_contents("./" + SITE_ID)
     max_folder_date = datetime.datetime(2000, 1, 1, 1, 1)
     max_folder_name = ""
-
     for folder in folders:
-        fields = folder.name.split("-")
-        folder_date = datetime.datetime(int(fields[0]), int(fields[1]), int(fields[2]), int(fields[3]), int(fields[4]))
-        if max_folder_date < folder_date:
-            max_folder_date = folder_date
-            max_folder_name = folder.name
+        try:
+            fields = folder.name.split("-")
+            folder_date = datetime.datetime(int(fields[0]), int(fields[1]), int(fields[2]), int(fields[3]), int(fields[4]))
+            if max_folder_date < folder_date:
+                max_folder_date = folder_date
+                max_folder_name = folder.name
+        except Exception as e:
+            print(f"Error in {folder}, {e}")
     return max_folder_name, max_folder_date
 
 
@@ -520,25 +522,36 @@ def publish_results(SITE_ID, target=None):
     gh = Github(login_or_token=private_config.git_token, base_url='https://api.github.com', timeout= 60)
     repo_name = "Risk-DAO/simulation-results"
     repo = gh.get_repo(repo_name)
-    files = glob.glob("webserver" + os.path.sep + SITE_ID + os.path.sep + "*.json")
+    print("webserver" + os.path.sep + SITE_ID + os.path.sep + "*")
+    files = glob.glob("webserver" + os.path.sep + SITE_ID + os.path.sep + "*")
     print(files)
     for f in files:
-        file = open(f)
-        git_file = target + "/" + os.path.basename(f)
-        print(git_file)
-        sha = None
-        try:
-            oldFile = repo.get_contents(git_file)
-            sha = oldFile.sha
-            print('will update old file: ', oldFile)
-        except Exception as e:
-            print('old file not found, will create new file: ', git_file)
-        
-        if(sha != None):
-            repo.update_file(git_file, 'Commit Comments', file.read(), sha)
+        while True:
+            try:
+                if  "jpg" in f:
+                    file = open(f, mode='rb')
+                else:
+                    file = open(f)
 
-        else:
-            repo.create_file(git_file, "Commit Comments", file.read())
+                git_file = target + "/" + os.path.basename(f)
+                print(git_file)
+                sha = None
+                try:
+                    oldFile = repo.get_contents(git_file)
+                    sha = oldFile.sha
+                    print('will update old file: ', oldFile)
+                except Exception as e:
+                    print('old file not found, will create new file: ', git_file)
+
+                if(sha != None):
+                    repo.update_file(git_file, 'Commit Comments', file.read(), sha)
+
+                else:
+                    repo.create_file(git_file, "Commit Comments", file.read())
+                break
+            except Exception as e:
+                print("Error in upload", e)
+                time.sleep(10)
 
 
 lastTGCallDate = None
@@ -817,3 +830,4 @@ def create_cf_data(SITE_ID):
 # run_ml_on_cf_data("4.csv")
 # create_cf_data_generic("simulation_results\\generic\\2023-4-27-21-58")
 # merge_ada_file()
+# publish_results("flare\\2023-5-9-12-50")
