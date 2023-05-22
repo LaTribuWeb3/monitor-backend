@@ -8,7 +8,7 @@ import utils
 
 def calc_liquidation_size(safe_ratio, curr_price, usd_collateral, btc_debt, liquidation_bonus,
                           usd_portion_in_liquidation):
-
+    #flare_volume, flare_price, flare_recovery,
     try:
         curr_ratio = usd_collateral / (btc_debt * curr_price)
 

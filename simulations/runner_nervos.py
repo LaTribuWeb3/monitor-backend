@@ -98,8 +98,8 @@ oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "oracle.json"
 # aggregator_path = ".." + os.path.sep + "yokaiswap" + os.path.sep + "data.json"
 aggregator_path = ".." + os.path.sep + "Hadouken" + os.path.sep + "aggregated_liquidity.json"
 
-assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC", "USDT"]
-assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC": "USDC", "USDT": "USDC"}
+assets_to_simulate = ["ETH", "WBTC|eth", "pCKB", "USDC", "USDT"]
+assets_aliases = {"ETH": "ETH", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC": "USDC", "USDT": "USDC"}
 cex_aliases = copy.copy(assets_aliases)
 
 ETH_PRICE = 1600
@@ -181,14 +181,15 @@ if __name__ == '__main__':
             users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
 
         ETH = "0x9E858A7aAEDf9FDB1026Ab1f77f627be2791e98A"
-        BNB = "0xBAdb9b25150Ee75bb794198658A4D0448e43E528"
+        #BNB = "0xBAdb9b25150Ee75bb794198658A4D0448e43E528"
         USDC = "0x186181e225dc1Ad85a4A94164232bD261e351C33"
         WCKB = "0xC296F806D15e97243A08334256C705bA5C5754CD"
         USDT = "0x8E019acb11C7d17c26D334901fA2ac41C1f44d50"
         BTC = "0x82455018F2c32943b3f12F4e59D0DA2FAf2257Ef"
         CKB = "0x7538C85caE4E4673253fFd2568c1F1b48A71558a"
         
-        allTokens = [ETH, BNB, USDC, WCKB, USDT, BTC, CKB]
+        #allTokens = [ETH, BNB, USDC, WCKB, USDT, BTC, CKB]
+        allTokens = [ETH, USDC, WCKB, USDT, BTC, CKB]
         ap = aggregator.AggregatorPrices(aggregator_path, inv_names, underlying, inv_underlying, decimals, allTokens)
         base_runner.create_overview(SITE_ID, users_data, totalAssetCollateral, totalAssetBorrow)
         base_runner.create_lending_platform_current_information(SITE_ID, last_update_time, names, inv_names, decimals,
@@ -212,7 +213,7 @@ if __name__ == '__main__':
             print("Alert Mode.Sleeping For 30 Minutes")
             time.sleep(30 * 60)
         else:
-            base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BNB", "BTC", "CKB", "USDC"],
+            base_runner.create_assets_std_ratio_information(SITE_ID, ["ETH", "BTC", "CKB", "USDC"],
                                                             [("04", "2022"), ("05", "2022"), ("06", "2022")])
             create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                                      inv_names)
