@@ -289,7 +289,7 @@ c = {
     "safe_cr": [1.4],
     "usd_collateral_ratio": [0.7, 0.8, 0.9, 1]}
 
-SITE_ID = "2023-5-9-12-50"
+SITE_ID = "2023-5-9-12-60"
 simulation_file_name = "c:\\dev\\monitor-backend_for_badger\\simulations\\data_worst_day\\data_unified_2020_03_ETHUSDT.csv"
 run_simulation(c, simulation_file_name)
 utils.publish_results("flare\\" + SITE_ID)
