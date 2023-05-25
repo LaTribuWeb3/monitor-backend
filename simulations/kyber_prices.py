@@ -117,7 +117,7 @@ class KyberPrices:
                 last_gas_price_fetch = datetime.datetime.now()
                 print(fnName, 'updated gas price to', current_gas_price)
 
-            url_to_send = 'https://pathfinder-api.1inch.io/v1.4/chain/'+str(self.chain_id)+'/router/v5/quotes?fromTokenAddress='+ str(token_in) + \
+            url_to_send = 'https://pathfinder.1inch.io/v1.4/chain/'+str(self.chain_id)+'/router/v5/quotes?fromTokenAddress='+ str(token_in) + \
                             '&toTokenAddress='+str(token_out)+'&amount='+str(int(amount_in))+'&preset=maxReturnResult&gasPrice='+ str(current_gas_price)
         else:
             print(fnName, 'using basic 1inch api')
