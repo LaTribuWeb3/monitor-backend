@@ -181,7 +181,7 @@ if __name__ == '__main__':
             users_data["nl_user_debt"] += users_data["NL_DEBT_" + base_to_simulation]
 
         ETH = "0x9E858A7aAEDf9FDB1026Ab1f77f627be2791e98A"
-        BNB = "0xBAdb9b25150Ee75bb794198658A4D0448e43E528"
+        BNB =  "0xBAdb9b25150Ee75bb794198658A4D0448e43E528"
         USDC = "0x186181e225dc1Ad85a4A94164232bD261e351C33"
         WCKB = "0xC296F806D15e97243A08334256C705bA5C5754CD"
         USDT = "0x8E019acb11C7d17c26D334901fA2ac41C1f44d50"
