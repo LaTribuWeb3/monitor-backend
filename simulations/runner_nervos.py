@@ -99,7 +99,7 @@ oracle_json_file = ".." + os.path.sep + "Hadouken" + os.path.sep + "oracle.json"
 aggregator_path = ".." + os.path.sep + "Hadouken" + os.path.sep + "aggregated_liquidity.json"
 
 assets_to_simulate = ["ETH", "BNB|bsc", "WBTC|eth", "pCKB", "USDC", "USDT"]
-assets_aliases = {"ETH": "ETH", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC": "USDC", "USDT": "USDC"}
+assets_aliases = {"ETH": "ETH", "BNB|bsc": "BNB", "WBTC|eth": "BTC", "pCKB": "CKB", "USDC": "USDC", "USDT": "USDC"}
 cex_aliases = copy.copy(assets_aliases)
 
 ETH_PRICE = 1600
