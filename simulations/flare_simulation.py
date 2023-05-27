@@ -161,7 +161,7 @@ def run_single_simulation(date_file_name,
                                                          usd_collateral_ratio, flr_collateral_volume, row_flr_usd_price)
                 burned_btc_volume = l_size["burned_btc"]
                 usd_liquidation_volume = l_size["usd_liquidation"]
-                flr_liquidation_volume = l_size["flr_liquidation"]
+                flr_liquidation_volume = l_size["flare_liquidation"]
 
                 obj = find_btc_liquidation_size(flr_dl_x / row_flr_usd_price, flr_dl_y / row_btc_usd_price,
                                                 usd_dl_x / ONE, usd_dl_y / row_btc_usd_price,
@@ -235,7 +235,7 @@ def run_single_simulation(date_file_name,
                                                                     f"UsdCollateralRatio-{usd_collateral_ratio}"
 
         report_df = pd.DataFrame(time_series_report)
-        # report_df.to_csv(time_series_report_name + ".csv")
+        report_df.to_csv(time_series_report_name + ".csv")
         plt.cla()
         plt.close()
         fig, ax1 = plt.subplots()
@@ -303,8 +303,6 @@ def run_simulation(c, simulation_file_name):
     summary_report = []
     for r in itertools.product(c["usd_std"], c["flare_std"],
                                c["debt_volume"], c["usd_volume"], c["flare_volume"],
-                               c["usd_d_l"], c["usd_d_l_recovery"],
-                               c["flare_d_l"], c["flare_d_l_recovery"],
                                c["min_cr"], c["safe_cr"], c["usd_collateral_ratio"],
                                c["usd_dl_x"], c["usd_dl_y"],
                                c["flare_dl_x"], c["flare_dl_y"],
@@ -325,7 +323,7 @@ c = {
     "debt_volume": [initial_dept_volume],
     "usd_volume": [initial_dept_volume * 1.2, initial_dept_volume * 1.3, initial_dept_volume * 1.4,
                    initial_dept_volume * 1.5],
-    "flare_volume": [0],
+    "flare_volume": [initial_dept_volume * 1.5],
 
     "usd_dl_x": [1000],
     "usd_dl_y": [1000],
@@ -340,6 +338,6 @@ c = {
     "usd_collateral_ratio": [0.7, 0.8, 0.9, 1]}
 
 SITE_ID = "2023-5-9-12-60"
-simulation_file_name = "c:\\dev\\monitor-backend_for_badger\\simulations\\data_worst_day\\data_unified_2020_03_ETHUSDT.csv"
+simulation_file_name = "c:\\dev\\monitor-backend\\simulations\\data_worst_day\\data_unified_2020_03_ETHUSDT.csv"
 run_simulation(c, simulation_file_name)
 utils.publish_results("flare\\" + SITE_ID)
