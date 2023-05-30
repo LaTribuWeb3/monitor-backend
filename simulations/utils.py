@@ -510,7 +510,7 @@ def move_to_prod(name, key):
     repo.update_file(contents.path, "more tests", key, contents.sha)
 
 
-def publish_results(SITE_ID, target=None):
+def publish_results(SITE_ID, target=None, new_only=False):
     print("publish_results")
     if private_config.git_token == "":
         print("Git Upload Failed. no Token")
@@ -543,9 +543,11 @@ def publish_results(SITE_ID, target=None):
                 except Exception as e:
                     print('old file not found, will create new file: ', git_file)
 
-                if(sha != None):
-                    repo.update_file(git_file, 'Commit Comments', file.read(), sha)
-
+                if sha != None:
+                    if not new_only:
+                        repo.update_file(git_file, 'Commit Comments', file.read(), sha)
+                    else:
+                        print("Skip. File alredy there")
                 else:
                     repo.create_file(git_file, "Commit Comments", file.read())
                 break
