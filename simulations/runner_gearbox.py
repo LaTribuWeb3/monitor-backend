@@ -15,7 +15,7 @@ import argparse
 
 SITE_ID = "3"
 ETH_PRICE = 1600
-total_jobs = 5
+total_jobs = 8
 data_source_dir = "/app/gearbox/simulation/gearbox-input-lusd/"
 output_dir = "/app/gearbox/simulation/gearbox-output-lusd"
 # data_source_dir = "gearbox-input\\"
