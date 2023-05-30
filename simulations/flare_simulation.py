@@ -86,15 +86,16 @@ def run_single_simulation(date_file_name,
                           flr_dl_recovery, usd_dl_recovery,
                           min_flare_cr, safe_flare_cr):
 
-    initial_usd_dl_x =  usd_dl_x
-    initial_flr_dl_x = flr_dl_x
     initial_safe_flare_cr = safe_flare_cr
     initial_safe_usd_cr = safe_usd_cr
+    initial_usd_dl_x =  usd_dl_x
+    initial_flr_dl_x = flr_dl_x
 
     safe_flare_cr += min_flare_cr
     safe_usd_cr += min_usd_cr
     usd_dl_x *= debt_volume
     flr_dl_x *= debt_volume
+
     flr_collateral_volume = safe_flare_cr * debt_volume
     usd_collateral_volume = safe_usd_cr * debt_volume
 
@@ -222,9 +223,9 @@ def run_single_simulation(date_file_name,
                                                                     f"BtcStd-{btc_usd_std}+" \
                                                                     f"FlrStd-{flr_btc_std}+" \
                                                                     f"MinUsdCr-{min_usd_cr}+" \
-                                                                    f"SafeUsdCr-{intial_safe_usd_cr}+" \
+                                                                    f"SafeUsdCr-{initial_safe_usd_cr}+" \
                                                                     f"MinFlrCr-{min_flare_cr}+" \
-                                                                    f"SafeFlrCr-{intial_safe_flare_cr}+" \
+                                                                    f"SafeFlrCr-{initial_safe_flare_cr}+" \
                                                                     f"UsdCr-{usd_collateral_ratio}+" \
                                                                     f"UsdDlX-{initial_usd_dl_x}+" \
                                                                     f"UsdRec-{usd_dl_recovery}+" \
