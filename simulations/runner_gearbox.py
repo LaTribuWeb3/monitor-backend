@@ -87,6 +87,13 @@ def create_simulation_config():
         # step_size = (max_debt - current_debt) / 30
         # new_c["collaterals"] = [int((current_debt + step_size * i) / ETH_PRICE) for i in range(30)]
         # new_c["collaterals"].append(borrow_caps[inv_names[debt_to_simulate]] / ETH_PRICE)
+
+        if collateral_to_simulate == "cvxcrvCVXETH" \
+            or collateral_to_simulate == "cvxcrvLDOETH" \
+            or collateral_to_simulate == "cvxcrvCRVETH":
+            new_c["collaterals"] = [1_000_000 / ETH_PRICE, 2_000_000 / ETH_PRICE, 3_000_000 / ETH_PRICE, 4_000_000 / ETH_PRICE, 5_000_000 / ETH_PRICE,
+                                    6_000_000 / ETH_PRICE, 7_000_000 / ETH_PRICE, 8_000_000 / ETH_PRICE, 9_000_000 / ETH_PRICE, 10_000_000 / ETH_PRICE]
+            
         new_c["current_debt"] = current_debt / ETH_PRICE
         data[key] = copy.deepcopy(new_c)
         print(key, "Added")
