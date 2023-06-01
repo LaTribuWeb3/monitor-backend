@@ -325,7 +325,10 @@ class stability_report:
                                         else:
                                             target_volume = collateral * l_factor * total_days_in_files_factor
                                             stability_pool_initial_balance = collateral * s_balance
-                                            liquidation_ratio = target_volume / file_total_volume
+                                            
+                                            liquidation_ratio = 1
+                                            if file_total_volume != 0:
+                                                liquidation_ratio = target_volume / file_total_volume
 
                                         cycle_trade_volume = volume_for_slippage_10_percents
                                         #self.get_volume_for_slippage(volume_for_slippage_10_percents * self.liquidation_factor, 1 - 0.1,1 - l_incentive)
