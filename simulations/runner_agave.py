@@ -177,9 +177,9 @@ lending_platform_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "data.
 oracle_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "oracle.json"
 balancer_volume_json_file = ".." + os.path.sep + "Agave" + os.path.sep + "balancer_volume_for_slippage.json"
 
-assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX', "USDT", "EURe"]
+assets_to_simulate = ['USDC', 'WXDAI', 'LINK', 'GNO', 'WBTC', 'WETH', 'FOX', "USDT", "EURe", "wstETH"]
 assets_aliases = {'USDC': 'USDC', 'WXDAI': 'DAI', 'LINK': 'LINK', 'GNO': 'GNO', 'WBTC': 'BTC', 'WETH': 'ETH',
-                  'FOX': 'FOX', "USDT":"USDC", "EURe":"EUR"}
+                  'FOX': 'FOX', "USDT":"USDC", "EURe":"EUR", "wstETH": "wstETH"}
 
 ETH_PRICE = 1600
 print_time_series = False
