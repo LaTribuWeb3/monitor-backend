@@ -294,7 +294,7 @@ if __name__ == '__main__':
             time.sleep(30 * 60)
         else:
             base_runner.create_assets_std_ratio_information(SITE_ID,
-                                                            ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX', 'EUR'],
+                                                            ['DAI', 'USDC', 'LINK', 'GNO', 'BTC', 'ETH', 'FOX', 'EUR', 'wstETH'],
                                                             [("04", "2022"), ("05", "2022"), ("06", "2022")])
             create_simulation_config(SITE_ID, c, ETH_PRICE, assets_to_simulate, assets_aliases, liquidation_incentive,
                                      inv_names)
