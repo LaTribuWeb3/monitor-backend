@@ -13,7 +13,6 @@ import datetime
 import math 
 
 def import_scenario(csv_file_path):
-    
     steps = []
     df = pd.read_csv(csv_file_path)
     
@@ -79,42 +78,44 @@ def run_scenario(steps):
                 amount_x = step['x']
                 step_name = f'{step_user} swaps {amount_x} x to y'
                 print('step', step['t'], 'is swap_x_to_y')
-                fees = amount_x * fees_pct
-                print('step', step['t'], 'fees:', fees)
-                amount_y = swap_x_to_y(current_reserve_x, current_reserve_y, amount_x, fees_pct)
-                print('step', step['t'], step_user, 'received', amount_y, 'y by swapping', amount_x, 'x')
+                amount_y = swap_x_to_y(current_reserve_x, current_reserve_y, amount_x)
+                fees_amount_y = fees_pct * amount_y
+                print('step', step['t'], 'fees:', fees_amount_y)
+                real_output_y = amount_y - fees_amount_y
+                print('step', step['t'], step_user, 'received', real_output_y, 'y by swapping', amount_x, 'x')
                 current_reserve_x += amount_x
-                current_reserve_y -= amount_y
+                current_reserve_y -= real_output_y
 
                 step_diff_x = amount_x
-                step_diff_y = -1 * amount_y
+                step_diff_y = -1 * real_output_y
                 total_diff_x += amount_x
-                total_diff_y -= amount_y
+                total_diff_y -= real_output_y
                 usersData[step_user]["total_diff_x"] -= amount_x
-                usersData[step_user]["total_diff_y"] += amount_y
-                step_collected_fees_x = fees
-                total_collected_fees_x += fees
+                usersData[step_user]["total_diff_y"] += real_output_y
+                step_collected_fees_y = fees_amount_y
+                total_collected_fees_y += fees_amount_y
 
             # IF Y is not NAN: it's swap y => x
             elif not math.isnan(step['y']) and step['y'] > 0:
                 amount_y = step['y']
                 step_name = f'{step_user} swaps {amount_y} y to x'
                 print('step', step['t'], 'is swap_y_to_x')
-                fees = amount_y * fees_pct
-                print('step', step['t'], 'fees:', fees)
-                amount_x = swap_y_to_x(current_reserve_x, current_reserve_y, amount_y, fees_pct)
-                print('step', step['t'], step_user, 'received', amount_x, 'x by swapping', amount_y, 'y')
-                current_reserve_x -= amount_x
+                amount_x = swap_y_to_x(current_reserve_x, current_reserve_y, amount_y)
+                fees_amount_x = fees_pct * amount_x
+                print('step', step['t'], 'fees:', fees_amount_x)
+                real_output_x = amount_x - fees_amount_x
+                print('step', step['t'], step_user, 'received', real_output_x, 'x by swapping', amount_y, 'y')
+                current_reserve_x -= real_output_x
                 current_reserve_y += amount_y
                 
-                step_diff_x = -1 * amount_x
+                step_diff_x = -1 * real_output_x
                 step_diff_y = amount_y
-                total_diff_x -= amount_x
+                total_diff_x -= real_output_x
                 total_diff_y += amount_y
-                usersData[step_user]["total_diff_x"] += amount_x
+                usersData[step_user]["total_diff_x"] += real_output_x
                 usersData[step_user]["total_diff_y"] -= amount_y
-                step_collected_fees_y = fees
-                total_collected_fees_y += fees
+                step_collected_fees_x = fees_amount_x
+                total_collected_fees_x += fees_amount_x
 
         print('step', step['t'], 'updated reserves to:', current_reserve_x, current_reserve_y)
         step_output = {
@@ -145,20 +146,18 @@ def run_scenario(steps):
 
     return outputs
 
-    # x * y = k
-    # (x + Δx) * (y - Δy) = k
-    # x * y = (x + Δx) * (y - Δy)
-    # Δy = (y * Δx) / (x + Δx)
 
-def swap_x_to_y(reserve_x, reserve_y, amount_x, fees):
-    numerator = amount_x * reserve_y * (1 - fees)
-    denominator = reserve_x + (amount_x * (1 - fees))
-    return numerator / denominator
+# x * y = k
+# (x + Δx) * (y - Δy) = k
+# x * y = (x + Δx) * (y - Δy)
+# Δy = (y * Δx) / (x + Δx)
+def swap_x_to_y(reserve_x, reserve_y, amount_x):
+    output_y = (reserve_y * amount_x) / (reserve_x + amount_x)
+    return output_y
 
-def swap_y_to_x(reserve_x, reserve_y, amount_y, fees):
-    numerator = amount_y * reserve_x * (1 - fees)
-    denominator = reserve_y + (amount_y * (1 - fees))
-    return numerator / denominator
+def swap_y_to_x(reserve_x, reserve_y, amount_y):
+    output_x = (reserve_x * amount_y) / (reserve_y + amount_y)
+    return output_x
 
 if __name__ == '__main__':
     scenario_path = 'scenario_0.csv'
