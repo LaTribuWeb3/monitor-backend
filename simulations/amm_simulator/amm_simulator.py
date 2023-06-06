@@ -131,6 +131,7 @@ def run_scenario(steps):
             "total_collected_fees_vETH": total_collected_fees_vETH,
             "total_diff_vETH": total_diff_vETH,
             "total_diff_vNFT": total_diff_vNFT,
+            "trader_id": step_user
         }
 
         step_output_users = {
