@@ -34,11 +34,11 @@ def import_scenario(csv_file_path):
 
 def run_scenario(steps):
     print('running scenario with', len(steps), 'steps')
-    outputs = []
+    outputs_platform = []
+    outputs_users = []
     current_reserve_vETH = 0
     current_reserve_vNFT = 0
     total_collected_fees_vETH = 0
-    total_collected_fees_vNFT = 0
 
     # check number of differents users that will interract during this simulation
     users = []
@@ -67,7 +67,6 @@ def run_scenario(steps):
         step_diff_vETH = 0
         step_diff_vNFT = 0
         step_collected_fees_vETH = 0
-        step_collected_fees_vNFT = 0
         if action == 'set_liquidity':
             current_reserve_vETH = step['vETH']
             current_reserve_vNFT = step['vNFT']
@@ -78,22 +77,24 @@ def run_scenario(steps):
                 amount_vETH = step['vETH']
                 step_name = f'{step_user} swaps {amount_vETH} vETH to vNFT'
                 print('step', step['t'], 'is swap_vETH_to_vNFT')
-                amount_vNFT = swap_vETH_to_vNFT(current_reserve_vETH, current_reserve_vNFT, amount_vETH)
-                fees_amount_vNFT = fees_pct * amount_vNFT
-                print('step', step['t'], 'fees:', fees_amount_vNFT)
-                real_output_vNFT = amount_vNFT - fees_amount_vNFT
-                print('step', step['t'], step_user, 'received', real_output_vNFT, 'y by swapping', amount_vETH, 'x')
-                current_reserve_vETH += amount_vETH
-                current_reserve_vNFT -= real_output_vNFT
 
-                step_diff_vETH = amount_vETH
-                step_diff_vNFT = -1 * real_output_vNFT
-                total_diff_vETH += amount_vETH
-                total_diff_vNFT -= real_output_vNFT
+                # calc vETH fees before swapping
+                fees_amount_vETH = amount_vETH * fees_pct
+                amount_vETH_minus_fees = amount_vETH - fees_amount_vETH
+                amount_vNFT = swap_vETH_to_vNFT(current_reserve_vETH, current_reserve_vNFT, amount_vETH_minus_fees)
+                print('step', step['t'], 'fees:', fees_amount_vETH, 'vETH')
+                print('step', step['t'], step_user, 'received', amount_vNFT, 'vNFT by swapping', amount_vETH_minus_fees, 'vETH')
+                current_reserve_vETH += amount_vETH_minus_fees
+                current_reserve_vNFT -= amount_vNFT
+
+                step_diff_vETH = amount_vETH_minus_fees
+                step_diff_vNFT = -1 * amount_vNFT
+                total_diff_vETH += amount_vETH_minus_fees
+                total_diff_vNFT -= amount_vNFT
                 usersData[step_user]["total_diff_vETH"] -= amount_vETH
-                usersData[step_user]["total_diff_vNFT"] += real_output_vNFT
-                step_collected_fees_vNFT = fees_amount_vNFT
-                total_collected_fees_vNFT += fees_amount_vNFT
+                usersData[step_user]["total_diff_vNFT"] += amount_vNFT
+                step_collected_fees_vETH = fees_amount_vETH
+                total_collected_fees_vETH += fees_amount_vETH
 
             # IF vNFT is not NAN: it's swap vNFT => vETH
             elif not math.isnan(step['vNFT']) and step['vNFT'] > 0:
@@ -102,23 +103,23 @@ def run_scenario(steps):
                 print('step', step['t'], 'is swap_vNFT_to_vETH')
                 amount_vETH = swap_vNFT_to_vETH(current_reserve_vETH, current_reserve_vNFT, amount_vNFT)
                 fees_amount_vETH = fees_pct * amount_vETH
-                print('step', step['t'], 'fees:', fees_amount_vETH)
-                real_output_vETH = amount_vETH - fees_amount_vETH
-                print('step', step['t'], step_user, 'received', real_output_vETH, 'vETH by swapping', amount_vNFT, 'vNFT')
-                current_reserve_vETH -= real_output_vETH
+                amount_vETH_minus_fees = amount_vETH - fees_amount_vETH
+                print('step', step['t'], 'fees:', fees_amount_vETH, 'vETH')
+                print('step', step['t'], step_user, 'received', amount_vETH_minus_fees, 'vETH by swapping', amount_vNFT, 'vNFT')
+                current_reserve_vETH -= amount_vETH
                 current_reserve_vNFT += amount_vNFT
                 
-                step_diff_vETH = -1 * real_output_vETH
+                step_diff_vETH = -1 * amount_vETH
                 step_diff_vNFT = amount_vNFT
-                total_diff_vETH -= real_output_vETH
+                total_diff_vETH -= amount_vETH
                 total_diff_vNFT += amount_vNFT
-                usersData[step_user]["total_diff_vETH"] += real_output_vETH
+                usersData[step_user]["total_diff_vETH"] += amount_vETH
                 usersData[step_user]["total_diff_vNFT"] -= amount_vNFT
                 step_collected_fees_vETH = fees_amount_vETH
                 total_collected_fees_vETH += fees_amount_vETH
 
         print('step', step['t'], 'updated reserves to:', current_reserve_vETH, current_reserve_vNFT)
-        step_output = {
+        step_output_platform = {
             "step_id": step_id,
             "step_name": step_name,
             "reserve_vETH": current_reserve_vETH,
@@ -127,24 +128,28 @@ def run_scenario(steps):
             "step_diff_vETH": step_diff_vETH,
             "step_diff_vNFT": step_diff_vNFT,
             "step_collected_fees_vETH": step_collected_fees_vETH,
-            "step_collected_fees_vNFT": step_collected_fees_vNFT,
+            "total_collected_fees_vETH": total_collected_fees_vETH,
             "total_diff_vETH": total_diff_vETH,
             "total_diff_vNFT": total_diff_vNFT,
-            "total_collected_fees_vETH": total_collected_fees_vETH,
-            "total_collected_fees_vNFT": total_collected_fees_vNFT
+        }
+
+        step_output_users = {
+            "step_id": step_id,
+            "step_name": step_name,
         }
 
         for user in users:
-            step_output[user + "_total_diff_vETH"] = usersData[user]['total_diff_vETH']
-            step_output[user + "_total_diff_vNFT"] = usersData[user]['total_diff_vNFT']
+            step_output_users[user + "_total_diff_vETH"] = usersData[user]['total_diff_vETH']
+            step_output_users[user + "_total_diff_vNFT"] = usersData[user]['total_diff_vNFT']
                 
 
-        outputs.append(step_output)
+        outputs_platform.append(step_output_platform)
+        outputs_users.append(step_output_users)
         step_id += 1
 
 
 
-    return outputs
+    return { 'outputs_platform': outputs_platform, 'outputs_users': outputs_users }
 
 
 # x * y = k
@@ -166,15 +171,16 @@ if __name__ == '__main__':
     steps = import_scenario(scenario_path)
     print(steps)
     scenario_result = run_scenario(steps)
-    df = pd.DataFrame(scenario_result)
-    df.to_csv(f'output_{scenario_path}', index=False)
+    df_platform = pd.DataFrame(scenario_result['outputs_platform'])
+    df_platform.to_csv(f'output_platform_{scenario_path}', index=False)
+    df_users = pd.DataFrame(scenario_result['outputs_users'])
+    df_users.to_csv(f'output_users_{scenario_path}', index=False)
     fig, ax1 = plt.subplots()
     fig.set_size_inches(12.5, 8.5)
     ax2 = ax1.twinx()
-    ax1.plot(df["step_id"], df["reserve_vETH"], 'g-')
-    ax2.plot(df["step_id"], df["total_collected_fees_vETH"], 'b-', label='fees vETH')
-    ax2.plot(df["step_id"], df["reserve_vNFT"], 'r-')
-    ax2.plot(df["step_id"], df["total_collected_fees_vNFT"], 'y-', label='fees vNFT')
+    ax1.plot(df_platform["step_id"], df_platform["reserve_vETH"], 'g-')
+    ax2.plot(df_platform["step_id"], df_platform["total_collected_fees_vETH"], 'b-', label='fees vETH')
+    ax2.plot(df_platform["step_id"], df_platform["reserve_vNFT"], 'r-')
     ax1.set_label('Step')
     ax1.set_ylabel('Reserve vETH', color='g')
     ax2.set_label('Step')
