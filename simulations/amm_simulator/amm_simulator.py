@@ -148,14 +148,40 @@ def run_scenario(steps):
         outputs_users.append(step_output_users)
         step_id += 1
 
+    # calculate platform PNL
+    # let's set the next step as pnl calculation, and for that we need to track all in assets and out assets (since inception)
+    # and then to calc pnl we need to reverse the position. meaning if the total is 7 ETH in, and 5 NFT out,
+    # then we need to see how much ETH we get for dumping 5 NFT (According to current x,y) and the pnl is the difference from 7. 
+    # if the total is 7 nft in and 9 eth out. when we need to find out how much eth is needed to buy 7 nft back. 
+    # and the diff is the difference from 9 eth.
 
+    pnl = 0
+    # find which asset is out
+    # eth out
+    if total_diff_vETH < 0:
+        print(f'pnl calc: will search amount of vETH needed to buy', total_diff_vNFT, 'vNFT to calc PNL')
+        vETH_needed_to_buy_vNFT = find_amount_vETH_to_buy_vNFT(current_reserve_vETH, current_reserve_vNFT, total_diff_vNFT)
+        # vNFT_bought = swap_vETH_to_vNFT(current_reserve_vETH, current_reserve_vNFT, vETH_needed_to_buy_vNFT)
+        # print(vNFT_bought, total_diff_vNFT)
+        print(f'pnl calc: needing {vETH_needed_to_buy_vNFT} vETH to buy back {total_diff_vNFT} vNFT')
+        pnl = abs(total_diff_vETH) - vETH_needed_to_buy_vNFT
+    # nft out
+    elif total_diff_vNFT < 0:
+        vNFT_to_dump = -1 * total_diff_vNFT
+        print(f'pnl calc: will dump', vNFT_to_dump, 'vNFT to vETH to calc PNL')
+        amount_vETH = swap_vNFT_to_vETH(current_reserve_vETH, current_reserve_vNFT, vNFT_to_dump)
+        print(f'pnl calc: dumping {vNFT_to_dump} will get back {amount_vETH} vETH')
+        pnl = total_diff_vETH - amount_vETH
+    else: 
+        raise Exception('no asset in negative??')
+    
+    print(f'pnl calc: {pnl} vETH')
 
-    return { 'outputs_platform': outputs_platform, 'outputs_users': outputs_users }
+    return { 'outputs_platform': outputs_platform, 'outputs_users': outputs_users, 'pnl': pnl}
 
 
 # x * y = k
 # (x + Δx) * (y - Δy) = k
-# x * y = (x + Δx) * (y - Δy)
 # Δy = (y * Δx) / (x + Δx)
 def swap_vETH_to_vNFT(reserve_vETH, reserve_vNFT, amount_vETH):
     output_vNFT = (reserve_vNFT * amount_vETH) / (reserve_vETH + amount_vETH)
@@ -164,6 +190,11 @@ def swap_vETH_to_vNFT(reserve_vETH, reserve_vNFT, amount_vETH):
 def swap_vNFT_to_vETH(reserve_vETH, reserve_vNFT, amount_vNFT):
     output_vETH = (reserve_vETH * amount_vNFT) / (reserve_vNFT + amount_vNFT)
     return output_vETH
+
+# Δx = (x * Δy) / (y - Δy)
+def find_amount_vETH_to_buy_vNFT(reserve_vETH, reserve_vNFT, amount_vNFT):
+    amount_needed_to_buy_vNFT = (reserve_vETH * amount_vNFT) / (reserve_vNFT - amount_vNFT)
+    return amount_needed_to_buy_vNFT
 
 if __name__ == '__main__':
     scenario_path = 'scenario_0.csv'
