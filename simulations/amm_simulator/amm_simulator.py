@@ -29,6 +29,7 @@ def import_scenario(csv_file_path):
             "fees": float(row['fees']),
             "userid": row['userid'],
         })
+    
     return steps
 
 
@@ -112,7 +113,7 @@ def run_scenario(steps):
                 step_diff_vNFT = amount_vNFT
                 total_diff_vETH -= amount_vETH
                 total_diff_vNFT += amount_vNFT
-                usersData[step_user]["total_diff_vETH"] += amount_vETH
+                usersData[step_user]["total_diff_vETH"] += amount_vETH_minus_fees
                 usersData[step_user]["total_diff_vNFT"] -= amount_vNFT
                 step_collected_fees_vETH = fees_amount_vETH
                 total_collected_fees_vETH += fees_amount_vETH
@@ -215,23 +216,24 @@ if __name__ == '__main__':
     df_platform.to_csv(f'output_platform_{scenario_path}', index=False)
     df_users = pd.DataFrame(scenario_result['outputs_users'])
     df_users.to_csv(f'output_users_{scenario_path}', index=False)
-    fig, ax1 = plt.subplots()
-    fig.set_size_inches(12.5, 8.5)
-    ax2 = ax1.twinx()
-    ax1.plot(df_platform["block"], df_platform["reserve_vETH"], 'g-')
-    ax2.plot(df_platform["block"], df_platform["total_collected_fees_vETH"], 'b-', label='fees vETH')
-    ax2.plot(df_platform["block"], df_platform["reserve_vNFT"], 'r-')
-    ax1.set_label('Step')
-    ax1.set_ylabel('Reserve vETH', color='g')
-    ax2.set_label('Step')
-    ax2.set_ylabel('Reserve vNFT', color='r')
+    
+    # fig, ax1 = plt.subplots()
+    # fig.set_size_inches(12.5, 8.5)
+    # ax2 = ax1.twinx()
+    # ax1.plot(df_platform["block"], df_platform["reserve_vETH"], 'g-')
+    # ax2.plot(df_platform["block"], df_platform["total_collected_fees_vETH"], 'b-', label='fees vETH')
+    # ax2.plot(df_platform["block"], df_platform["reserve_vNFT"], 'r-')
+    # ax1.set_label('Step')
+    # ax1.set_ylabel('Reserve vETH', color='g')
+    # ax2.set_label('Step')
+    # ax2.set_ylabel('Reserve vNFT', color='r')
 
-    scenario_name = scenario_path.replace('.csv', '')
-    plt.title(scenario_name)
-    plt.legend()
-    plt.savefig(scenario_name + ".jpg")
-    plt.cla()
-    plt.close()
+    # scenario_name = scenario_path.replace('.csv', '')
+    # plt.title(scenario_name)
+    # plt.legend()
+    # plt.savefig(scenario_name + ".jpg")
+    # plt.cla()
+    # plt.close()
     exit()
 
 
