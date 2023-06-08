@@ -54,7 +54,6 @@ def run_scenario(steps):
 
     total_diff_vETH = 0
     total_diff_vNFT = 0
-    step_id = 0
 
     # loop through steps, for each steps we will to something based on the 'action' of the step
     # possible actions: add_liquidity or swap
@@ -120,11 +119,11 @@ def run_scenario(steps):
 
         print('step', step['t'], 'updated reserves to:', current_reserve_vETH, current_reserve_vNFT)
         step_output_platform = {
-            "step_id": step['t'],
+            "block": step['t'],
             "step_name": step_name,
             "reserve_vETH": current_reserve_vETH,
             "reserve_vNFT": current_reserve_vNFT,
-            "price (vNFT/vETH)": current_reserve_vNFT / current_reserve_vETH,
+            "price (vETH/vNFT)": current_reserve_vETH / current_reserve_vNFT,
             "step_diff_vETH": step_diff_vETH,
             "step_diff_vNFT": step_diff_vNFT,
             "step_collected_fees_vETH": step_collected_fees_vETH,
@@ -134,19 +133,26 @@ def run_scenario(steps):
             "trader_id": step_user
         }
 
-        step_output_users = {
-            "step_id": step_id,
-            "step_name": step_name,
-        }
-
+        cpt_user_long = 0
+        total_long = 0
+        cpt_user_short = 0
+        total_short = 0
         for user in users:
-            step_output_users[user + "_total_diff_vETH"] = usersData[user]['total_diff_vETH']
-            step_output_users[user + "_total_diff_vNFT"] = usersData[user]['total_diff_vNFT']
+            # only take value when != 0; value == 0 mean user did not do anything yet so should not be counted
+            if usersData[user]['total_diff_vNFT'] < 0:
+                cpt_user_short += 1
+                total_short += usersData[user]['total_diff_vNFT']
                 
+            if usersData[user]['total_diff_vNFT'] > 0:
+                cpt_user_long += 1
+                total_long += usersData[user]['total_diff_vNFT']
 
+        step_output_platform['cpt_user_long'] = cpt_user_long
+        step_output_platform['total_long'] = total_long
+        step_output_platform['cpt_user_short'] = cpt_user_short
+        step_output_platform['total_short'] = total_short
         outputs_platform.append(step_output_platform)
-        outputs_users.append(step_output_users)
-        step_id += 1
+
 
     # calculate platform PNL
     # let's set the next step as pnl calculation, and for that we need to track all in assets and out assets (since inception)
@@ -212,9 +218,9 @@ if __name__ == '__main__':
     fig, ax1 = plt.subplots()
     fig.set_size_inches(12.5, 8.5)
     ax2 = ax1.twinx()
-    ax1.plot(df_platform["step_id"], df_platform["reserve_vETH"], 'g-')
-    ax2.plot(df_platform["step_id"], df_platform["total_collected_fees_vETH"], 'b-', label='fees vETH')
-    ax2.plot(df_platform["step_id"], df_platform["reserve_vNFT"], 'r-')
+    ax1.plot(df_platform["block"], df_platform["reserve_vETH"], 'g-')
+    ax2.plot(df_platform["block"], df_platform["total_collected_fees_vETH"], 'b-', label='fees vETH')
+    ax2.plot(df_platform["block"], df_platform["reserve_vNFT"], 'r-')
     ax1.set_label('Step')
     ax1.set_ylabel('Reserve vETH', color='g')
     ax2.set_label('Step')

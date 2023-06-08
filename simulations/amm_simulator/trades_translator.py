@@ -29,7 +29,7 @@ if __name__ == '__main__':
         vETH_value = float(row['trade_notional'])
         trade_size = float(row['trade_size'])
         user_id = row['trader']
-        fee_pct = round(float(row['fee_pct']) / 100, 4)
+        fee_pct = float(row['fee_pct']) / 100
         
         # "Trade size is the base asset, say Punk. And the notional is the eth(x) that its worth. If trade size positive user goes long. If negative he is short."
         if trade_size > 0: # If trade size positive user goes long --> sell eth to buy punks
