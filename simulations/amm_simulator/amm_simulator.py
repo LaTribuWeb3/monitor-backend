@@ -120,7 +120,7 @@ def run_scenario(steps):
 
         print('step', step['t'], 'updated reserves to:', current_reserve_vETH, current_reserve_vNFT)
         step_output_platform = {
-            "step_id": step_id,
+            "step_id": step['t'],
             "step_name": step_name,
             "reserve_vETH": current_reserve_vETH,
             "reserve_vNFT": current_reserve_vNFT,
@@ -197,7 +197,9 @@ def find_amount_vETH_to_buy_vNFT(reserve_vETH, reserve_vNFT, amount_vNFT):
     return amount_needed_to_buy_vNFT
 
 if __name__ == '__main__':
-    scenario_path = 'scenario_0.csv'
+
+    print(sys.argv)
+    scenario_path = f'{sys.argv[1]}'
     
     print('starting amm simulator on', scenario_path)
     steps = import_scenario(scenario_path)
