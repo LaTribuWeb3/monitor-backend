@@ -53,8 +53,8 @@ if __name__ == '__main__':
     
     for index, row in df_repegs.iterrows():
         block = row['blockNumber']
-        vETH_reserve = float(row['Y0_after'])
-        vNFT_reserve = float(row['X0_after'])
+        vETH_reserve = float(row['quoteAssetReserveAfter'])
+        vNFT_reserve = float(row['baseAssetReserveAfter'])
 
         
         repegs.append({
