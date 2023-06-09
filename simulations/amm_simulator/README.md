@@ -16,7 +16,7 @@ Example: with input scenario here `'/home/bob/scenario.csv'`, the output csv wil
 
 ## Scenario
 
-A scenario describes all the actions that will happend in the amm
+A scenario describes all the actions that will happen in the amm
 
 ### Example
 
