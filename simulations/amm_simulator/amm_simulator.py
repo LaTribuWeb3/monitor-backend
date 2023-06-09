@@ -1,15 +1,6 @@
-
-import matplotlib.pyplot as plt
-import json
-import time
 import os
-import glob
-import numpy as np
 import pandas as pd
-import copy
 import sys
-import shutil
-import datetime
 import math 
 
 def import_scenario(csv_file_path):
@@ -120,7 +111,7 @@ def run_scenario(steps):
 
         print('step', step['t'], 'updated reserves to:', current_reserve_vETH, current_reserve_vNFT)
         step_output_platform = {
-            "block": step['t'],
+            "t": step['t'],
             "step_name": step_name,
             "reserve_vETH": current_reserve_vETH,
             "reserve_vNFT": current_reserve_vNFT,
@@ -131,7 +122,7 @@ def run_scenario(steps):
             "total_collected_fees_vETH": total_collected_fees_vETH,
             "total_diff_vETH": total_diff_vETH,
             "total_diff_vNFT": total_diff_vNFT,
-            "trader_id": step_user
+            "user_id": step_user
         }
 
         cpt_user_long = 0
@@ -204,18 +195,19 @@ def find_amount_vETH_to_buy_vNFT(reserve_vETH, reserve_vNFT, amount_vNFT):
     return amount_needed_to_buy_vNFT
 
 if __name__ == '__main__':
-
     print(sys.argv)
     scenario_path = f'{sys.argv[1]}'
-    
-    print('starting amm simulator on', scenario_path)
+    scenario_name = os.path.basename(scenario_path)
+    print('starting amm simulator on', scenario_path, scenario_name)
     steps = import_scenario(scenario_path)
-    print(steps)
+    # print(steps)
     scenario_result = run_scenario(steps)
     df_platform = pd.DataFrame(scenario_result['outputs_platform'])
-    df_platform.to_csv(f'output_platform_{scenario_path}', index=False)
-    df_users = pd.DataFrame(scenario_result['outputs_users'])
-    df_users.to_csv(f'output_users_{scenario_path}', index=False)
+    output_path = scenario_path.replace(scenario_name, f'output_{scenario_name}')
+    df_platform.to_csv(output_path, index=False)
+    print('result saved to', output_path)
+    # df_users = pd.DataFrame(scenario_result['outputs_users'])
+    # df_users.to_csv(scenario_path.replace(scenario_name, f'output_{scenario_name}'), index=False)
     
     # fig, ax1 = plt.subplots()
     # fig.set_size_inches(12.5, 8.5)
