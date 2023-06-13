@@ -131,7 +131,7 @@ def run_scenario(steps):
                         user_ratio = receiving_user_position_size[user] / total_short
                         payment_to_user = total_payments * user_ratio
                         # print(f'giving {payment_to_user} vNFT to {user}')
-                        users_data[user]['total_diff_vNFT'] -= payment_to_user # minus because total diff vNFT for short users is negative
+                        users_data[user]['total_diff_vNFT'] += payment_to_user # user will be less short after payment
 
                 #  In contrast, a negative funding rate means that short positions pay longs.
                 elif funding_rate < 0:
@@ -268,6 +268,7 @@ def run_scenario(steps):
             "reserve_vETH": current_reserve_vETH,
             "reserve_vNFT": current_reserve_vNFT,
             "price (vETH/vNFT)": current_reserve_vETH / current_reserve_vNFT,
+            "oracle price": step['oracle_price'],
             "step_diff_vETH": step_diff_vETH,
             "step_diff_vNFT": step_diff_vNFT,
             "step_collected_fees_vETH": step_collected_fees_vETH,
