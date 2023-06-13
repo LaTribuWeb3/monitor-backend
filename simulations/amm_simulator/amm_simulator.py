@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import sys
 import math 
+import datetime
 
 def import_scenario(csv_file_path):
     steps = []
@@ -13,16 +14,17 @@ def import_scenario(csv_file_path):
                 raise Exception('First action should be set_liquidity, not', df['action'])
             
         steps.append({
-            "t": row['t'],
+            "step": row['step'],
+            "time": row['time'],
             "action": row['action'],
             "vETH": float(row['vETH']),
             "vNFT": float(row['vNFT']),
             "fees": float(row['fees']),
             "userid": row['userid'],
+            "oracle_price": row['oracle_price'],
         })
     
     return steps
-
 
 def run_scenario(steps):
     print('running scenario with', len(steps), 'steps')
@@ -34,11 +36,11 @@ def run_scenario(steps):
 
     # check number of differents users that will interract during this simulation
     users = []
-    usersData = {}
+    users_data = {}
     for step in steps:
         step_user = step['userid']
         if step_user != 'admin' and step_user not in users:
-            usersData[step_user] = {
+            users_data[step_user] = {
                 "total_diff_vETH": 0,
                 "total_diff_vNFT": 0
             }
@@ -46,6 +48,12 @@ def run_scenario(steps):
 
     total_diff_vETH = 0
     total_diff_vNFT = 0
+    first_trade_time = 0
+    funding_payment_start_time = 0
+    funding_payment_end_time = 0
+    last_hour_prices = {}
+    last_price = 0
+    last_oracle_price = 0
 
     # loop through steps, for each steps we will to something based on the 'action' of the step
     # possible actions: add_liquidity or swap
@@ -63,18 +71,152 @@ def run_scenario(steps):
             current_reserve_vNFT = step['vNFT']
             step_name = f'set liquidity: {step["vETH"]} vETH / {step["vNFT"]} vNFT'
         elif action == 'swap':
+
+            if first_trade_time == 0:
+                first_trade_time = step['time']
+                print(f'initialized first_trade_time to {first_trade_time}')
+                funding_payment_start_time = first_trade_time
+                funding_payment_end_time = funding_payment_start_time + 3599
+                print(f'new funding payment window: [{funding_payment_start_time} - {funding_payment_end_time}]')
+                print(f'new funding payment window: [{datetime.datetime.fromtimestamp(funding_payment_start_time)} - {datetime.datetime.fromtimestamp(funding_payment_end_time)}]')
+
+            # calculate funding payments while step time is > funding_payment_end_time
+            while step['time'] > funding_payment_end_time:
+                print(f'{datetime.datetime.fromtimestamp(step["time"])} > {datetime.datetime.fromtimestamp(funding_payment_start_time)}, calculating funding payments')
+                print(f'current funding payment window: [{funding_payment_start_time} - {funding_payment_end_time}]')
+                print(f'current funding payment window: [{datetime.datetime.fromtimestamp(funding_payment_start_time)} - {datetime.datetime.fromtimestamp(funding_payment_end_time)}]')
+                print('last_hour_prices', last_hour_prices)
+                print('last_price', last_price)
+                print('last_oracle_price', last_oracle_price)
+
+                # if no new trade, add the last prices to the last_hour_prices
+                if len(last_hour_prices) == 0:
+                    last_hour_prices[funding_payment_start_time] = {
+                        'price': last_price,
+                        'oracle_price':last_oracle_price,
+                    }
+
+                twaps = calc_twaps(funding_payment_start_time, funding_payment_end_time, last_hour_prices)
+                print('twaps', twaps)
+
+                funding_rate = calc_funding_rate(twaps)
+                print('funding_rate', funding_rate)
+                funding_rate_new = calc_funding_rate_new(funding_rate, users_data)
+                print('funding_rate_new', funding_rate_new)
+                
+                receiving_user_position_size = {}
+                total_payments = 0
+
+                step_name = ''
+                # When the funding rate is above zero (positive), traders that are long (contract buyers) have to pay the ones that are short (contract sellers).
+                if funding_rate > 0:
+                    step_name = f'funding payment long --> short'
+                    print('funding_rate is > 0, long buyer will pay short buyers')
+                    total_short = 0
+                    for user in users_data:
+                        # save position for user who are short
+                        if users_data[user]['total_diff_vNFT'] < 0:
+                            receiving_user_position_size[user] = abs(users_data[user]['total_diff_vNFT'])
+                            total_short += abs(users_data[user]['total_diff_vNFT'])
+                            
+                        # calculate payment for user who are long
+                        if users_data[user]['total_diff_vNFT'] > 0:
+                            user_payment = users_data[user]['total_diff_vNFT'] * funding_rate_new['funding_rate_new_long']
+                            users_data[user]['total_diff_vNFT'] -= user_payment
+                            # print(f'user {user} will pay {user_payment} vNFT')
+                            total_payments += user_payment
+
+                    # calc short user ratios and distribute total_payments between every short users
+                    for user in receiving_user_position_size:
+                        user_ratio = receiving_user_position_size[user] / total_short
+                        payment_to_user = total_payments * user_ratio
+                        # print(f'giving {payment_to_user} vNFT to {user}')
+                        users_data[user]['total_diff_vNFT'] -= payment_to_user # minus because total diff vNFT for short users is negative
+
+                #  In contrast, a negative funding rate means that short positions pay longs.
+                elif funding_rate < 0:
+                    step_name = f'funding payment short --> long'
+                    print('funding_rate is < 0, short buyer will pay long buyers')
+                    total_long = 0
+                    for user in users_data:
+                        # calculate payment for user who are short
+                        if users_data[user]['total_diff_vNFT'] < 0:
+                            user_payment = abs(users_data[user]['total_diff_vNFT'] * funding_rate_new['funding_rate_new_short'])
+                            users_data[user]['total_diff_vNFT'] += abs(user_payment)
+                            # print(f'user {user} will pay {user_payment} vNFT')
+                            total_payments += user_payment
+                            
+                        # save position for user who are long
+                        if users_data[user]['total_diff_vNFT'] > 0:
+                            receiving_user_position_size[user] = abs(users_data[user]['total_diff_vNFT'])
+                            total_long += abs(users_data[user]['total_diff_vNFT'])
+
+                    # calc long user ratios and distribute total_payments between every long users
+                    for user in receiving_user_position_size:
+                        user_ratio = receiving_user_position_size[user] / total_long
+                        payment_to_user = total_payments * user_ratio
+                        # print(f'giving {payment_to_user} vNFT to {user}')
+                        users_data[user]['total_diff_vNFT'] += payment_to_user
+                
+                print(f'total payment for [{datetime.datetime.fromtimestamp(funding_payment_start_time)} - {datetime.datetime.fromtimestamp(funding_payment_end_time)}]: {total_payments} vNFT')
+
+                step_output_platform = {
+                            "step": 'funding_payments',
+                            "time": funding_payment_end_time,
+                            "step_name": step_name + f' total payments: {total_payments} vNFT',
+                            "reserve_vETH": current_reserve_vETH,
+                            "reserve_vNFT": current_reserve_vNFT,
+                            "price (vETH/vNFT)": current_reserve_vETH / current_reserve_vNFT,
+                            "step_diff_vETH": step_diff_vETH,
+                            "step_diff_vNFT": step_diff_vNFT,
+                            "step_collected_fees_vETH": step_collected_fees_vETH,
+                            "total_collected_fees_vETH": total_collected_fees_vETH,
+                            "total_diff_vETH": total_diff_vETH,
+                            "total_diff_vNFT": total_diff_vNFT,
+                            "user_id": 'admin'
+                        }
+                
+                cpt_user_long = 0
+                total_long = 0
+                cpt_user_short = 0
+                total_short = 0
+                for user in users:
+                    # only take value when != 0; value == 0 mean user did not do anything yet so should not be counted
+                    if users_data[user]['total_diff_vNFT'] < 0:
+                        cpt_user_short += 1
+                        total_short += abs(users_data[user]['total_diff_vNFT'])
+                        
+                    if users_data[user]['total_diff_vNFT'] > 0:
+                        cpt_user_long += 1
+                        total_long += users_data[user]['total_diff_vNFT']
+
+                step_output_platform['cpt_user_long'] = cpt_user_long
+                step_output_platform['total_long'] = total_long
+                step_output_platform['cpt_user_short'] = cpt_user_short
+                step_output_platform['total_short'] = total_short
+                outputs_platform.append(step_output_platform)
+                
+                # reset last hour prices
+                last_hour_prices = {}
+                
+                # update funding payment windows
+                funding_payment_start_time = funding_payment_end_time + 1
+                funding_payment_end_time = funding_payment_start_time + 3599
+                print(f'new funding payment window: [{funding_payment_start_time} - {funding_payment_end_time}]')
+                print(f'new funding payment window: [{datetime.datetime.fromtimestamp(funding_payment_start_time)} - {datetime.datetime.fromtimestamp(funding_payment_end_time)}]')
+
             # IF vETH is not NAN: it's swap vETH => vNFT
             if not math.isnan(step['vETH']) and step['vETH'] > 0:
                 amount_vETH = step['vETH']
                 step_name = f'{step_user} swaps {amount_vETH} vETH to vNFT'
-                print('step', step['t'], 'is swap_vETH_to_vNFT')
+                print('step', step['step'], 'is swap_vETH_to_vNFT')
 
                 # calc vETH fees before swapping
                 fees_amount_vETH = amount_vETH * fees_pct
                 amount_vETH_minus_fees = amount_vETH - fees_amount_vETH
                 amount_vNFT = swap_vETH_to_vNFT(current_reserve_vETH, current_reserve_vNFT, amount_vETH_minus_fees)
-                print('step', step['t'], 'fees:', fees_amount_vETH, 'vETH')
-                print('step', step['t'], step_user, 'received', amount_vNFT, 'vNFT by swapping', amount_vETH_minus_fees, 'vETH')
+                print('step', step['step'], 'fees:', fees_amount_vETH, 'vETH')
+                print('step', step['step'], step_user, 'received', amount_vNFT, 'vNFT by swapping', amount_vETH_minus_fees, 'vETH')
                 current_reserve_vETH += amount_vETH_minus_fees
                 current_reserve_vNFT -= amount_vNFT
 
@@ -82,8 +224,8 @@ def run_scenario(steps):
                 step_diff_vNFT = -1 * amount_vNFT
                 total_diff_vETH += amount_vETH_minus_fees
                 total_diff_vNFT -= amount_vNFT
-                usersData[step_user]["total_diff_vETH"] -= amount_vETH
-                usersData[step_user]["total_diff_vNFT"] += amount_vNFT
+                users_data[step_user]["total_diff_vETH"] -= amount_vETH
+                users_data[step_user]["total_diff_vNFT"] += amount_vNFT
                 step_collected_fees_vETH = fees_amount_vETH
                 total_collected_fees_vETH += fees_amount_vETH
 
@@ -91,12 +233,12 @@ def run_scenario(steps):
             elif not math.isnan(step['vNFT']) and step['vNFT'] > 0:
                 amount_vNFT = step['vNFT']
                 step_name = f'{step_user} swaps {amount_vNFT} vNFT to vETH'
-                print('step', step['t'], 'is swap_vNFT_to_vETH')
+                print('step', step['step'], 'is swap_vNFT_to_vETH')
                 amount_vETH = swap_vNFT_to_vETH(current_reserve_vETH, current_reserve_vNFT, amount_vNFT)
                 fees_amount_vETH = fees_pct * amount_vETH
                 amount_vETH_minus_fees = amount_vETH - fees_amount_vETH
-                print('step', step['t'], 'fees:', fees_amount_vETH, 'vETH')
-                print('step', step['t'], step_user, 'received', amount_vETH_minus_fees, 'vETH by swapping', amount_vNFT, 'vNFT')
+                print('step', step['step'], 'fees:', fees_amount_vETH, 'vETH')
+                print('step', step['step'], step_user, 'received', amount_vETH_minus_fees, 'vETH by swapping', amount_vNFT, 'vNFT')
                 current_reserve_vETH -= amount_vETH
                 current_reserve_vNFT += amount_vNFT
                 
@@ -104,14 +246,24 @@ def run_scenario(steps):
                 step_diff_vNFT = amount_vNFT
                 total_diff_vETH -= amount_vETH
                 total_diff_vNFT += amount_vNFT
-                usersData[step_user]["total_diff_vETH"] += amount_vETH_minus_fees
-                usersData[step_user]["total_diff_vNFT"] -= amount_vNFT
+                users_data[step_user]["total_diff_vETH"] += amount_vETH_minus_fees
+                users_data[step_user]["total_diff_vNFT"] -= amount_vNFT
                 step_collected_fees_vETH = fees_amount_vETH
                 total_collected_fees_vETH += fees_amount_vETH
 
-        print('step', step['t'], 'updated reserves to:', current_reserve_vETH, current_reserve_vNFT)
+            # here the swap is done, reserves are updated, save the price
+            
+            last_price = current_reserve_vETH / current_reserve_vNFT
+            last_oracle_price = step['oracle_price']
+            last_hour_prices[step['time']] = {
+                'price': last_price,
+                'oracle_price':last_oracle_price,
+            }
+
+        print('step', step['step'], 'updated reserves to:', current_reserve_vETH, current_reserve_vNFT)
         step_output_platform = {
-            "t": step['t'],
+            "step": step['step'],
+            "time": step['time'],
             "step_name": step_name,
             "reserve_vETH": current_reserve_vETH,
             "reserve_vNFT": current_reserve_vNFT,
@@ -131,13 +283,13 @@ def run_scenario(steps):
         total_short = 0
         for user in users:
             # only take value when != 0; value == 0 mean user did not do anything yet so should not be counted
-            if usersData[user]['total_diff_vNFT'] < 0:
+            if users_data[user]['total_diff_vNFT'] < 0:
                 cpt_user_short += 1
-                total_short += usersData[user]['total_diff_vNFT']
+                total_short += abs(users_data[user]['total_diff_vNFT'])
                 
-            if usersData[user]['total_diff_vNFT'] > 0:
+            if users_data[user]['total_diff_vNFT'] > 0:
                 cpt_user_long += 1
-                total_long += usersData[user]['total_diff_vNFT']
+                total_long += users_data[user]['total_diff_vNFT']
 
         step_output_platform['cpt_user_long'] = cpt_user_long
         step_output_platform['total_long'] = total_long
@@ -177,6 +329,47 @@ def run_scenario(steps):
 
     return { 'outputs_platform': outputs_platform, 'outputs_users': outputs_users, 'pnl': pnl}
 
+def calc_funding_rate(twaps):
+    return (twaps['twap_amm'] - twaps['twap_oracle']) / 24
+
+def calc_funding_rate_new(funding_rate, users_data):
+    long_size = 0
+    short_size = 0
+    for user in users_data:
+        # only take value when != 0; value == 0 mean user did not do anything yet so should not be counted
+        if users_data[user]['total_diff_vNFT'] < 0:
+            short_size += abs(users_data[user]['total_diff_vNFT'])
+            
+        if users_data[user]['total_diff_vNFT'] > 0:
+            long_size += users_data[user]['total_diff_vNFT']
+    funding_rate_new_long = 0
+    funding_rate_new_short = 0
+    if long_size > 0:
+        funding_rate_new_long = (funding_rate * math.pow((short_size * long_size), 0.5)) / long_size
+    if short_size > 0:
+        funding_rate_new_short = (funding_rate * math.pow((short_size * long_size), 0.5)) / short_size
+
+    return {'funding_rate_new_long': funding_rate_new_long, 'funding_rate_new_short': funding_rate_new_short}
+
+def calc_twaps(funding_payment_start_time, funding_payment_end_time, last_hour_prices):
+    last_prices = last_hour_prices[next(iter(last_hour_prices))]
+    twap_amm = 0
+    twap_oracle = 0
+    
+    interval_length = funding_payment_end_time - funding_payment_start_time + 1
+    time_range = range(interval_length)
+    for i in time_range:
+        time = funding_payment_end_time + i
+        if time in last_hour_prices:
+            last_prices = last_hour_prices[time]
+
+        twap_amm += last_prices['price']
+        twap_oracle += last_prices['oracle_price']
+
+    twap_amm = twap_amm / interval_length
+    twap_oracle = twap_oracle / interval_length
+
+    return {'twap_amm': twap_amm, 'twap_oracle': twap_oracle}
 
 # x * y = k
 # (x + Δx) * (y - Δy) = k
