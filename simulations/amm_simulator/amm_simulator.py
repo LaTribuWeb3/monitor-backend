@@ -4,6 +4,8 @@ import sys
 import math 
 import datetime
 
+DEFAULT_FEES_PCT = 0.3/100
+
 def import_scenario(csv_file_path):
     steps = []
     df = pd.read_csv(csv_file_path)
@@ -19,7 +21,6 @@ def import_scenario(csv_file_path):
             "action": row['action'],
             "vETH": float(row['vETH']),
             "vNFT": float(row['vNFT']),
-            "fees": float(row['fees']),
             "userid": row['userid'],
             "oracle_price": row['oracle_price'],
         })
@@ -63,10 +64,10 @@ def run_scenario(steps):
         action = step['action']
         print('working on step with action:', action)
         step_user = step['userid']
-        fees_pct = step['fees']
         step_diff_vETH = 0
         step_diff_vNFT = 0
         step_collected_fees_vETH = 0
+        fees_pct = 0
         if action == 'set_liquidity':
             current_reserve_vETH = step['vETH']
             current_reserve_vNFT = step['vNFT']
@@ -81,6 +82,8 @@ def run_scenario(steps):
                 print(f'new funding payment window: [{datetime.datetime.fromtimestamp(funding_payment_start_time)} - {datetime.datetime.fromtimestamp(funding_payment_end_time)}]')
 
             # calculate funding payments while step time is > funding_payment_end_time
+            # funding payments are calculated every hours so if no trades during few hours it means that 
+            # we will calculate the fundping payments multiple times
             while step['time'] > funding_payment_end_time:
                 print(f'{datetime.datetime.fromtimestamp(step["time"])} > {datetime.datetime.fromtimestamp(funding_payment_start_time)}, calculating funding payments')
                 # print(f'current funding payment window: [{funding_payment_start_time} - {funding_payment_end_time}]')
@@ -99,12 +102,22 @@ def run_scenario(steps):
                 # print(f'new funding payment window: [{funding_payment_start_time} - {funding_payment_end_time}]')
                 print(f'new funding payment window: [{datetime.datetime.fromtimestamp(funding_payment_start_time)} - {datetime.datetime.fromtimestamp(funding_payment_end_time)}]')
 
+
+            current_price = current_reserve_vETH / current_reserve_vNFT
+            diverging_fees, converging_fees = calc_fees_pct(current_price, step['oracle_price'])
+            
+            fees_pct = converging_fees
             # IF vETH is not NAN: it's swap vETH => vNFT
+            # long position
             if not math.isnan(step['vETH']) and step['vETH'] > 0:
                 amount_vETH = step['vETH']
                 step_name = f'{step_user} swaps {amount_vETH} vETH to vNFT'
                 print('step', step['step'], 'is swap_vETH_to_vNFT')
 
+                # if amm price is already > oracle price and user still buy more vNFT, apply diverging fee
+                if current_price > step['oracle_price']:
+                    fees_pct = diverging_fees
+                
                 # calc vETH fees before swapping
                 fees_amount_vETH = amount_vETH * fees_pct
                 amount_vETH_minus_fees = amount_vETH - fees_amount_vETH
@@ -124,10 +137,16 @@ def run_scenario(steps):
                 total_collected_fees_vETH += fees_amount_vETH
 
             # IF vNFT is not NAN: it's swap vNFT => vETH
+            # short position
             elif not math.isnan(step['vNFT']) and step['vNFT'] > 0:
                 amount_vNFT = step['vNFT']
                 step_name = f'{step_user} swaps {amount_vNFT} vNFT to vETH'
                 print('step', step['step'], 'is swap_vNFT_to_vETH')
+
+                # if amm price is already < oracle price and user still sell more vNFT, apply diverging fee
+                if current_price < step['oracle_price']:
+                    fees_pct = diverging_fees
+
                 amount_vETH = swap_vNFT_to_vETH(current_reserve_vETH, current_reserve_vNFT, amount_vNFT)
                 fees_amount_vETH = fees_pct * amount_vETH
                 amount_vETH_minus_fees = amount_vETH - fees_amount_vETH
@@ -163,6 +182,7 @@ def run_scenario(steps):
             "reserve_vNFT": current_reserve_vNFT,
             "price (vETH/vNFT)": current_reserve_vETH / current_reserve_vNFT,
             "oracle price": step['oracle_price'],
+            "applied_fees": fees_pct,
             "step_diff_vETH": step_diff_vETH,
             "step_diff_vNFT": step_diff_vNFT,
             "step_collected_fees_vETH": step_collected_fees_vETH,
@@ -223,6 +243,43 @@ def run_scenario(steps):
     print(f'pnl calc: {pnl} vETH')
 
     return { 'outputs_platform': outputs_platform, 'outputs_users': outputs_users, 'pnl': pnl}
+
+def calc_fees_pct(amm_price, oracle_price):
+    converging_fee = diverging_fee = DEFAULT_FEES_PCT
+    diff = abs(amm_price - oracle_price) / oracle_price
+
+
+    if diff > 1:
+        print(f'diff is {diff*100}%, diverging fees are 100%')
+        converging_fee = 0.13
+        diverging_fee = 1
+        return converging_fee, diverging_fee
+
+    if diff < 2.5/100:
+        print(f'diff is {diff*100}%, no need for dynamic fees calc')
+        return converging_fee, diverging_fee
+    
+    max_reached = True
+
+    divergence_bound_low = 10
+    if diff >= 2.5/100:
+        diverging_fee = 1/100
+        converging_fee = 0.2/100
+    if diff >= 5/100:
+        diverging_fee = 5/100
+        converging_fee = 0.15/100
+        max_reached = False
+
+    while not max_reached:
+        if diff > divergence_bound_low / 100:
+            diverging_fee = divergence_bound_low / 100
+            converging_fee = 0.13/100 # min is 0.13% for converging fees according to https://nftperp.notion.site/Technical-Stuff-nftperp-v1-f8c37312f0064895877b8b01de72fee2
+            divergence_bound_low += 5
+        else:
+            print(f'max divergence range reached with: {divergence_bound_low-5}%')
+            max_reached = True
+
+    return converging_fee, diverging_fee
 
 def compute_funding_payments(outputs_platform, current_reserve_vETH, current_reserve_vNFT, total_collected_fees_vETH, users, users_data, step, total_diff_vETH, total_diff_vNFT, funding_payment_start_time, funding_payment_end_time, last_hour_prices, last_price, last_oracle_price, step_diff_vETH, step_diff_vNFT, step_collected_fees_vETH):
     current_price = current_reserve_vETH / current_reserve_vNFT
